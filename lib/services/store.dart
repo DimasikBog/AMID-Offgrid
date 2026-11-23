@@ -110,9 +110,11 @@ class AppStore extends ChangeNotifier {
     void Function() change, {
     bool reindex = false,
     bool libraryChanged = false,
+    void Function()? checkActive,
   }) {
     if (_closed) return Future.error(StateError('Сховище вже закрите.'));
     final job = _writes.then((_) async {
+      checkActive?.call();
       final previous = snapshot();
       try {
         change();
@@ -155,16 +157,17 @@ class AppStore extends ChangeNotifier {
     packs.add(metadata);
   }
 
-  Future<void> importKnowledge(Json pack) =>
-      _mutate(() => _insertPack(pack), reindex: true);
-  Future<void> addAsset(Json pack) => _mutate(() {
-    if (packs.any((p) => p['id'] == pack['id'])) {
-      throw const FormatException('Цей файл уже додано.');
-    }
-    packs.add(pack);
-    if (pack['kind'] == 'model') selectedModel = pack['id'] as String;
-    if (pack['kind'] == 'map') selectedMap = pack['id'] as String;
-  });
+  Future<void> importKnowledge(Json pack, {void Function()? checkActive}) =>
+      _mutate(() => _insertPack(pack), reindex: true, checkActive: checkActive);
+  Future<void> addAsset(Json pack, {void Function()? checkActive}) =>
+      _mutate(() {
+        if (packs.any((p) => p['id'] == pack['id'])) {
+          throw const FormatException('Цей файл уже додано.');
+        }
+        packs.add(pack);
+        if (pack['kind'] == 'model') selectedModel = pack['id'] as String;
+        if (pack['kind'] == 'map') selectedMap = pack['id'] as String;
+      }, checkActive: checkActive);
   Future<void> savePin(Pin pin) => _mutate(() {
     final valid = Pin.fromJson(pin.toJson());
     pins = [...pins.where((p) => p.id != valid.id), valid];
@@ -386,7 +389,7 @@ class AppStore extends ChangeNotifier {
     'favoriteKeys': favoriteKeys.toList(),
     'themePreference': themePreference,
   };
-  Future<void> restore(Json value) async {
+  Future<void> restore(Json value, {void Function()? checkActive}) async {
     if (value['format'] != 'AMID_OFFGRID_BACKUP' ||
         value['version'] != 1 ||
         value['packs'] is! List ||
@@ -443,51 +446,57 @@ class AppStore extends ChangeNotifier {
     unique(incomingPacks.map((p) => p['id'] as String));
     unique(incomingPins.map((p) => p.id));
     unique(incomingMessages.map((m) => m.id));
-    await _mutate(() {
-      for (final p in incomingPacks) {
-        if (!packs.any((a) => a['id'] == p['id'])) {
-          _insertPack(p);
-        } else if (p['id'] == notesId) {
-          final existingKeys = articles.map((a) => a.key).toSet();
-          articles.addAll(
-            (p['articles'] as List)
-                .map((a) => Article.fromJson(Json.from(a as Map)))
-                .where((a) => !existingKeys.contains(a.key)),
-          );
-          packs = packs
-              .map(
-                (a) => a['id'] == notesId
-                    ? {
-                        ...a,
-                        'count': articles
-                            .where((v) => v.packId == notesId)
-                            .length,
-                      }
-                    : a,
-              )
-              .toList();
+    await _mutate(
+      () {
+        for (final p in incomingPacks) {
+          if (!packs.any((a) => a['id'] == p['id'])) {
+            _insertPack(p);
+          } else if (p['id'] == notesId) {
+            final existingKeys = articles.map((a) => a.key).toSet();
+            articles.addAll(
+              (p['articles'] as List)
+                  .map((a) => Article.fromJson(Json.from(a as Map)))
+                  .where((a) => !existingKeys.contains(a.key)),
+            );
+            packs = packs
+                .map(
+                  (a) => a['id'] == notesId
+                      ? {
+                          ...a,
+                          'count': articles
+                              .where((v) => v.packId == notesId)
+                              .length,
+                        }
+                      : a,
+                )
+                .toList();
+          }
         }
-      }
-      for (final p in incomingPins) {
-        if (!pins.any((a) => a.id == p.id)) pins.add(p);
-      }
-      for (final m in incomingMessages) {
-        final existing = messages.where((a) => a.id == m.id).firstOrNull;
-        if (existing == null) {
-          messages.add(m);
-        } else if (existing.body != m.body ||
-            existing.createdAt != m.createdAt ||
-            existing.direction != m.direction) {
-          throw const FormatException(
-            'Конфлікт ID повідомлень у резервній копії.',
-          );
+        for (final p in incomingPins) {
+          if (!pins.any((a) => a.id == p.id)) pins.add(p);
         }
-      }
-      final articleKeys = articles.map((a) => a.key).toSet();
-      favoriteKeys.addAll(favorites.cast<String>().where(articleKeys.contains));
-      if (draft.isEmpty) draft = incomingDraft;
-      themePreference = theme as String;
-    }, reindex: true);
+        for (final m in incomingMessages) {
+          final existing = messages.where((a) => a.id == m.id).firstOrNull;
+          if (existing == null) {
+            messages.add(m);
+          } else if (existing.body != m.body ||
+              existing.createdAt != m.createdAt ||
+              existing.direction != m.direction) {
+            throw const FormatException(
+              'Конфлікт ID повідомлень у резервній копії.',
+            );
+          }
+        }
+        final articleKeys = articles.map((a) => a.key).toSet();
+        favoriteKeys.addAll(
+          favorites.cast<String>().where(articleKeys.contains),
+        );
+        if (draft.isEmpty) draft = incomingDraft;
+        themePreference = theme as String;
+      },
+      reindex: true,
+      checkActive: checkActive,
+    );
   }
 
   Future<void> flush() => _writes;

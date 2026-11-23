@@ -1,4 +1,4 @@
-# AMID Offgrid 0.4.0 candidate
+# AMID Offgrid 0.4.1 candidate
 
 One Flutter app for Android and iPhone, developed through DimasikBog/AMID-Offgrid.
 An owned Mac is not required: iOS compilation runs on macOS CI. Personal iPhone
@@ -29,3 +29,8 @@ The synthetic example is identified in UI and exports. See OFFLINE_ROUTES.md.
 Physical Android/iPhone tests, credentials, store listings and store approval are
 separate from compilation and unit tests. Never infer those outcomes from a ZIP,
 IPA, successful command, or this requirements file.
+
+Version 0.4.1 addresses lifecycle/resource edge cases: stalled-source cancellation,
+queued-write cancellation, owned native route workers, app backgrounding and
+short/large-text map layouts. Native cancellation requests isolate termination;
+the browser fallback cannot interrupt a calculation already running synchronously.

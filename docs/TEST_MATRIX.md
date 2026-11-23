@@ -5,6 +5,9 @@
 | Formatting / static analysis | dart format, flutter analyze | Clean result for the final source commit |
 | State, notes, ranking, restore and draft durability | Flutter unit/SQLite tests | Passing test output |
 | Cancellation, wrong passwords and corrupted backups | Flutter tests | Passing test output, no mutation on failure |
+| Stalled sources and queued writes | Never-ending stream, checksum cancellation and blocked SQLite queue | Source cancelled without new input; cancelled writes do not activate data |
+| Route worker ownership | Native/web contract, cancellation/replacement/disposal and spawn failure | Typed errors, reusable workers and closed task state |
+| Lifecycle and layout | Pause/resume, tall-route viewport and 320×280 at 2× text | Stale output suppressed; route contained in camera bounds; controls reachable |
 | Note creation, favorites, unsaved draft preservation | Widget tests at 390×844 | Passing screen interaction tests |
 | Routing | Dijkstra versus independent Floyd-Warshall oracle on 50 random directed multigraphs; 10 000-node chain | Matching minimum distances, correct geometry and no invented path |
 | Routing persistence and UI | File import, SQLite reopen, backup, cancel/source removal and 320px large-text widget tests | Passing automated checks; real network data and phones still required |

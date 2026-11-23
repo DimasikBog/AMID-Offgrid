@@ -13,6 +13,7 @@ import 'package:uuid/uuid.dart';
 import '../models/data.dart';
 import '../models/map_metadata.dart';
 import 'backup_codec.dart';
+import 'cancellable_reader.dart';
 import 'document_codec.dart';
 import 'store.dart';
 
@@ -32,6 +33,7 @@ class ImportService extends ChangeNotifier {
 
   ImportService(this.store);
   final AppStore store;
+  final _reads = CancellableReader();
   bool busy = false, _cancelled = false;
   double progress = 0;
   String label = '';
@@ -165,7 +167,7 @@ class ImportService extends ChangeNotifier {
         final sink = partial.openWrite();
         var copied = 0, last = 0;
         try {
-          await for (final chunk in read()) {
+          await for (final chunk in _reads.read(read(), _checkCancelled)) {
             _checkCancelled();
             copied += chunk.length;
             if (copied > length) {
@@ -201,7 +203,9 @@ class ImportService extends ChangeNotifier {
           extra = await inspectMap(file.path);
         }
         _report(.86, 'Перевіряю файл');
-        final hash = await sha256.bind(file.openRead()).first;
+        final hash = await sha256
+            .bind(_reads.read(file.openRead(), _checkCancelled))
+            .first;
         _checkCancelled();
         await _protect(file.path);
         await store.addAsset({
@@ -215,7 +219,7 @@ class ImportService extends ChangeNotifier {
           'license':
               'Користувацький імпорт; ліцензія визначається джерелом файла.',
           ...extra,
-        });
+        }, checkActive: _checkCancelled);
         _report(1, 'Збережено');
         return ext == '.gguf'
             ? 'Модель готова до завантаження в помічнику.'
@@ -229,7 +233,7 @@ class ImportService extends ChangeNotifier {
     _report(.25, 'Читаю матеріали');
     final chunks = BytesBuilder(copy: false);
     var count = 0;
-    await for (final chunk in read()) {
+    await for (final chunk in _reads.read(read(), _checkCancelled)) {
       _checkCancelled();
       count += chunk.length;
       if (count > textLimit || count > length) {
@@ -249,13 +253,13 @@ class ImportService extends ChangeNotifier {
     final data = await BackupCodec.unlock(raw, requestPassword);
     _checkCancelled();
     if (data['format'] == 'AMID_OFFGRID_BACKUP') {
-      await store.restore(data);
+      await store.restore(data, checkActive: _checkCancelled);
       return 'Резервну копію об’єднано з даними пристрою.';
     }
     final pack = documentPack(data, name);
     pack['bytes'] = bytes.length;
     pack['sha256'] = sha256.convert(bytes).toString();
-    await store.importKnowledge(pack);
+    await store.importKnowledge(pack, checkActive: _checkCancelled);
     _report(1, 'Збережено');
     return 'Матеріали додано до довідника.';
   }
@@ -318,8 +322,9 @@ class ImportService extends ChangeNotifier {
         );
         var received = offset, last = offset;
         try {
-          await for (final chunk in response.timeout(
-            const Duration(seconds: 60),
+          await for (final chunk in _reads.read(
+            response.timeout(const Duration(seconds: 60)),
+            _checkCancelled,
           )) {
             if (_cancelled) {
               throw StateError(
@@ -352,24 +357,33 @@ class ImportService extends ChangeNotifier {
         );
       }
       _report(.92, 'Перевіряю контрольну суму');
-      final hash = await sha256.bind(partial.openRead()).first;
+      final hash = await sha256
+          .bind(_reads.read(partial.openRead(), _checkCancelled))
+          .first;
       if (hash.toString() != modelHash) {
         await partial.delete();
         throw const FormatException('Контрольна сума моделі не збігається.');
       }
-      if (_cancelled) throw StateError('Завантаження скасовано.');
+      _checkCancelled();
+      await _protect(partial.path);
+      _checkCancelled();
       await partial.rename(target.path);
-      await _protect(target.path);
-      await store.addAsset({
-        'id': starterId,
-        'title': 'Qwen3 0.6B · Q8',
-        'kind': 'model',
-        'path': target.path,
-        'bytes': modelBytes,
-        'count': 1,
-        'sha256': modelHash,
-        'license': 'Qwen Team · Apache-2.0 · https://huggingface.co/Qwen/Qwen3-0.6B-GGUF',
-      });
+      try {
+        await store.addAsset({
+          'id': starterId,
+          'title': 'Qwen3 0.6B · Q8',
+          'kind': 'model',
+          'path': target.path,
+          'bytes': modelBytes,
+          'count': 1,
+          'sha256': modelHash,
+          'license': 'Qwen Team · Apache-2.0 · https://huggingface.co/Qwen/Qwen3-0.6B-GGUF',
+        }, checkActive: _checkCancelled);
+      } catch (_) {
+        // Retain verified bytes for a retry if activation never committed.
+        if (await target.exists()) await target.rename(partial.path);
+        rethrow;
+      }
       _report(1, 'Модель збережено');
       return 'Модель перевірено. Завантаж її в помічнику.';
     } finally {
@@ -391,6 +405,7 @@ class ImportService extends ChangeNotifier {
 
   void cancel() {
     _cancelled = true;
+    _reads.cancel();
     _client?.close(force: true);
   }
 

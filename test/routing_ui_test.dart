@@ -48,6 +48,8 @@ void main() {
       addTearDown(tester.view.resetDevicePixelRatio);
       final fixture = (await tester.runAsync(openTestStore))!;
       final source = pack();
+      // A tall route exposes fitting against the old, larger map viewport.
+      source['routing']['nodes'][2]['coordinate'] = [.0001, .004];
       await tester.runAsync(() => fixture.store.importKnowledge(source));
       final services = Services(fixture.store);
       await tester.pumpWidget(
@@ -92,6 +94,16 @@ void main() {
         hasLength(3),
       );
       expect(tester.takeException(), isNull);
+      final map = tester.widget<FlutterMap>(find.byType(FlutterMap));
+      final points = tester
+          .widget<PolylineLayer>(find.byType(PolylineLayer))
+          .polylines
+          .last
+          .points;
+      expect(
+        points.every(map.mapController!.camera.visibleBounds.contains),
+        isTrue,
+      );
       await tester.runAsync(
         () => fixture.store.removePack(source['id'] as String),
       );
@@ -213,6 +225,47 @@ void main() {
       });
     },
   );
+
+  testWidgets('backgrounding invalidates a pending calculation before resume', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final fixture = (await tester.runAsync(openTestStore))!;
+    final source = pack();
+    await tester.runAsync(() => fixture.store.importKnowledge(source));
+    final services = Services(fixture.store),
+        pending = Completer<OfflineRoute>();
+    await tester.pumpWidget(
+      app(
+        RoutePlannerScreen(
+          services: services,
+          calculate: (_) => pending.future,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await endpoints(tester);
+    await tester.ensureVisible(find.text('Побудувати маршрут'));
+    await tester.tap(find.text('Побудувати маршрут'));
+    await tester.pump();
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    pending.complete(
+      RouteNetwork.parse(source['routing']).shortestPath('a', 'c'),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Показати на карті'), findsNothing);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+    services.dispose();
+    await tester.runAsync(() async {
+      await fixture.store.close();
+      await fixture.root.delete(recursive: true);
+    });
+  });
 
   testWidgets('320px large-text planner handles an empty network library', (
     tester,

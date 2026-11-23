@@ -1,9 +1,9 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../models/data.dart';
 import '../models/route_network.dart';
 import '../services/services.dart';
+import '../services/route_worker.dart';
 import 'packs_screen.dart';
 
 typedef RouteCalculator = Future<OfflineRoute> Function(Json request);
@@ -39,7 +39,9 @@ class RoutePlannerScreen extends StatefulWidget {
   State<RoutePlannerScreen> createState() => _RoutePlannerScreenState();
 }
 
-class _RoutePlannerScreenState extends State<RoutePlannerScreen> {
+class _RoutePlannerScreenState extends State<RoutePlannerScreen>
+    with WidgetsBindingObserver {
+  final _worker = RouteWorker();
   String? _packId, _from, _to, _error;
   Json? _network;
   List<RouteNode> _nodes = [];
@@ -54,13 +56,13 @@ class _RoutePlannerScreenState extends State<RoutePlannerScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _load(_packs.firstOrNull);
     widget.services.store.addListener(_storeChanged);
   }
 
   void _load(Json? pack) {
-    _request++;
-    _busy = false;
+    _cancelCalculation();
     _packId = pack?['id'] as String?;
     _network = pack?['routing'] as Json?;
     _nodes = _network == null
@@ -70,6 +72,21 @@ class _RoutePlannerScreenState extends State<RoutePlannerScreen> {
               .toList(growable: false);
     _from = _to = _error = null;
     _result = null;
+  }
+
+  void _cancelCalculation() {
+    _request++;
+    _worker.cancel();
+    _busy = false;
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (mounted &&
+        (state == AppLifecycleState.paused ||
+            state == AppLifecycleState.detached)) {
+      setState(_cancelCalculation);
+    }
   }
 
   void _storeChanged() {
@@ -92,8 +109,7 @@ class _RoutePlannerScreenState extends State<RoutePlannerScreen> {
     );
     if (!mounted || node == null || !identical(network, _network)) return;
     setState(() {
-      _request++;
-      _busy = false;
+      _cancelCalculation();
       if (start) {
         _from = node.id;
       } else {
@@ -119,11 +135,10 @@ class _RoutePlannerScreenState extends State<RoutePlannerScreen> {
     });
     try {
       final route =
-          await (widget.calculate?.call(input) ??
-              compute(calculateOfflineRoute, input));
+          await (widget.calculate?.call(input) ?? _worker.calculate(input));
       if (mounted && request == _request) setState(() => _result = route);
     } catch (e) {
-      if (mounted && request == _request) {
+      if (mounted && request == _request && e is! RouteCalculationCancelled) {
         setState(() => _error = e is FormatException ? e.message : '$e');
       }
     } finally {
@@ -137,6 +152,8 @@ class _RoutePlannerScreenState extends State<RoutePlannerScreen> {
   @override
   void dispose() {
     _request++;
+    _worker.dispose();
+    WidgetsBinding.instance.removeObserver(this);
     widget.services.store.removeListener(_storeChanged);
     super.dispose();
   }
@@ -231,8 +248,7 @@ class _RoutePlannerScreenState extends State<RoutePlannerScreen> {
                             final old = _from;
                             _from = _to;
                             _to = old;
-                            _request++;
-                            _busy = false;
+                            _cancelCalculation();
                             _result = null;
                             _error = null;
                           }),
@@ -253,8 +269,7 @@ class _RoutePlannerScreenState extends State<RoutePlannerScreen> {
                   const LinearProgressIndicator(),
                   TextButton(
                     onPressed: () => setState(() {
-                      _request++;
-                      _busy = false;
+                      _cancelCalculation();
                     }),
                     child: const Text('Скасувати обчислення'),
                   ),
