@@ -7,12 +7,14 @@ import 'package:flutter/foundation.dart';
 
 import '../models/data.dart';
 import 'backup_codec.dart';
+import 'cancellable_reader.dart';
 import 'document_codec.dart';
 import 'store.dart';
 
 class ImportService extends ChangeNotifier {
   ImportService(this.store);
   final AppStore store;
+  final _reads = CancellableReader();
   bool _disposed = false, _cancelled = false, busy = false;
   double progress = 0;
   String label = '';
@@ -44,6 +46,9 @@ class ImportService extends ChangeNotifier {
     notifyListeners();
     try {
       return await action();
+    } catch (_) {
+      if (_cancelled || _disposed) throw const OperationCancelled();
+      rethrow;
     } finally {
       busy = false;
       notifyListeners();
@@ -64,7 +69,10 @@ class ImportService extends ChangeNotifier {
     }
     final builder = BytesBuilder(copy: false);
     var count = 0;
-    await for (final chunk in file.readAsByteStream()) {
+    await for (final chunk in _reads.read(
+      file.readAsByteStream(),
+      _checkCancelled,
+    )) {
       _checkCancelled();
       count += chunk.length;
       if (count > size) throw const FormatException('Розмір файла змінився.');
@@ -83,13 +91,13 @@ class ImportService extends ChangeNotifier {
     final data = await BackupCodec.unlock(raw, requestPassword);
     _checkCancelled();
     if (data['format'] == 'AMID_OFFGRID_BACKUP') {
-      await store.restore(data);
+      await store.restore(data, checkActive: _checkCancelled);
       return 'Резервну копію об’єднано з даними пристрою.';
     }
     final pack = documentPack(data, file.name);
     pack['bytes'] = bytes.length;
     pack['sha256'] = sha256.convert(bytes).toString();
-    await store.importKnowledge(pack);
+    await store.importKnowledge(pack, checkActive: _checkCancelled);
     return 'Матеріали збережено.';
   });
 
@@ -99,6 +107,7 @@ class ImportService extends ChangeNotifier {
   Future<void> deleteAsset(Json asset) async {}
   void cancel() {
     _cancelled = true;
+    _reads.cancel();
   }
 
   Future<String> clearTemporaryFiles() async =>

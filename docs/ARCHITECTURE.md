@@ -38,8 +38,12 @@ when a required key is missing. No workflow automatically publishes to a store.
 Route networks extend normal version 1 packs with an optional routing field,
 validated on import/restore. Topology comes from explicit node IDs and directed
 edges, never geometric crossings. Distances follow edge geometry; Dijkstra uses
-a binary min-heap. Native compute runs the calculation off the UI isolate;
-request generations discard cancelled or stale results. A source pack removal
+a binary min-heap. The native RouteWorker owns one isolate and its reply port;
+cancellation, replacement, disposal and app backgrounding request immediate
+shutdown and close the port, including a late spawn completion. The web worker
+can cancel a queued bounded calculation before it starts, but cannot preempt
+synchronous work already running on the main event loop. Request generations
+also discard stale results. A source pack removal
 clears its map result. Networks are portable in backups; selected route results
 are transient unless exported as GeoJSON.
 
@@ -47,3 +51,14 @@ Bundled guidance has a revision separate from the SQL schema. Opening an old
 installation refreshes only the reserved built-in pack in one reindexing
 transaction, preserving personal notes, pins and valid favorites. No update is
 performed when the current bundled revision is already present.
+
+Import streams and checksum reads use a cancellable StreamIterator. Cancellation
+closes the upstream subscription even when no next chunk arrives. A check inside
+the serialized mutation queue prevents cancelled imports/assets/restores from
+starting a later write. A database transaction already committing is allowed to
+finish atomically; this is not a rollback of an already completed operation.
+Verified starter bytes return to the resumable partial file if activation fails.
+
+Route fitting runs after the route panel has laid out. Short viewports and large
+text get an independently controlled scroll area and visible scrollbar, preserving
+map gestures and access to controls without forcing text to shrink.

@@ -74,6 +74,39 @@ void main() {
     expect(files.busy, false);
   });
   test(
+    'cancellation releases a stalled source without another data event',
+    () async {
+      final listening = Completer<void>();
+      var cancelled = false;
+      final input = StreamController<List<int>>(
+        onListen: () => listening.complete(),
+        onCancel: () => cancelled = true,
+      );
+      final operation = files.importStream(
+        'waiting.txt',
+        1,
+        () => input.stream,
+      );
+      final observed = operation.then<Object?>(
+        (value) => value,
+        onError: (Object e) => e,
+      );
+      try {
+        await listening.future;
+        files.cancel();
+        final outcome = await observed.timeout(const Duration(seconds: 2));
+        expect(outcome, isA<OperationCancelled>());
+        expect(cancelled, isTrue);
+        expect(files.busy, isFalse);
+      } finally {
+        // Wake the old implementation on failure so the regression test can close.
+        if (!cancelled) input.add([65]);
+        await input.close();
+        await observed;
+      }
+    },
+  );
+  test(
     'encrypted import restores data only after the correct password',
     () async {
       const password = 'Мій захищений пароль 2026';

@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.4.1 candidate
+
+- Cancel stalled imports and checksum reads by closing the upstream subscription.
+- Reject cancelled knowledge/asset/restore writes when their turn in the queue arrives.
+- Retain verified starter bytes for retry when metadata activation fails.
+- Own and terminate native route worker isolates/ports on cancellation, replacement,
+  screen disposal and app backgrounding; handle early/late spawn and error races.
+- Keep the browser fallback bounded and cancel queued work before it starts.
+- Fit routes after panel layout and preserve control access on short, large-text maps.
+- Regression tests for stalled streams, digest cancellation, queued writes,
+  native/web worker lifecycle, unsendable messages, app pause/resume and viewport fitting.
+
 ## 0.4.0 candidate
 
 - Offline shortest-distance routing over explicitly connected imported AMID networks.

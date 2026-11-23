@@ -25,6 +25,7 @@ class MapScreen extends StatefulWidget {
 
 class _MapScreenState extends State<MapScreen> {
   final _controller = MapController();
+  final _scroll = ScrollController();
   Json? _world;
   String? _error;
   String _selected = '';
@@ -81,11 +82,13 @@ class _MapScreenState extends State<MapScreen> {
     );
     if (!mounted || route == null || !_routeAvailable(route)) return;
     setState(() => _route = route);
-    _fitRoute();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _fitRoute();
+    });
   }
 
   void _fitRoute() {
-    if (!_ready || _route == null) return;
+    if (!mounted || !_ready || _route == null) return;
     _controller.fitCamera(
       CameraFit.bounds(
         bounds: LatLngBounds.fromPoints(
@@ -366,6 +369,7 @@ class _MapScreenState extends State<MapScreen> {
   );
   @override
   void dispose() {
+    _scroll.dispose();
     _controller.dispose();
     super.dispose();
   }
@@ -448,7 +452,7 @@ class _MapScreenState extends State<MapScreen> {
       );
     }
     final map = _map;
-    return Column(
+    final content = Column(
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 14),
@@ -460,12 +464,16 @@ class _MapScreenState extends State<MapScreen> {
                   children: [
                     Text(
                       'Карта без мережі',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.titleLarge,
                     ),
                     const SizedBox(height: 4),
                     Text(
                       map?['title'] as String? ??
                           'Оглядова карта світу · без вулиць',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                   ],
@@ -683,6 +691,25 @@ class _MapScreenState extends State<MapScreen> {
             ),
           ),
       ],
+    );
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final scaler = MediaQuery.textScalerOf(context);
+        final scale = [12.0, 16.0, 22.0]
+            .map((size) => scaler.scale(size) / size)
+            .reduce((a, b) => a > b ? a : b);
+        final minimum = (360 + (route == null ? 0 : 210)) * scale;
+        if (constraints.maxHeight >= minimum) return content;
+        return Scrollbar(
+          controller: _scroll,
+          thumbVisibility: true,
+          interactive: true,
+          child: SingleChildScrollView(
+            controller: _scroll,
+            child: SizedBox(height: minimum, child: content),
+          ),
+        );
+      },
     );
   }
 }
