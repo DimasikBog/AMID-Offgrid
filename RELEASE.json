@@ -16,11 +16,25 @@
   },
   "ios": {
     "minimumVersion": "17.0",
-    "status": "source project; Xcode build and signing required",
+    "status": "unsigned ARM64 iPhoneOS app built successfully on macOS; Apple signing and physical-device testing required",
+    "appBuilt": true,
+    "signed": false,
+    "file": "AMID_Offgrid_iOS_unsigned.zip",
+    "bytes": 15731018,
+    "sha256": "2886b262db293c9e903d2c2f3cf86842921902e3ba72e4817e4061709d9aa58f",
+    "githubRunId": 45147118690,
+    "sourceCommit": "a5ecca46ed058a6b4c0c162f1b4fd4ee4059a7ab",
     "ipaBuilt": false
   },
   "checks": {
     "flutterAnalyze": "No issues found",
-    "testsPassed": 14
+    "testsPassed": 14,
+    "githubActions": {
+      "runId": 45147118690,
+      "sourceCommit": "a5ecca46ed058a6b4c0c162f1b4fd4ee4059a7ab",
+      "quality": "success",
+      "android": "success",
+      "iosUnsigned": "success"
+    }
   }
 }
