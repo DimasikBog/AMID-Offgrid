@@ -24,7 +24,14 @@
     "sha256": "2886b262db293c9e903d2c2f3cf86842921902e3ba72e4817e4061709d9aa58f",
     "githubRunId": 45147118690,
     "sourceCommit": "a5ecca46ed058a6b4c0c162f1b4fd4ee4059a7ab",
-    "ipaBuilt": false
+    "ipaBuilt": false,
+    "unsignedIpa": {
+      "file": "AMID_Offgrid_0.2.0_unsigned.ipa",
+      "bytes": 15731094,
+      "sha256": "1b962855819ec1d9064ae760e53d021798ad4f817f3bfd53c0f9fccf7321f295",
+      "signed": false,
+      "physicalDeviceTested": false
+    }
   },
   "checks": {
     "flutterAnalyze": "No issues found",
