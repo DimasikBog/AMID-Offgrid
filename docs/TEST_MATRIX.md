@@ -6,6 +6,9 @@
 | State, notes, ranking, restore and draft durability | Flutter unit/SQLite tests | Passing test output |
 | Cancellation, wrong passwords and corrupted backups | Flutter tests | Passing test output, no mutation on failure |
 | Note creation, favorites, unsaved draft preservation | Widget tests at 390×844 | Passing screen interaction tests |
+| Routing | Dijkstra versus independent Floyd-Warshall oracle on 50 random directed multigraphs; 10 000-node chain | Matching minimum distances, correct geometry and no invented path |
+| Routing persistence and UI | File import, SQLite reopen, backup, cancel/source removal and 320px large-text widget tests | Passing automated checks; real network data and phones still required |
+| Bundled guidance upgrade | Legacy state refresh and second reopen | Personal notes, pins, favorites preserved and refresh idempotent |
 | Radio framing and authenticated transport | Protocol unit tests | Passing tests; does not prove real radio interoperability |
 | Packaging and provenance | Python tests and manifest checker | Real artifact digests and source/run identifiers |
 | Android executable | GitHub Actions APK build + ELF/apksigner/zipalign checks | Successful final run and matching APK |

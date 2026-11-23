@@ -153,4 +153,16 @@ class ImportService extends ChangeNotifier {
     );
     if (result == null) throw const OperationCancelled();
   });
+
+  Future<void> exportRoute(Json route) =>
+      _run('Готую маршрут GeoJSON', () async {
+        validateGeoJson(route);
+        _checkCancelled();
+        final result = await FilePicker.saveFile(
+          fileName: 'AMID_Route.geojson',
+          mimeType: 'application/geo+json',
+          bytes: Uint8List.fromList(utf8.encode(jsonEncode(route))),
+        );
+        if (result == null) throw const OperationCancelled();
+      });
 }

@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.4.0 candidate
+
+- Offline shortest-distance routing over explicitly connected imported AMID networks.
+- Directed edges, intermediate geometry, node search and route reversal.
+- Map overlay, A/B markers, distance and GeoJSON export with provenance.
+- Portable network import, SQLite persistence and backup/restore.
+- Bounded validation and background native calculation; cancelled/stale results ignored.
+- Bundled guidance refresh for existing installations, preserving personal data.
+- Synthetic example, format instructions and algorithm/storage/UI regression tests.
+
+This adds routing over user-supplied networks. OSM/PBF, address lookup, road
+profiles, live conditions and turn-by-turn navigation remain unimplemented.
+Phone tests, iOS compilation/signing and store publication remain unverified.
+
 ## 0.3.0 candidate
 
 - Personal offline notes with editing, deletion, categories, favorites and paging.

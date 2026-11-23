@@ -34,3 +34,16 @@ mobile-runtime behavior still require device verification.
 CI creates artifacts per source commit. Signing secrets are absent from PR jobs.
 The manual Android distribution workflow accepts reviewed main only and fails
 when a required key is missing. No workflow automatically publishes to a store.
+
+Route networks extend normal version 1 packs with an optional routing field,
+validated on import/restore. Topology comes from explicit node IDs and directed
+edges, never geometric crossings. Distances follow edge geometry; Dijkstra uses
+a binary min-heap. Native compute runs the calculation off the UI isolate;
+request generations discard cancelled or stale results. A source pack removal
+clears its map result. Networks are portable in backups; selected route results
+are transient unless exported as GeoJSON.
+
+Bundled guidance has a revision separate from the SQL schema. Opening an old
+installation refreshes only the reserved built-in pack in one reindexing
+transaction, preserving personal notes, pins and valid favorites. No update is
+performed when the current bundled revision is already present.

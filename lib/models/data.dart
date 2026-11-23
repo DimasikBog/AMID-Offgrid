@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'route_network.dart';
+
 typedef Json = Map<String, dynamic>;
 
 Json checkedObject(Object? value, String field) {
@@ -103,6 +105,8 @@ Json parsePack(Json data) {
     'articles': articles,
     if (data['map'] != null)
       'map': validateGeoJson(checkedObject(data['map'], 'карта')),
+    if (data['routing'] != null)
+      'routing': RouteNetwork.parse(data['routing']).toJson(),
   };
 }
 

@@ -13,6 +13,7 @@ import '../services/services.dart';
 import '../widgets/common.dart';
 import '../widgets/offline_tiles_native.dart'
     if (dart.library.js_interop) '../widgets/offline_tiles_web.dart';
+import 'route_planner.dart';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key, required this.services, required this.navigate});
@@ -30,6 +31,7 @@ class _MapScreenState extends State<MapScreen> {
   bool _ready = false, _locating = false;
   LatLng? _position;
   double? _accuracy;
+  MapRouteSelection? _route;
   @override
   void initState() {
     super.initState();
@@ -57,10 +59,44 @@ class _MapScreenState extends State<MapScreen> {
   @override
   void didUpdateWidget(covariant MapScreen old) {
     super.didUpdateWidget(old);
+    if (_route != null && !_routeAvailable(_route!)) _route = null;
     if (_selected != widget.services.store.selectedMap) {
       _selected = widget.services.store.selectedMap;
       WidgetsBinding.instance.addPostFrameCallback((_) => _center());
     }
+  }
+
+  bool _routeAvailable(MapRouteSelection route) =>
+      widget.services.store.packs.any(
+        (p) =>
+            p['id'] == route.packId && identical(p['routing'], route.network),
+      );
+
+  Future<void> _planRoute() async {
+    final route = await Navigator.push<MapRouteSelection>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => RoutePlannerScreen(services: widget.services),
+      ),
+    );
+    if (!mounted || route == null || !_routeAvailable(route)) return;
+    setState(() => _route = route);
+    _fitRoute();
+  }
+
+  void _fitRoute() {
+    if (!_ready || _route == null) return;
+    _controller.fitCamera(
+      CameraFit.bounds(
+        bounds: LatLngBounds.fromPoints(
+          _route!.route.points
+              .map((p) => LatLng(p.latitude.clamp(-85.05, 85.05), p.longitude))
+              .toList(),
+        ),
+        padding: const EdgeInsets.all(50),
+        maxZoom: 17,
+      ),
+    );
   }
 
   void _center() {
@@ -337,6 +373,7 @@ class _MapScreenState extends State<MapScreen> {
   @override
   Widget build(BuildContext context) {
     final polygons = <Polygon>[], lines = <Polyline>[], markers = <Marker>[];
+    final route = _route;
     if (_world != null) {
       _features(_world!, polygons, lines, markers, world: true);
     }
@@ -362,6 +399,40 @@ class _MapScreenState extends State<MapScreen> {
           ),
         ),
       );
+    }
+    if (route != null) {
+      lines.add(
+        Polyline(
+          points: route.route.points
+              .map((p) => LatLng(p.latitude.clamp(-85.05, 85.05), p.longitude))
+              .toList(),
+          color: Theme.of(context).colorScheme.primary,
+          strokeWidth: 6,
+        ),
+      );
+      for (final entry in [
+        (route.route.nodes.first, 'A'),
+        (route.route.nodes.last, 'B'),
+      ]) {
+        markers.add(
+          Marker(
+            point: LatLng(
+              entry.$1.point.latitude.clamp(-85.05, 85.05),
+              entry.$1.point.longitude,
+            ),
+            width: 38,
+            height: 38,
+            child: Tooltip(
+              message: entry.$1.name,
+              child: CircleAvatar(
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                child: Text(entry.$2),
+              ),
+            ),
+          ),
+        );
+      }
     }
     if (_position != null) {
       markers.add(
@@ -401,6 +472,11 @@ class _MapScreenState extends State<MapScreen> {
                 ),
               ),
               IconButton(
+                tooltip: 'Побудувати офлайн-маршрут',
+                onPressed: () => guarded(context, _planRoute),
+                icon: const Icon(Icons.route_outlined),
+              ),
+              IconButton(
                 tooltip: 'Додати точку за координатами',
                 onPressed: () => guarded(context, () => _add()),
                 icon: const Icon(Icons.add_location_alt_outlined),
@@ -408,6 +484,58 @@ class _MapScreenState extends State<MapScreen> {
             ],
           ),
         ),
+        if (route != null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${route.route.nodes.first.name} → ${route.route.nodes.last.name}',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  '${routeDistance(route.route.meters)} · ${route.title}',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+                if (route.synthetic)
+                  const Text('Навчальна мережа · не справжні дороги'),
+                Wrap(
+                  spacing: 8,
+                  children: [
+                    TextButton.icon(
+                      onPressed: _fitRoute,
+                      icon: const Icon(Icons.center_focus_strong),
+                      label: const Text('До маршруту'),
+                    ),
+                    ListenableBuilder(
+                      listenable: widget.services.files,
+                      builder: (context, _) => TextButton.icon(
+                        onPressed: widget.services.files.busy
+                            ? null
+                            : () => guarded(
+                                context,
+                                () => widget.services.files.exportRoute(
+                                  route.geoJson,
+                                ),
+                              ),
+                        icon: const Icon(Icons.ios_share),
+                        label: const Text('GeoJSON'),
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: 'Прибрати маршрут',
+                      onPressed: () => setState(() => _route = null),
+                      icon: const Icon(Icons.close),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
         Expanded(
           child: ClipRRect(
             borderRadius: BorderRadius.circular(20),

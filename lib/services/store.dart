@@ -18,6 +18,8 @@ class AppStore extends ChangeNotifier {
   String themePreference = 'system';
   int contentRevision = 0;
   static const notesId = 'amid-personal-notes';
+  static const starterId = 'amid-mobile-starter';
+  static const starterRevision = 2;
   String draft = '', selectedModel = '', selectedMap = '';
   Future<void> _writes = Future.value();
   bool _closed = false;
@@ -31,13 +33,34 @@ class AppStore extends ChangeNotifier {
       final saved = await store.backend.load();
       if (saved != null) {
         store._apply(saved);
+        final starter = store.packs
+            .where((p) => p['id'] == starterId)
+            .firstOrNull;
+        if (starter != null && starter['bundledRevision'] != starterRevision) {
+          final pack = parsePack(
+            decodeObject(
+              seedText ?? await rootBundle.loadString('assets/starter.json'),
+            ),
+          );
+          if (pack['id'] == starterId) {
+            store.packs.removeWhere((p) => p['id'] == starterId);
+            store.articles.removeWhere((a) => a.packId == starterId);
+            store._insertPack({...pack, 'bundledRevision': starterRevision});
+            final keys = store.articles.map((a) => a.key).toSet();
+            store.favoriteKeys.removeWhere((key) => !keys.contains(key));
+            await store.backend.save(store.snapshot(), reindex: true);
+          }
+        }
       } else {
         final pack = parsePack(
           decodeObject(
             seedText ?? await rootBundle.loadString('assets/starter.json'),
           ),
         );
-        store._insertPack(pack);
+        store._insertPack({
+          ...pack,
+          if (pack['id'] == starterId) 'bundledRevision': starterRevision,
+        });
         await store.backend.save(store.snapshot(), reindex: true);
       }
       return store;
@@ -341,6 +364,7 @@ class AppStore extends ChangeNotifier {
             'title': p['title'],
             'license': p['license'],
             if (p['map'] != null) 'map': p['map'],
+            if (p['routing'] != null) 'routing': p['routing'],
             'articles': articles
                 .where((a) => a.packId == p['id'])
                 .map(
