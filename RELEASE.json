@@ -1,0 +1,26 @@
+{
+  "version": "0.2.0",
+  "build": 2,
+  "android": {
+    "package": "com.amid.offgrid",
+    "minimumSdk": 26,
+    "targetSdk": 36,
+    "abi": "arm64-v8a",
+    "file": "AMID_Offgrid_0.2.0.apk",
+    "bytes": 85447288,
+    "sha256": "1189101a797e21fed540c6ceeda3f4c746f3b814296890614c449adac81db46c",
+    "signatureVerified": true,
+    "zipAligned16KiB": true,
+    "signing": "development",
+    "physicalDeviceTested": false
+  },
+  "ios": {
+    "minimumVersion": "17.0",
+    "status": "source project; Xcode build and signing required",
+    "ipaBuilt": false
+  },
+  "checks": {
+    "flutterAnalyze": "No issues found",
+    "testsPassed": 14
+  }
+}

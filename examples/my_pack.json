@@ -1,0 +1,15 @@
+{
+  "format": "AMID_OFFGRID_PACK",
+  "version": 1,
+  "id": "my-materials",
+  "title": "Мої матеріали",
+  "license": "Власні тексти користувача",
+  "articles": [
+    {
+      "id": "meeting-point",
+      "title": "Місце зустрічі",
+      "category": "Мої нотатки",
+      "body": "Запиши домовлене з близькими місце й резервний варіант заздалегідь."
+    }
+  ]
+}

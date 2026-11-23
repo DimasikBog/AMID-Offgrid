@@ -1,0 +1,44 @@
+name: amid_offgrid
+description: Native offline knowledge, local AI, maps and nearby communication.
+publish_to: none
+version: 0.2.0+2
+environment:
+  sdk: '>=3.13.0 <4.0.0'
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  bluetooth_low_energy: 6.2.1
+  cryptography: 2.9.0
+  crypto: ^3.0.7
+  file_picker: 13.4.1
+  flutter_map: 8.3.2
+  flutter_map_mbtiles: 1.1.0
+  mbtiles: 0.5.1
+  latlong2: 0.10.1
+  geolocator: 14.1.2
+  llamadart: 0.20.5
+  llamadart_llama_cpp_flutter: 0.20.5
+  mobile_scanner: 7.5.0
+  path: ^1.9.1
+  path_provider: 2.1.6
+  qr_flutter: 4.1.0
+  share_plus: 13.3.1
+  shared_preferences: ^2.5.3
+  sqflite: 2.4.6
+  uuid: 4.6.0
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: 6.0.0
+  sqflite_common_ffi: ^2.4.0
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/starter.json
+    - assets/world.geojson
+hooks:
+  user_defines:
+    llamadart:
+      llamadart_native_runtimes: [llama_cpp]

@@ -1,0 +1,105 @@
+name: Mobile checks and builds
+
+on:
+  push:
+    branches: [main]
+    paths: ['lib/**', 'test/**', 'assets/**', 'android/**', 'ios/**', 'scripts/**', 'pubspec.*', '.github/**']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      build_ios:
+        description: Build unsigned iOS app on macOS
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mobile-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FLUTTER_VERSION: '3.47.6'
+  CI: true
+  FLUTTER_SUPPRESS_ANALYTICS: true
+
+jobs:
+  quality:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter pub get --enforce-lockfile
+      - run: flutter analyze --no-pub
+      - run: flutter test --no-pub --reporter expanded
+
+  android:
+    needs: quality
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter pub get --enforce-lockfile
+      - run: flutter build apk --release --target-platform android-arm64 --no-pub
+      - name: Verify and package APK
+        run: |
+          mkdir -p dist
+          cp build/app/outputs/flutter-apk/app-release.apk dist/AMID_Offgrid_android_arm64.apk
+          python3 scripts/verify_apk.py dist/AMID_Offgrid_android_arm64.apk
+          cd dist
+          sha256sum AMID_Offgrid_android_arm64.apk > SHA256SUMS.txt
+      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        with:
+          name: AMID-Offgrid-Android-${{ github.run_number }}
+          path: dist/
+          if-no-files-found: error
+          retention-days: 30
+
+  ios:
+    if: github.event_name == 'workflow_dispatch' && inputs.build_ios
+    needs: quality
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter config --enable-swift-package-manager
+      - run: bash scripts/build_ios.sh
+      - name: Package unsigned app
+        run: |
+          mkdir -p dist
+          ditto -c -k --sequesterRsrc --keepParent build/ios/iphoneos/Runner.app dist/AMID_Offgrid_iOS_unsigned.zip
+          cd dist
+          shasum -a 256 AMID_Offgrid_iOS_unsigned.zip > SHA256SUMS.txt
+      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        with:
+          name: AMID-Offgrid-iOS-unsigned-${{ github.run_number }}
+          path: dist/
+          if-no-files-found: error
+          retention-days: 14
