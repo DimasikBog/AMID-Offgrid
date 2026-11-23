@@ -1,0 +1,6 @@
+# Copy to android/key.properties locally, or use GitHub Actions Secrets.
+# Never commit the real file or the keystore.
+storeFile=/absolute/path/to/amid-release.jks
+storePassword=REPLACE_LOCALLY
+keyAlias=amid
+keyPassword=REPLACE_LOCALLY

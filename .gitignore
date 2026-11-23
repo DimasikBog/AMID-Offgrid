@@ -61,8 +61,10 @@ app.*.map.json
 *.jks
 *.keystore
 *.p12
+*.p8
 *.mobileprovision
 android/key.properties
 android/productos-debug-keystore.b64
 .env
 .env.*
+__pycache__/

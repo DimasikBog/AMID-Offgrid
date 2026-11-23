@@ -2,6 +2,24 @@ import 'dart:convert';
 
 typedef Json = Map<String, dynamic>;
 
+Json checkedObject(Object? value, String field) {
+  if (value is! Map || value.keys.any((key) => key is! String)) {
+    throw FormatException('Потрібен об’єкт: $field');
+  }
+  return Json.from(value);
+}
+
+String boundedText(String text, int maximum) {
+  if (text.length <= maximum) return text;
+  var end = maximum;
+  if (end > 0 &&
+      text.codeUnitAt(end - 1) >= 0xd800 &&
+      text.codeUnitAt(end - 1) <= 0xdbff) {
+    end--;
+  }
+  return text.substring(0, end);
+}
+
 String checkedText(Object? value, String field, int max, {bool empty = false}) {
   if (value is! String ||
       value.length > max ||
@@ -57,8 +75,8 @@ Json parsePack(Json data) {
   }
   final seen = <String>{};
   final articles = (data['articles'] as List).map((value) {
-    final a = Json.from(value as Map),
-        articleId = checkedText(value['id'], 'ID статті', 100);
+    final a = checkedObject(value, 'стаття'),
+        articleId = checkedText(a['id'], 'ID статті', 100);
     if (!seen.add(articleId)) {
       throw const FormatException('Повторювані ID статей.');
     }
@@ -84,7 +102,7 @@ Json parsePack(Json data) {
     'kind': 'knowledge',
     'articles': articles,
     if (data['map'] != null)
-      'map': validateGeoJson(Json.from(data['map'] as Map)),
+      'map': validateGeoJson(checkedObject(data['map'], 'карта')),
   };
 }
 
@@ -191,6 +209,12 @@ class Message {
     String direction = 'in',
     String status = 'received',
   }) {
+    if (!{'in', 'out'}.contains(direction) ||
+        (direction == 'in' && status != 'received') ||
+        (direction == 'out' &&
+            !{'draft', 'transferred', 'delivered'}.contains(status))) {
+      throw const FormatException('Некоректний стан повідомлення.');
+    }
     if (v['format'] != 'AMID_OFFGRID_MESSAGE' || v['version'] != 1) {
       throw const FormatException('Невідомий формат повідомлення.');
     }
@@ -258,7 +282,9 @@ String prettyBytes(int n) => n >= 1073741824
     ? '${(n / 1024).toStringAsFixed(0)} KiB'
     : '$n B';
 Json decodeObject(String value) {
-  final data = jsonDecode(value);
+  final data = jsonDecode(
+    value.startsWith('\ufeff') ? value.substring(1) : value,
+  );
   if (data is! Json) throw const FormatException('Потрібен об’єкт JSON.');
   return data;
 }

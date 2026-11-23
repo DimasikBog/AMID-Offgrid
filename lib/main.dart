@@ -26,10 +26,38 @@ class OffgridApp extends StatefulWidget {
 class _OffgridAppState extends State<OffgridApp> {
   late Future<AppStore> _store;
   ThemeMode _mode = ThemeMode.system;
+  AppStore? _resolved;
   @override
   void initState() {
     super.initState();
-    _store = AppStore.open();
+    _store = AppStore.open().then(_bind);
+  }
+
+  AppStore _bind(AppStore store) {
+    if (!mounted) {
+      unawaited(store.close());
+      return store;
+    }
+    _resolved?.removeListener(_preferencesChanged);
+    _resolved = store;
+    store.addListener(_preferencesChanged);
+    _preferencesChanged();
+    return store;
+  }
+
+  void _preferencesChanged() {
+    final mode = switch (_resolved?.themePreference) {
+      'dark' => ThemeMode.dark,
+      'light' => ThemeMode.light,
+      _ => ThemeMode.system,
+    };
+    if (mounted && mode != _mode) setState(() => _mode = mode);
+  }
+
+  @override
+  void dispose() {
+    _resolved?.removeListener(_preferencesChanged);
+    super.dispose();
   }
 
   ThemeData _theme(Brightness brightness) {
@@ -111,7 +139,8 @@ class _OffgridAppState extends State<OffgridApp> {
                 'Не вдалося відкрити сховище',
                 '${snapshot.error}',
                 action: FilledButton(
-                  onPressed: () => setState(() => _store = AppStore.open()),
+                  onPressed: () =>
+                      setState(() => _store = AppStore.open().then(_bind)),
                   child: const Text('Спробувати ще'),
                 ),
               ),
@@ -125,10 +154,11 @@ class _OffgridAppState extends State<OffgridApp> {
         }
         return OffgridShell(
           store: snapshot.data!,
-          themeAction: () => setState(
-            () => _mode = _mode == ThemeMode.dark
-                ? ThemeMode.light
-                : ThemeMode.dark,
+          themeAction: () => guarded(
+            context,
+            () => snapshot.data!.setThemePreference(
+              _mode == ThemeMode.dark ? 'light' : 'dark',
+            ),
           ),
         );
       },
@@ -179,7 +209,8 @@ class _OffgridShellState extends State<OffgridShell>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     services.dispose();
-    unawaited(widget.store.close());
+    // Child editors enqueue their last draft while disposing.
+    scheduleMicrotask(() => unawaited(widget.store.close()));
     super.dispose();
   }
 

@@ -1,8 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../models/data.dart';
 import '../services/services.dart';
+import '../services/store.dart';
 import '../widgets/common.dart';
+import 'note_editor.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({
@@ -224,122 +228,223 @@ class LibraryScreen extends StatefulWidget {
 
 class _LibraryScreenState extends State<LibraryScreen> {
   final _query = TextEditingController();
-  String _term = '';
+  Timer? _debounce;
+  String _term = '', _category = '';
+  bool _favorites = false;
+  int _limit = 40, _revision = 0;
   late Future<List<Article>> _results;
-  int _count = 0;
   @override
   void initState() {
     super.initState();
-    _count = widget.services.store.articles.length;
+    _revision = widget.services.store.contentRevision;
     _search();
   }
 
   void _search() {
-    _results = widget.services.store.search(_term);
+    _results = widget.services.store.search(
+      _term,
+      limit: _limit + 1,
+      category: _category,
+      favoritesOnly: _favorites,
+    );
+  }
+
+  void _refresh() {
+    _debounce?.cancel();
+    setState(() {
+      _limit = 40;
+      _search();
+    });
   }
 
   @override
   void didUpdateWidget(covariant LibraryScreen old) {
     super.didUpdateWidget(old);
-    if (_count != widget.services.store.articles.length) {
-      _count = widget.services.store.articles.length;
+    final store = widget.services.store;
+    if (_revision != store.contentRevision) {
+      _revision = store.contentRevision;
+      if (!store.articles.any((a) => a.category == _category)) _category = '';
       _search();
     }
   }
 
   @override
   void dispose() {
+    _debounce?.cancel();
     _query.dispose();
     super.dispose();
   }
 
   @override
-  Widget build(BuildContext context) => Column(
-    children: [
-      Padding(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 15),
-        child: TextField(
-          controller: _query,
-          decoration: InputDecoration(
-            hintText: 'Пошук у твоїх матеріалах',
-            prefixIcon: const Icon(Icons.search_rounded),
-            suffixIcon: IconButton(
-              tooltip: 'Знайти',
-              onPressed: () {
-                setState(() {
-                  _term = _query.text;
-                  _search();
-                });
-              },
-              icon: const Icon(Icons.search_rounded),
-            ),
-          ),
-          onSubmitted: (v) => setState(() {
-            _term = v;
-            _search();
-          }),
-        ),
-      ),
-      Expanded(
-        child: FutureBuilder<List<Article>>(
-          future: _results,
-          builder: (context, snapshot) {
-            if (snapshot.hasError) {
-              return EmptyState('Пошук недоступний', '${snapshot.error}');
-            }
-            if (!snapshot.hasData) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            final articles = snapshot.data!;
-            if (articles.isEmpty) {
-              return const EmptyState(
-                'Нічого не знайдено',
-                'Спробуй інше слово або додай власні матеріали.',
-                icon: Icons.search_off_rounded,
-              );
-            }
-            return ListView.separated(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 25),
-              itemCount: articles.length,
-              separatorBuilder: (_, _) => const SizedBox(height: 10),
-              itemBuilder: (context, i) {
-                final a = articles[i];
-                return Material(
-                  color: Theme.of(context).colorScheme.surfaceContainerLow,
-                  borderRadius: BorderRadius.circular(16),
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 18,
-                      vertical: 10,
-                    ),
-                    leading: Icon(
-                      Icons.article_outlined,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                    title: Text(
-                      a.title,
-                      style: const TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                    subtitle: Padding(
-                      padding: const EdgeInsets.only(top: 6),
-                      child: Text(a.category),
-                    ),
-                    trailing: const Icon(Icons.chevron_right_rounded),
-                    onTap: () => openArticle(
-                      context,
-                      a,
-                      widget.services,
-                      widget.navigate,
+  Widget build(BuildContext context) {
+    final store = widget.services.store;
+    final categories = store.articles.map((a) => a.category).toSet().toList()
+      ..sort();
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 12, 8),
+          child: Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _query,
+                  decoration: InputDecoration(
+                    hintText: 'Пошук у твоїх матеріалах',
+                    prefixIcon: const Icon(Icons.search_rounded),
+                    suffixIcon: IconButton(
+                      tooltip: 'Знайти',
+                      onPressed: _refresh,
+                      icon: const Icon(Icons.search_rounded),
                     ),
                   ),
-                );
-              },
-            );
-          },
+                  onChanged: (value) {
+                    _term = value;
+                    _debounce?.cancel();
+                    _debounce = Timer(const Duration(milliseconds: 300), () {
+                      if (mounted) _refresh();
+                    });
+                  },
+                  onSubmitted: (_) => _refresh(),
+                ),
+              ),
+              IconButton(
+                tooltip: 'Створити нотатку',
+                icon: const Icon(Icons.note_add_outlined),
+                onPressed: () => editNote(context, store),
+              ),
+            ],
+          ),
         ),
-      ),
-    ],
-  );
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+          child: Row(
+            children: [
+              Expanded(
+                child: DropdownButton<String>(
+                  value: _category,
+                  isExpanded: true,
+                  hint: const Text('Категорія'),
+                  items: [
+                    const DropdownMenuItem(
+                      value: '',
+                      child: Text('Усі категорії'),
+                    ),
+                    for (final category in categories)
+                      DropdownMenuItem(
+                        value: category,
+                        child: Text(category, overflow: TextOverflow.ellipsis),
+                      ),
+                  ],
+                  onChanged: (value) {
+                    _category = value ?? '';
+                    _refresh();
+                  },
+                ),
+              ),
+              const SizedBox(width: 12),
+              FilterChip(
+                label: const Text('Обране'),
+                selected: _favorites,
+                onSelected: (value) {
+                  _favorites = value;
+                  _refresh();
+                },
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: FutureBuilder<List<Article>>(
+            future: _results,
+            builder: (context, snapshot) {
+              if (snapshot.hasError) {
+                return EmptyState('Пошук недоступний', '${snapshot.error}');
+              }
+              if (!snapshot.hasData) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              final articles = snapshot.data!;
+              if (articles.isEmpty) {
+                return EmptyState(
+                  _favorites
+                      ? 'В обраному поки порожньо'
+                      : 'Нічого не знайдено',
+                  _favorites
+                      ? 'Натисни зірочку біля потрібної статті.'
+                      : 'Спробуй інше слово або додай власні матеріали.',
+                  icon: _favorites
+                      ? Icons.star_outline_rounded
+                      : Icons.search_off_rounded,
+                );
+              }
+              final more = articles.length > _limit;
+              return ListView.separated(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 25),
+                itemCount: more ? _limit + 1 : articles.length,
+                separatorBuilder: (_, _) => const SizedBox(height: 10),
+                itemBuilder: (context, i) {
+                  if (more && i == _limit) {
+                    return OutlinedButton(
+                      onPressed: () => setState(() {
+                        _limit += 40;
+                        _search();
+                      }),
+                      child: const Text('Показати ще'),
+                    );
+                  }
+                  final a = articles[i],
+                      favorite = store.favoriteKeys.contains(articles[i].key);
+                  return Material(
+                    color: Theme.of(context).colorScheme.surfaceContainerLow,
+                    borderRadius: BorderRadius.circular(16),
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 8,
+                      ),
+                      leading: Icon(
+                        a.packId == AppStore.notesId
+                            ? Icons.edit_note_rounded
+                            : Icons.article_outlined,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                      title: Text(
+                        a.title,
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      subtitle: Padding(
+                        padding: const EdgeInsets.only(top: 6),
+                        child: Text(a.category),
+                      ),
+                      trailing: IconButton(
+                        tooltip: favorite
+                            ? 'Прибрати з обраного'
+                            : 'Додати до обраного',
+                        onPressed: () =>
+                            guarded(context, () => store.toggleFavorite(a.key)),
+                        icon: Icon(
+                          favorite
+                              ? Icons.star_rounded
+                              : Icons.star_outline_rounded,
+                        ),
+                      ),
+                      onTap: () => openArticle(
+                        context,
+                        a,
+                        widget.services,
+                        widget.navigate,
+                      ),
+                    ),
+                  );
+                },
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 void openArticle(
@@ -348,10 +453,64 @@ void openArticle(
   Services services,
   void Function(int) navigate,
 ) {
-  Navigator.of(context).push(
-    MaterialPageRoute<void>(
-      builder: (context) => Scaffold(
-        appBar: AppBar(title: const Text('Довідник')),
+  Navigator.of(context).push<void>(
+    MaterialPageRoute(
+      builder: (_) => _ArticleScreen(
+        articleKey: article.key,
+        services: services,
+        navigate: navigate,
+      ),
+    ),
+  );
+}
+
+class _ArticleScreen extends StatelessWidget {
+  const _ArticleScreen({
+    required this.articleKey,
+    required this.services,
+    required this.navigate,
+  });
+  final String articleKey;
+  final Services services;
+  final void Function(int) navigate;
+  @override
+  Widget build(BuildContext context) => ListenableBuilder(
+    listenable: services.store,
+    builder: (context, _) {
+      final store = services.store;
+      final article = store.articles
+          .where((a) => a.key == articleKey)
+          .firstOrNull;
+      if (article == null) {
+        return Scaffold(
+          appBar: AppBar(title: const Text('Довідник')),
+          body: const EmptyState(
+            'Статтю видалено',
+            'Повернися до списку матеріалів.',
+          ),
+        );
+      }
+      final favorite = store.favoriteKeys.contains(article.key);
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Довідник'),
+          actions: [
+            IconButton(
+              tooltip: favorite ? 'Прибрати з обраного' : 'Додати до обраного',
+              onPressed: () =>
+                  guarded(context, () => store.toggleFavorite(article.key)),
+              icon: Icon(
+                favorite ? Icons.star_rounded : Icons.star_outline_rounded,
+              ),
+            ),
+            if (article.packId == AppStore.notesId)
+              IconButton(
+                tooltip: 'Редагувати нотатку',
+                icon: const Icon(Icons.edit_outlined),
+                onPressed: () => editNote(context, store, article: article),
+              ),
+          ],
+        ),
         body: ListView(
           padding: const EdgeInsets.fromLTRB(22, 10, 22, 40),
           children: [
@@ -396,10 +555,8 @@ void openArticle(
               icon: const Icon(Icons.chat_bubble_outline_rounded),
               label: const Text('Додати до повідомлення'),
               onPressed: () => guarded(context, () async {
-                final text =
-                    '${article.title}\n\n${article.body}\n\n${article.license}';
-                await services.store.setDraft(
-                  text.substring(0, text.length.clamp(0, 4000)),
+                await store.setDraft(
+                  '${article.title}\n\n${article.body}\n\n${article.license}',
                 );
                 if (context.mounted) {
                   Navigator.pop(context);
@@ -407,13 +564,42 @@ void openArticle(
                 }
               }),
             ),
+            if (article.packId == AppStore.notesId) ...[
+              const SizedBox(height: 12),
+              TextButton.icon(
+                icon: const Icon(Icons.delete_outline_rounded),
+                label: const Text('Видалити нотатку'),
+                onPressed: () => guarded(context, () async {
+                  final yes = await showDialog<bool>(
+                    context: context,
+                    builder: (dialogContext) => AlertDialog(
+                      title: const Text('Видалити нотатку?'),
+                      content: Text(article.title),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(dialogContext, false),
+                          child: const Text('Залишити'),
+                        ),
+                        FilledButton(
+                          onPressed: () => Navigator.pop(dialogContext, true),
+                          child: const Text('Видалити'),
+                        ),
+                      ],
+                    ),
+                  );
+                  if (yes != true) return;
+                  await store.deleteNote(article.key);
+                  if (context.mounted) Navigator.pop(context);
+                }),
+              ),
+            ],
           ],
         ),
-      ),
-    ),
+      );
+    },
   );
 }
 
 void unawaitedAsk(Services s, String question) {
-  s.assistant.ask(question);
+  unawaited(s.assistant.ask(question));
 }

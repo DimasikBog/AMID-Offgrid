@@ -190,13 +190,19 @@ class _MapScreenState extends State<MapScreen> {
     }
   }
 
-  Future<void> _add({LatLng? at}) async {
-    final name = TextEditingController(),
+  Future<void> _add({LatLng? at, Pin? existing}) async {
+    final name = TextEditingController(text: existing?.name ?? ''),
         lat = TextEditingController(
-          text: at?.latitude.toStringAsFixed(6) ?? '',
+          text:
+              existing?.latitude.toStringAsFixed(6) ??
+              at?.latitude.toStringAsFixed(6) ??
+              '',
         ),
         lon = TextEditingController(
-          text: at?.longitude.toStringAsFixed(6) ?? '',
+          text:
+              existing?.longitude.toStringAsFixed(6) ??
+              at?.longitude.toStringAsFixed(6) ??
+              '',
         );
     try {
       final pin = await showDialog<Pin>(
@@ -204,7 +210,7 @@ class _MapScreenState extends State<MapScreen> {
         builder: (context) => StatefulBuilder(
           builder: (context, update) {
             return AlertDialog(
-              title: const Text('Нова точка'),
+              title: Text(existing == null ? 'Нова точка' : 'Редагувати точку'),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -248,7 +254,7 @@ class _MapScreenState extends State<MapScreen> {
                   onPressed: () {
                     try {
                       final p = Pin.fromJson({
-                        'id': const Uuid().v4(),
+                        'id': existing?.id ?? const Uuid().v4(),
                         'name': name.text.trim(),
                         'latitude': double.tryParse(
                           lat.text.replaceAll(',', '.'),
@@ -300,6 +306,14 @@ class _MapScreenState extends State<MapScreen> {
               }),
               icon: const Icon(Icons.chat_bubble_outline_rounded),
               label: const Text('Передати координати'),
+            ),
+            TextButton.icon(
+              onPressed: () {
+                Navigator.pop(context);
+                guarded(this.context, () => _add(existing: p));
+              },
+              icon: const Icon(Icons.edit_outlined),
+              label: const Text('Редагувати точку'),
             ),
             TextButton.icon(
               onPressed: () => guarded(context, () async {
@@ -404,8 +418,8 @@ class _MapScreenState extends State<MapScreen> {
                   options: MapOptions(
                     initialCenter: const LatLng(48.5, 21),
                     initialZoom: 4,
-                    minZoom: 1,
-                    maxZoom: 20,
+                    minZoom: 0,
+                    maxZoom: 24,
                     backgroundColor:
                         Theme.of(context).brightness == Brightness.dark
                         ? const Color(0xff1b343b)

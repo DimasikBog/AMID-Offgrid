@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:llamadart/llamadart.dart';
@@ -7,8 +8,13 @@ import '../models/data.dart';
 import 'store.dart';
 
 class AssistantService extends ChangeNotifier {
-  AssistantService(this.store);
+  AssistantService(
+    this.store, {
+    Future<List<Article>> Function(String)? findSources,
+  }) : _findSources =
+           findSources ?? ((query) => store.search(query, limit: 30));
   final AppStore store;
+  final Future<List<Article>> Function(String) _findSources;
   LlamaEngine? _engine;
   ChatGenerationTask? _task;
   String? loadedId, error;
@@ -16,10 +22,14 @@ class AssistantService extends ChangeNotifier {
   List<Article> sources = [];
   bool loading = false,
       generating = false,
+      searching = false,
       generated = false,
       _disposed = false;
   Duration elapsed = Duration.zero;
   bool get ready => _engine != null;
+  bool _unloading = false;
+  bool get busy => loading || generating || searching || _unloading;
+  int _request = 0;
   void _changed() {
     if (!_disposed) notifyListeners();
   }
@@ -30,17 +40,26 @@ class AssistantService extends ChangeNotifier {
         'Локальна GGUF-модель запускається в Android та iPhone. Вебперегляд показує інтерфейс і пошук.',
       );
     }
-    if (loading || generating) {
+    if (_disposed || busy) {
       throw StateError('Дочекайся завершення попередньої дії.');
     }
     loading = true;
+    final request = ++_request;
     error = null;
     _changed();
+    LlamaEngine? candidate;
     try {
+      if (model['kind'] != 'model' ||
+          model['path'] is! String ||
+          !await File(model['path'] as String).exists()) {
+        throw const FormatException(
+          'Файл моделі відсутній. Імпортуй GGUF повторно.',
+        );
+      }
       await _engine?.dispose();
       _engine = null;
       loadedId = null;
-      _engine = await LlamaEngine.load(
+      candidate = await LlamaEngine.load(
         LlamaModel(ModelSource.path(model['path'] as String)),
         params: const ModelParams(
           contextSize: 2048,
@@ -49,42 +68,52 @@ class AssistantService extends ChangeNotifier {
           numberOfThreads: 4,
         ),
       );
+      if (_disposed || request != _request) return;
+      await store.selectModel(model['id'] as String);
+      if (_disposed || request != _request) return;
+      _engine = candidate;
+      candidate = null;
       loadedId = model['id'] as String;
-      await store.selectModel(loadedId!);
     } catch (e) {
       error = 'Не вдалося завантажити модель: $e';
       rethrow;
     } finally {
+      await candidate?.dispose();
       loading = false;
       _changed();
     }
   }
 
   Future<void> ask(String value) async {
-    if (generating || loading || value.trim().isEmpty) return;
-    question = value.trim();
+    if (_disposed || busy || value.trim().isEmpty) return;
+    final request = ++_request;
+    searching = true;
+    question = boundedText(value.trim(), 2000);
     answer = '';
     error = null;
     generated = false;
-    sources = (await store.search(question, limit: 30)).take(3).toList();
-    if (_engine == null) {
-      _changed();
-      return;
-    }
-    generated = true;
-    generating = true;
+    sources = [];
+    elapsed = Duration.zero;
     _changed();
     final watch = Stopwatch()..start();
-    final context = sources
-        .asMap()
-        .entries
-        .map(
-          (e) =>
-              '[${e.key + 1}] ${e.value.title}\n${e.value.body.substring(0, e.value.body.length.clamp(0, 1100))}',
-        )
-        .join('\n\n');
     try {
-      _task = _engine!.createTask(
+      final found = await _findSources(question);
+      if (_disposed || request != _request) return;
+      sources = found.take(3).toList();
+      searching = false;
+      if (_engine == null) return;
+      generated = true;
+      generating = true;
+      _changed();
+      final context = sources
+          .asMap()
+          .entries
+          .map(
+            (e) =>
+                '[${e.key + 1}] ${e.value.title}\n${e.value.body.substring(0, e.value.body.length.clamp(0, 1100))}',
+          )
+          .join('\n\n');
+      final task = _engine!.createTask(
         [
           const LlamaChatMessage.fromText(
             role: LlamaChatRole.system,
@@ -99,44 +128,82 @@ class AssistantService extends ChangeNotifier {
         params: const GenerationParams(maxTokens: 384, temp: 0.3),
         enableThinking: false,
       );
-      await for (final chunk in _task!.events) {
+      _task = task;
+      await for (final chunk in task.events) {
+        if (_disposed || request != _request) return;
         for (final c in chunk.choices) {
           answer += c.delta.content ?? '';
         }
         _changed();
       }
-      final result = await _task!.done;
+      final result = await task.done;
       if (result.error != null) error = 'Генерацію зупинено: ${result.error}';
     } catch (e) {
-      error = 'Помилка генерації: $e';
+      if (!_disposed && request == _request) {
+        error = 'Не вдалося виконати запит: $e';
+      }
     } finally {
       watch.stop();
-      elapsed = watch.elapsed;
-      _task = null;
+      if (request == _request) {
+        elapsed = watch.elapsed;
+        _task = null;
+        searching = false;
+        generating = false;
+        _changed();
+      }
+    }
+  }
+
+  Future<void> cancel() async {
+    if (loading) return;
+    final request = ++_request;
+    searching = false;
+    final task = _task;
+    task?.cancel();
+    try {
+      if (task != null) await task.done;
+    } catch (_) {
+      /* Cancellation may complete with an error. */
+    }
+    if (request == _request) {
+      if (_task == task) _task = null;
       generating = false;
       _changed();
     }
   }
 
-  Future<void> cancel() async {
-    final task = _task;
-    task?.cancel();
-    if (task != null) await task.done;
-  }
-
   Future<void> unload() async {
-    await cancel();
-    await _engine?.dispose();
-    _engine = null;
-    loadedId = null;
+    if (loading) throw StateError('Модель ще завантажується.');
+    if (_unloading) return;
+    _unloading = true;
     _changed();
+    try {
+      await cancel();
+      final engine = _engine;
+      _engine = null;
+      loadedId = null;
+      await engine?.dispose();
+    } finally {
+      _unloading = false;
+      _changed();
+    }
   }
 
   @override
   void dispose() {
     _disposed = true;
-    _task?.cancel();
-    unawaited(_engine?.dispose());
+    _request++;
+    final task = _task, engine = _engine;
+    task?.cancel();
+    _engine = null;
+    unawaited(() async {
+      try {
+        if (task != null) await task.done;
+      } catch (_) {
+        /* Finish cancellation before freeing native memory. */
+      }
+      await engine?.dispose();
+    }());
     super.dispose();
   }
 }
