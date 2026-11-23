@@ -145,7 +145,9 @@ class PacksScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        p['kind'] == 'knowledge'
+                        p['routing'] is Map
+                            ? '${((p['routing'] as Map)['nodes'] as List).length} вузлів · ${((p['routing'] as Map)['edges'] as List).length} ділянок маршрутизації'
+                            : p['kind'] == 'knowledge'
                             ? '${p['count']} статей'
                             : '${prettyBytes(p['bytes'] as int? ?? 0)} · ${p['kind'] == 'model' ? 'Модель GGUF' : 'Карта MBTiles'}',
                       ),

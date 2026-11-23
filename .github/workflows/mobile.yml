@@ -3,7 +3,7 @@ name: Mobile checks and builds
 on:
   push:
     branches: [main]
-    paths: ['lib/**', 'test/**', 'assets/**', 'android/**', 'ios/**', 'scripts/**', 'pubspec.*', '.github/**']
+    paths: ['lib/**', 'test/**', 'assets/**', 'examples/**', 'docs/OFFLINE_ROUTES.md', 'android/**', 'ios/**', 'scripts/**', 'pubspec.*', '.github/**']
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -68,6 +68,9 @@ jobs:
         run: |
           mkdir -p dist
           cp build/app/outputs/flutter-apk/app-release.apk dist/AMID_Offgrid_android_arm64.apk
+          mkdir -p dist/docs dist/examples
+          cp docs/OFFLINE_ROUTES.md dist/docs/
+          cp examples/route_network.json dist/examples/
           python3 scripts/verify_apk.py dist/AMID_Offgrid_android_arm64.apk
           python3 scripts/create_manifest.py --artifact dist/AMID_Offgrid_android_arm64.apk --platform android --signing development --commit "$GITHUB_SHA" --run-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" --quality success
       - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
@@ -97,6 +100,9 @@ jobs:
         run: |
           mkdir -p dist
           ditto -c -k --sequesterRsrc --keepParent build/ios/iphoneos/Runner.app dist/AMID_Offgrid_iOS_unsigned.zip
+          mkdir -p dist/docs dist/examples
+          cp docs/OFFLINE_ROUTES.md dist/docs/
+          cp examples/route_network.json dist/examples/
           python3 scripts/package_ios.py build/ios/iphoneos/Runner.app dist/AMID_Offgrid_iOS_unsigned.ipa
           python3 scripts/create_manifest.py --artifact dist/AMID_Offgrid_iOS_unsigned.zip --artifact dist/AMID_Offgrid_iOS_unsigned.ipa --platform ios --signing unsigned --commit "$GITHUB_SHA" --run-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" --quality success
       - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5

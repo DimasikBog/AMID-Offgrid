@@ -1,0 +1,24 @@
+{
+  "format": "AMID_OFFGRID_PACK",
+  "version": 1,
+  "id": "amid-synthetic-route-example",
+  "title": "Навчальна мережа · не справжні дороги",
+  "license": "Власний синтетичний приклад AMID. Координати не описують справжні дороги.",
+  "articles": [],
+  "routing": {
+    "format": "AMID_ROUTE_NETWORK",
+    "version": 1,
+    "synthetic": true,
+    "nodes": [
+      {"id": "a", "name": "Навчальний пункт A", "coordinate": [0.0, 0.0]},
+      {"id": "b", "name": "Навчальне перехрестя B", "coordinate": [0.001, 0.0]},
+      {"id": "c", "name": "Навчальний пункт C", "coordinate": [0.002, 0.0]},
+      {"id": "d", "name": "Окремий пункт D", "coordinate": [0.003, 0.0]}
+    ],
+    "edges": [
+      {"id": "ab", "from": "a", "to": "b", "name": "Навчальна ділянка A–B", "bidirectional": true, "via": []},
+      {"id": "bc", "from": "b", "to": "c", "name": "Одностороння B–C", "bidirectional": false, "via": []},
+      {"id": "ac-detour", "from": "a", "to": "c", "name": "Навчальний обхід A–C", "bidirectional": true, "via": [[0.001, 0.002]]}
+    ]
+  }
+}
