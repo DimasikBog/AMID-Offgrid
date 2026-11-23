@@ -52,7 +52,7 @@ the same code compiled for Flutter web.
 - State: start with `setState`/`ValueNotifier`; reach for `provider` or
   `riverpod` only when state is shared across screens.
 - Native config lives in `android/` and `ios/`; app id is
-  `dev.productos.productos_app` until the user picks their own.
+  `com.amid.offgrid`. Preserve this identity for updates.
 - Backend: no ProductOS database/storage provisioning for Flutter. Local data →
   shared_preferences / sqflite (with a web fallback); cloud → Supabase or Firebase
   Flutter SDKs with client-safe keys. Never add Node/npm/Prisma files here.

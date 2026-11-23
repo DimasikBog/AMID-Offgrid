@@ -47,7 +47,12 @@ class NearbyService extends ChangeNotifier {
     if (!_disposed) notifyListeners();
   }
 
+  void _checkEpoch(int epoch) {
+    if (_disposed || epoch != _epoch) throw StateError('Сеанс завершено.');
+  }
+
   void _initialize() {
+    if (_disposed) throw StateError('Сервіс Bluetooth уже закритий.');
     if (!supported) {
       throw UnsupportedError(
         'Радіозв’язок працює в Android та iPhone. У вебперегляді доступні чернетки.',
@@ -56,6 +61,19 @@ class NearbyService extends ChangeNotifier {
     if (_central != null) return;
     _central = CentralManager();
     _peripheral = PeripheralManager();
+    for (final manager in <BluetoothLowEnergyManager>[
+      _central!,
+      _peripheral!,
+    ]) {
+      _subscriptions.add(
+        manager.stateChanged.listen((e) {
+          if (e.state != BluetoothLowEnergyState.poweredOn &&
+              (hosting || scanning || connected)) {
+            _lost();
+          }
+        }),
+      );
+    }
     _subscriptions.add(
       _central!.discovered.listen((e) {
         if (!scanning) return;
@@ -157,10 +175,15 @@ class NearbyService extends ChangeNotifier {
     _changed();
     try {
       _initialize();
-      await stop();
+      final stopped = stop();
+      final epoch = _epoch;
+      await stopped;
+      _checkEpoch(epoch);
       await _authorize(_peripheral!);
+      _checkEpoch(epoch);
       ticket = PairingTicket.create();
       _crypto = await SecureChannel.create(ticket!, host: true);
+      _checkEpoch(epoch);
       hosting = true;
       _rx = GATTCharacteristic.mutable(
         uuid: rxId,
@@ -175,6 +198,7 @@ class NearbyService extends ChangeNotifier {
         descriptors: [],
       );
       await _peripheral!.removeAllServices();
+      _checkEpoch(epoch);
       await _peripheral!.addService(
         GATTService(
           uuid: serviceId,
@@ -183,6 +207,7 @@ class NearbyService extends ChangeNotifier {
           characteristics: [_rx!, _tx!],
         ),
       );
+      _checkEpoch(epoch);
       await _peripheral!.startAdvertising(
         Advertisement(
           name: defaultTargetPlatform == TargetPlatform.android
@@ -191,6 +216,7 @@ class NearbyService extends ChangeNotifier {
           serviceUUIDs: [serviceId],
         ),
       );
+      _checkEpoch(epoch);
       status = 'Покажи код потрібному співрозмовнику';
     } catch (_) {
       await stop();
@@ -208,14 +234,20 @@ class NearbyService extends ChangeNotifier {
     _changed();
     try {
       _initialize();
-      await stop();
+      final stopped = stop();
+      final epoch = _epoch;
+      await stopped;
+      _checkEpoch(epoch);
       await _authorize(_central!);
+      _checkEpoch(epoch);
       ticket = parsed;
       _crypto = await SecureChannel.create(parsed, host: false);
+      _checkEpoch(epoch);
       discoveries.clear();
       scanning = true;
       status = 'Шукаю AMID поблизу…';
       await _central!.startDiscovery(serviceUUIDs: [serviceId]);
+      _checkEpoch(epoch);
     } catch (_) {
       await stop();
       rethrow;
@@ -230,23 +262,29 @@ class NearbyService extends ChangeNotifier {
     busy = true;
     _changed();
     try {
+      final epoch = _epoch;
       await _central!.stopDiscovery();
+      _checkEpoch(epoch);
       scanning = false;
       _host = device.peripheral;
       peerName = device.advertisement.name ?? 'AMID поблизу';
       status = 'З’єдную телефони…';
       _changed();
       await _central!.connect(_host!).timeout(const Duration(seconds: 25));
+      _checkEpoch(epoch);
       if (defaultTargetPlatform == TargetPlatform.android) {
         try {
           await _central!.requestMTU(_host!, mtu: 185);
         } catch (_) {}
       }
+      _checkEpoch(epoch);
       final services = await _central!.discoverGATT(_host!),
           service = services.firstWhere((s) => s.uuid == serviceId);
+      _checkEpoch(epoch);
       _rx = service.characteristics.firstWhere((c) => c.uuid == rxId);
       _tx = service.characteristics.firstWhere((c) => c.uuid == txId);
       await _central!.setCharacteristicNotifyState(_host!, _tx!, state: true);
+      _checkEpoch(epoch);
       status = 'Перевіряю код сеансу…';
       _handshake = Completer<bool>();
       final confirmed = _handshake!.future.timeout(
@@ -322,13 +360,15 @@ class NearbyService extends ChangeNotifier {
       if (_crypto == null || epoch != _epoch) {
         throw StateError('Сеанс завершено.');
       }
-      final packet = await _crypto!.seal(value),
-          maximum = hosting
-              ? await _peripheral!.getMaximumNotifyLength(_guest!)
-              : await _central!.getMaximumWriteLength(
-                  _host!,
-                  type: GATTCharacteristicWriteType.withResponse,
-                );
+      final packet = await _crypto!.seal(value);
+      _checkEpoch(epoch);
+      final maximum = hosting
+          ? await _peripheral!.getMaximumNotifyLength(_guest!)
+          : await _central!.getMaximumWriteLength(
+              _host!,
+              type: GATTCharacteristicWriteType.withResponse,
+            );
+      _checkEpoch(epoch);
       final mtu = min(180, maximum);
       if (mtu < 20) {
         throw StateError('Непідтримуваний розмір Bluetooth-пакета.');
@@ -383,18 +423,18 @@ class NearbyService extends ChangeNotifier {
   }
 
   void _lost() {
-    connected = false;
-    _epoch++;
-    _assembler.clear();
-    status = 'З’єднання перервано. Створи новий сеанс.';
-    if (_handshake != null && !_handshake!.isCompleted) {
-      _handshake!.complete(false);
-    }
-    for (final ack in _acks.values) {
-      if (!ack.isCompleted) ack.complete(false);
-    }
-    _acks.clear();
-    _changed();
+    if (_disposed) return;
+    // A disconnected peer must not leave a reusable pairing ticket or crypto state.
+    final stopped = stop();
+    final epoch = _epoch;
+    unawaited(
+      stopped.then((_) {
+        if (!_disposed && epoch == _epoch) {
+          status = 'З’єднання перервано. Створи новий сеанс.';
+          _changed();
+        }
+      }),
+    );
   }
 
   Future<void> stop() async {

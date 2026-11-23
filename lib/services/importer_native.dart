@@ -11,6 +11,9 @@ import 'package:sqflite/sqflite.dart';
 import 'package:uuid/uuid.dart';
 
 import '../models/data.dart';
+import '../models/map_metadata.dart';
+import 'backup_codec.dart';
+import 'document_codec.dart';
 import 'store.dart';
 
 class ImportService extends ChangeNotifier {
@@ -41,9 +44,32 @@ class ImportService extends ChangeNotifier {
   static const modelUrl =
       'https://huggingface.co/Qwen/Qwen3-0.6B-GGUF/resolve/23749fefcc72300e3a2ad315e1317431b06b590a/Qwen3-0.6B-Q8_0.gguf';
   void _report(double value, String text) {
-    progress = value;
+    progress = value.clamp(0, 1);
     label = text;
     notifyListeners();
+  }
+
+  void _checkCancelled() {
+    if (_cancelled || _disposed) throw const OperationCancelled();
+  }
+
+  Future<T> _run<T>(String description, Future<T> Function() action) async {
+    if (_disposed) throw StateError('Сервіс файлів уже закритий.');
+    if (busy) throw StateError('Попередня дія ще триває.');
+    busy = true;
+    _cancelled = false;
+    _report(0, description);
+    try {
+      return await action();
+    } catch (_) {
+      if (_cancelled || _disposed) throw const OperationCancelled();
+      rethrow;
+    } finally {
+      _client?.close(force: true);
+      _client = null;
+      busy = false;
+      notifyListeners();
+    }
   }
 
   Future<void> _protect(String path) async {
@@ -52,26 +78,32 @@ class ImportService extends ChangeNotifier {
     }
   }
 
-  Future<String?> pick() async {
-    if (busy) throw StateError('Попередня дія ще триває.');
-    busy = true;
-    _report(0, 'Обери файл');
-    try {
-      final file = await FilePicker.pickFile(
-        type: FileType.custom,
-        allowedExtensions: ['gguf', 'mbtiles', 'json', 'geojson', 'txt', 'md'],
-      );
-      if (file == null) return null;
-      final length = await file.length();
-      if (length == null) {
-        throw const FileSystemException('Не вдалося визначити розмір файла.');
-      }
-      return await importStream(file.name, length, file.readAsByteStream);
-    } finally {
-      busy = false;
-      notifyListeners();
-    }
-  }
+  Future<String?> pick({PasswordPrompt? requestPassword}) =>
+      _run('Обери файл', () async {
+        final file = await FilePicker.pickFile(
+          type: FileType.custom,
+          allowedExtensions: [
+            'gguf',
+            'mbtiles',
+            'json',
+            'geojson',
+            'txt',
+            'md',
+            'amidbackup',
+          ],
+        );
+        if (file == null) return null;
+        final length = await file.length();
+        if (length == null) {
+          throw const FileSystemException('Не вдалося визначити розмір файла.');
+        }
+        return _importStream(
+          file.name,
+          length,
+          file.readAsByteStream,
+          requestPassword: requestPassword,
+        );
+      });
 
   Future<String> importPath(String path, {String? name}) async {
     final file = File(path);
@@ -85,14 +117,40 @@ class ImportService extends ChangeNotifier {
   Future<String> importStream(
     String name,
     int length,
-    Stream<List<int>> Function() read,
-  ) async {
+    Stream<List<int>> Function() read, {
+    PasswordPrompt? requestPassword,
+  }) => _run(
+    'Готую імпорт',
+    () => _importStream(name, length, read, requestPassword: requestPassword),
+  );
+
+  Future<String> _importStream(
+    String name,
+    int length,
+    Stream<List<int>> Function() read, {
+    PasswordPrompt? requestPassword,
+  }) async {
+    _checkCancelled();
     final ext = p.extension(name).toLowerCase(),
         binary = {
           '.gguf',
           '.mbtiles',
         }.contains(p.extension(name).toLowerCase());
-    if (length > (binary ? 8 * 1024 * 1024 * 1024 : 32 * 1024 * 1024)) {
+    if (!{
+      '.gguf',
+      '.mbtiles',
+      '.json',
+      '.geojson',
+      '.txt',
+      '.md',
+      '.amidbackup',
+    }.contains(ext)) {
+      throw const FormatException('Непідтримуваний формат файла.');
+    }
+    final textLimit = {'.json', '.amidbackup'}.contains(ext)
+        ? 48 * 1024 * 1024
+        : 32 * 1024 * 1024;
+    if (length < 0 || length > (binary ? 8 * 1024 * 1024 * 1024 : textLimit)) {
       throw const FormatException(
         'Ліміт: 8 GiB для моделі / карти, 32 MiB для текстового пакета.',
       );
@@ -108,6 +166,7 @@ class ImportService extends ChangeNotifier {
         var copied = 0, last = 0;
         try {
           await for (final chunk in read()) {
+            _checkCancelled();
             copied += chunk.length;
             if (copied > length) {
               throw const FileSystemException('Розмір файла змінився.');
@@ -125,6 +184,7 @@ class ImportService extends ChangeNotifier {
         if (await partial.length() != length) {
           throw const FileSystemException('Неповна копія файла.');
         }
+        _checkCancelled();
         await partial.rename(file.path);
         Json extra = {};
         if (ext == '.gguf') {
@@ -142,6 +202,7 @@ class ImportService extends ChangeNotifier {
         }
         _report(.86, 'Перевіряю файл');
         final hash = await sha256.bind(file.openRead()).first;
+        _checkCancelled();
         await _protect(file.path);
         await store.addAsset({
           'id': id,
@@ -169,45 +230,29 @@ class ImportService extends ChangeNotifier {
     final chunks = BytesBuilder(copy: false);
     var count = 0;
     await for (final chunk in read()) {
+      _checkCancelled();
       count += chunk.length;
-      if (count > 32 * 1024 * 1024) {
+      if (count > textLimit || count > length) {
         throw const FormatException('Завеликий текстовий файл.');
       }
       chunks.add(chunk);
     }
-    final bytes = chunks.takeBytes(), text = utf8.decode(bytes);
-    Json pack;
-    if (ext == '.txt' || ext == '.md') {
-      pack = parsePack({
-        'format': 'AMID_OFFGRID_PACK',
-        'version': 1,
-        'id': 'text-${const Uuid().v4()}',
-        'title': name,
-        'license': 'Власний матеріал користувача.',
-        'articles': [
-          {'id': 'document', 'title': name, 'body': text},
-        ],
-      });
-    } else {
-      final data = decodeObject(text);
-      if (data['format'] == 'AMID_OFFGRID_BACKUP') {
-        await store.restore(data);
-        return 'Резервну копію відновлено.';
-      }
-      pack = parsePack(
-        data['type'] == 'FeatureCollection'
-            ? {
-                'format': 'AMID_OFFGRID_PACK',
-                'version': 1,
-                'id': 'map-${const Uuid().v4()}',
-                'title': name,
-                'license': 'Користувацький GeoJSON.',
-                'articles': [],
-                'map': data,
-              }
-            : data,
-      );
+    if (count != length) {
+      throw const FileSystemException('Неповний текстовий файл.');
     }
+    final bytes = chunks.takeBytes();
+    final raw = decodeDocument(name, bytes);
+    if (bytes.length > BackupCodec.maxPlainBytes &&
+        !BackupCodec.isEncrypted(raw)) {
+      throw const FormatException('Ліміт відкритих текстових даних — 32 MiB.');
+    }
+    final data = await BackupCodec.unlock(raw, requestPassword);
+    _checkCancelled();
+    if (data['format'] == 'AMID_OFFGRID_BACKUP') {
+      await store.restore(data);
+      return 'Резервну копію об’єднано з даними пристрою.';
+    }
+    final pack = documentPack(data, name);
     pack['bytes'] = bytes.length;
     pack['sha256'] = sha256.convert(bytes).toString();
     await store.importKnowledge(pack);
@@ -220,61 +265,21 @@ class ImportService extends ChangeNotifier {
     try {
       final rows = await db.query('metadata'),
           metadata = {for (final r in rows) '${r['name']}': '${r['value']}'};
-      if (!{
-        'png',
-        'jpg',
-        'jpeg',
-        'webp',
-      }.contains(metadata['format']?.toLowerCase())) {
-        throw const FormatException(
-          'Підтримуються растрові MBTiles: PNG, JPG, WebP. Векторні PBF ще не підтримуються.',
-        );
-      }
       if ((await db.rawQuery(
         'SELECT zoom_level,tile_column,tile_row,tile_data FROM tiles LIMIT 1',
       )).isEmpty) {
         throw const FormatException('Карта не містить тайлів.');
       }
-      final center = metadata['center']
-              ?.split(',')
-              .map(double.tryParse)
-              .toList(),
-          bounds = metadata['bounds']?.split(',').map(double.tryParse).toList();
-      var lat = 20.0, lon = 0.0, zoom = 2.0;
-      if (center?.length == 3 &&
-          center!.every((v) => v != null && v.isFinite)) {
-        lon = center[0]!;
-        lat = center[1]!;
-        zoom = center[2]!;
-      } else if (bounds?.length == 4 &&
-          bounds!.every((v) => v != null && v.isFinite)) {
-        lon = (bounds[0]! + bounds[2]!) / 2;
-        lat = (bounds[1]! + bounds[3]!) / 2;
-        zoom = double.tryParse(metadata['minzoom'] ?? '') ?? 5;
-      }
-      if (lat.abs() > 85 || lon.abs() > 180 || !zoom.isFinite) {
-        throw const FormatException('Некоректні межі карти.');
-      }
-      return {
-        'center': [lat, lon, zoom.clamp(0, 20)],
-        'minZoom': double.tryParse(metadata['minzoom'] ?? '') ?? 0,
-        'maxZoom': double.tryParse(metadata['maxzoom'] ?? '') ?? 20,
-        'attribution':
-            metadata['attribution'] ?? 'Користувацька карта · перевір джерело',
-      };
+      return parseRasterMapMetadata(metadata);
     } finally {
       await db.close();
     }
   }
 
-  Future<String> downloadStarter() async {
-    if (busy) throw StateError('Попередня дія ще триває.');
+  Future<String> downloadStarter() => _run('Готую завантаження', () async {
     if (store.packs.any((p) => p['id'] == starterId)) {
       return 'Стартова модель уже збережена.';
     }
-    busy = true;
-    _cancelled = false;
-    _report(0, 'Готую завантаження');
     final dir = Directory(p.join(store.backend.directory, 'files'));
     await dir.create(recursive: true);
     final partial = File(p.join(dir.path, 'qwen3-06b-q8.gguf.partial')),
@@ -295,8 +300,14 @@ class ImportService extends ChangeNotifier {
         if (response.statusCode == 200) {
           offset = 0;
         } else if (response.statusCode == 206) {
-          if (!((response.headers.value(HttpHeaders.contentRangeHeader) ?? '')
-              .startsWith('bytes $offset-'))) {
+          final range = RegExp(r'^bytes (\d+)-(\d+)/(\d+)$').firstMatch(
+            response.headers.value(HttpHeaders.contentRangeHeader) ?? '',
+          );
+          if (range == null ||
+              int.parse(range[1]!) != offset ||
+              int.parse(range[2]!) < offset ||
+              int.parse(range[2]!) >= modelBytes ||
+              int.parse(range[3]!) != modelBytes) {
             throw const HttpException('Сервер не підтвердив докачування.');
           }
         } else {
@@ -364,10 +375,8 @@ class ImportService extends ChangeNotifier {
     } finally {
       _client?.close(force: true);
       _client = null;
-      busy = false;
-      notifyListeners();
     }
-  }
+  });
 
   Future<void> deleteAsset(Json asset) async {
     final path = asset['path'];
@@ -385,12 +394,69 @@ class ImportService extends ChangeNotifier {
     _client?.close(force: true);
   }
 
-  Future<void> exportBackup() async {
+  Future<void> exportBackup({String? password}) =>
+      _run('Готую резервну копію', () async {
+        await store.flush();
+        final backup = password == null
+            ? store.backup()
+            : await BackupCodec.encrypt(store.backup(), password);
+        _checkCancelled();
+        final bytes = utf8.encode(jsonEncode(backup));
+        if (password == null && bytes.length > BackupCodec.maxPlainBytes) {
+          throw const FormatException(
+            'Ліміт текстової резервної копії — 32 MiB.',
+          );
+        }
+        final result = await FilePicker.saveFile(
+          fileName: password == null
+              ? 'AMID_Offgrid_Backup.json'
+              : 'AMID_Offgrid_Backup.amidbackup',
+          bytes: Uint8List.fromList(bytes),
+          mimeType: 'application/json',
+        );
+        if (result == null) throw const OperationCancelled();
+      });
+
+  Future<void> exportPins() => _run('Готую точки карти', () async {
     final result = await FilePicker.saveFile(
-      fileName: 'AMID_Offgrid_Backup.json',
-      bytes: Uint8List.fromList(utf8.encode(jsonEncode(store.backup()))),
-      mimeType: 'application/json',
+      fileName: 'AMID_Points.geojson',
+      mimeType: 'application/geo+json',
+      bytes: Uint8List.fromList(
+        utf8.encode(
+          jsonEncode({
+            'type': 'FeatureCollection',
+            'features': store.pins
+                .map(
+                  (pin) => {
+                    'type': 'Feature',
+                    'properties': {'name': pin.name, 'id': pin.id},
+                    'geometry': {
+                      'type': 'Point',
+                      'coordinates': [pin.longitude, pin.latitude],
+                    },
+                  },
+                )
+                .toList(),
+          }),
+        ),
+      ),
     );
-    if (result == null) throw StateError('Збереження скасовано.');
-  }
+    if (result == null) throw const OperationCancelled();
+  });
+
+  Future<String>
+  clearTemporaryFiles() => _run('Очищаю незавершені файли', () async {
+    final directory = Directory(p.join(store.backend.directory, 'files'));
+    var bytes = 0;
+    if (await directory.exists()) {
+      await for (final entry in directory.list(followLinks: false)) {
+        if (entry is File && entry.path.endsWith('.partial')) {
+          _checkCancelled();
+          bytes += await entry.length();
+          await entry.delete();
+        }
+      }
+    }
+    return 'Звільнено ${prettyBytes(bytes)}. Збережені пакети залишилися на пристрої.';
+  });
 }

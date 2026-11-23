@@ -5,6 +5,9 @@ import '../models/data.dart';
 import '../services/services.dart';
 import '../services/importer.dart';
 import '../widgets/common.dart';
+import '../widgets/password_dialog.dart';
+import '../version.dart';
+import 'privacy_screen.dart';
 
 class PacksScreen extends StatelessWidget {
   const PacksScreen({super.key, required this.services});
@@ -36,24 +39,33 @@ class PacksScreen extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             FilledButton.icon(
-              onPressed: files.busy ? null : () => guarded(context, files.pick),
+              onPressed: files.busy
+                  ? null
+                  : () => guarded(
+                      context,
+                      () => files.pick(
+                        requestPassword: () => requestBackupPassword(context),
+                      ),
+                    ),
               icon: const Icon(Icons.add_rounded),
               label: const Text('Імпортувати файл'),
             ),
             const SizedBox(height: 8),
             const Text(
-              'TXT · AMID JSON · GeoJSON · растрові MBTiles · GGUF',
+              'TXT · MD · AMID JSON · GeoJSON · MBTiles · GGUF · захищена копія',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 12),
             ),
             if (files.busy) ...[
               const SizedBox(height: 18),
-              LinearProgressIndicator(value: files.progress),
+              LinearProgressIndicator(
+                value: files.progress == 0 ? null : files.progress,
+              ),
               const SizedBox(height: 10),
               Text(files.label),
               TextButton(
                 onPressed: files.cancel,
-                child: const Text('Зупинити завантаження'),
+                child: const Text('Скасувати дію'),
               ),
             ],
             const Section('Локальний ШІ'),
@@ -215,7 +227,7 @@ class PacksScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'Статті, точки й повідомлення — одним JSON-файлом. Моделі та MBTiles зберігай окремо. Експорт містить відкритий текст.',
+                    'Статті, нотатки, обране, чернетка й точки — однією копією. Моделі та MBTiles зберігай окремо. Звичайний JSON містить відкритий текст; захищена копія потребує пароля.',
                   ),
                   const SizedBox(height: 12),
                   OutlinedButton.icon(
@@ -223,7 +235,23 @@ class PacksScreen extends StatelessWidget {
                         ? null
                         : () => guarded(context, files.exportBackup),
                     icon: const Icon(Icons.save_alt_rounded),
-                    label: const Text('Зберегти копію'),
+                    label: const Text('Зберегти JSON без пароля'),
+                  ),
+                  const SizedBox(height: 8),
+                  FilledButton.tonalIcon(
+                    onPressed: files.busy || ai.loading || ai.generating
+                        ? null
+                        : () => guarded(context, () async {
+                            final password = await requestBackupPassword(
+                              context,
+                              creating: true,
+                            );
+                            if (password == null) return null;
+                            await files.exportBackup(password: password);
+                            return 'Захищену копію збережено.';
+                          }),
+                    icon: const Icon(Icons.lock_outline_rounded),
+                    label: const Text('Зберегти копію з паролем'),
                   ),
                   const SizedBox(height: 7),
                   const Text(
@@ -233,18 +261,59 @@ class PacksScreen extends StatelessWidget {
                 ],
               ),
             ),
+            const Section('Точки та вільне місце'),
+            OutlinedButton.icon(
+              onPressed: files.busy || store.pins.isEmpty
+                  ? null
+                  : () => guarded(context, files.exportPins),
+              icon: const Icon(Icons.place_outlined),
+              label: const Text('Експортувати точки GeoJSON'),
+            ),
+            if (!kIsWeb)
+              TextButton.icon(
+                onPressed: files.busy
+                    ? null
+                    : () => guarded(context, files.clearTemporaryFiles),
+                icon: const Icon(Icons.cleaning_services_outlined),
+                label: const Text('Очистити незавершені завантаження'),
+              ),
+            const Section('Вигляд'),
+            DropdownButton<String>(
+              value: store.themePreference,
+              isExpanded: true,
+              items: const [
+                DropdownMenuItem(
+                  value: 'system',
+                  child: Text('Як на пристрої'),
+                ),
+                DropdownMenuItem(value: 'light', child: Text('Світла тема')),
+                DropdownMenuItem(value: 'dark', child: Text('Темна тема')),
+              ],
+              onChanged: (value) {
+                if (value != null) {
+                  guarded(context, () => store.setThemePreference(value));
+                }
+              },
+            ),
             const Section('Про застосунок'),
             Text(
-              'AMID Offgrid · 0.2.0\\nFlutter для Android та iPhone\\nКарти світу: Natural Earth, public domain.\\nОглядова карта не містить вулиць. Навігація маршрутами та ZIM-Вікіпедія ще не додані.\\nBluetooth: прямий сеанс між двома AMID; сумісність із Briar/BitChat не заявляється.'
+              'AMID Offgrid · $appVersion\\nFlutter для Android та iPhone\\nКарти світу: Natural Earth, public domain.\\nОглядова карта не містить вулиць. Навігація маршрутами та ZIM-Вікіпедія ще не додані.\\nBluetooth: прямий сеанс між двома AMID; сумісність із Briar/BitChat не заявляється.'
                   .replaceAll(r'\n', '\n'),
               style: TextStyle(height: 1.7),
             ),
             const SizedBox(height: 14),
             TextButton.icon(
+              onPressed: () => Navigator.of(context).push<void>(
+                MaterialPageRoute(builder: (_) => const PrivacyScreen()),
+              ),
+              icon: const Icon(Icons.privacy_tip_outlined),
+              label: const Text('Дані та приватність'),
+            ),
+            TextButton.icon(
               onPressed: () => showLicensePage(
                 context: context,
                 applicationName: 'AMID Offgrid',
-                applicationVersion: '0.2.0',
+                applicationVersion: appVersion,
                 applicationLegalese: 'AMID · Open-source dependency notices',
               ),
               icon: const Icon(Icons.info_outline_rounded),

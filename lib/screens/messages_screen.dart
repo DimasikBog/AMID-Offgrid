@@ -6,9 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:uuid/uuid.dart';
 
-import '../models/data.dart';
 import '../services/services.dart';
 import '../widgets/common.dart';
 
@@ -22,37 +20,59 @@ class MessagesScreen extends StatefulWidget {
 class _MessagesScreenState extends State<MessagesScreen>
     with WidgetsBindingObserver {
   late TextEditingController _draft;
+  final _draftFocus = FocusNode();
   Timer? _debounce;
   String _known = '';
+  final _pendingWrites = <int, String>{};
+  int _writeId = 0, _visible = 40;
+  bool _saving = false;
   @override
   void initState() {
     super.initState();
     _known = widget.services.store.draft;
     _draft = TextEditingController(text: _known);
+    _draftFocus.addListener(_flushOnBlur);
     widget.services.store.addListener(_sync);
     WidgetsBinding.instance.addObserver(this);
+  }
+
+  void _flushOnBlur() {
+    if (!_draftFocus.hasFocus && _draft.text != widget.services.store.draft) {
+      _debounce?.cancel();
+      unawaited(_persist(_draft.text));
+    }
   }
 
   void _sync() {
     final value = widget.services.store.draft;
     if (value != _known) {
-      _debounce?.cancel();
       _known = value;
+      if (_pendingWrites.containsValue(value)) return;
+      _debounce?.cancel();
       _draft.text = value;
     }
   }
 
   void _changed(String value) {
-    _known = value;
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 400), () => _persist(value));
   }
 
   Future<void> _persist(String value) async {
     try {
-      await widget.services.store.setDraft(value);
+      await _writeDraft(value);
     } catch (e) {
       if (mounted) toast(context, 'Не вдалося зберегти чернетку: $e');
+    }
+  }
+
+  Future<void> _writeDraft(String value) async {
+    final id = ++_writeId;
+    _pendingWrites[id] = value;
+    try {
+      await widget.services.store.setDraft(value);
+    } finally {
+      _pendingWrites.remove(id);
     }
   }
 
@@ -70,26 +90,37 @@ class _MessagesScreenState extends State<MessagesScreen>
     _debounce?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     widget.services.store.removeListener(_sync);
+    if (_draft.text != widget.services.store.draft) {
+      unawaited(_persist(_draft.text));
+    }
     _draft.dispose();
+    _draftFocus.removeListener(_flushOnBlur);
+    _draftFocus.dispose();
     super.dispose();
   }
 
   Future<void> _save() async {
-    final body = _draft.text.trim();
-    if (body.isEmpty) throw StateError('Напиши повідомлення.');
+    if (_saving) return;
+    final text = _draft.text;
+    if (text.trim().isEmpty) throw StateError('Напиши повідомлення.');
+    setState(() => _saving = true);
     _debounce?.cancel();
-    await widget.services.store.saveMessage(
-      Message(
-        const Uuid().v4(),
-        body,
-        DateTime.now().toUtc().toIso8601String(),
-        'out',
-        'draft',
-      ),
-    );
-    _known = '';
-    await widget.services.store.setDraft('');
-    _draft.clear();
+    final id = ++_writeId;
+    _pendingWrites[id] = '';
+    try {
+      await _writeDraft(text);
+      await widget.services.store.saveDraftMessage(text);
+      if (!mounted) return;
+      if (_draft.text == text) {
+        _draft.clear();
+      } else {
+        _debounce?.cancel();
+        await _writeDraft(_draft.text);
+      }
+    } finally {
+      _pendingWrites.remove(id);
+      if (mounted) setState(() => _saving = false);
+    }
   }
 
   Future<void> _share(String text) async {
@@ -289,6 +320,7 @@ class _MessagesScreenState extends State<MessagesScreen>
           const Section('Нове повідомлення'),
           TextField(
             controller: _draft,
+            focusNode: _draftFocus,
             onChanged: _changed,
             minLines: 3,
             maxLines: 7,
@@ -301,7 +333,7 @@ class _MessagesScreenState extends State<MessagesScreen>
             children: [
               Expanded(
                 child: FilledButton.icon(
-                  onPressed: () => guarded(context, _save),
+                  onPressed: _saving ? null : () => guarded(context, _save),
                   icon: const Icon(Icons.save_outlined),
                   label: const Text('Зберегти чернетку'),
                 ),
@@ -322,7 +354,7 @@ class _MessagesScreenState extends State<MessagesScreen>
               icon: Icons.chat_bubble_outline_rounded,
             )
           else
-            for (final message in store.messages.reversed)
+            for (final message in store.messages.reversed.take(_visible))
               Padding(
                 padding: const EdgeInsets.only(bottom: 12),
                 child: Panel(
@@ -381,12 +413,55 @@ class _MessagesScreenState extends State<MessagesScreen>
                             icon: const Icon(Icons.ios_share_rounded, size: 18),
                             label: const Text('Поділитися'),
                           ),
+                          TextButton.icon(
+                            onPressed: radio.sending
+                                ? null
+                                : () => guarded(context, () async {
+                                    final yes = await showDialog<bool>(
+                                      context: context,
+                                      builder: (dialogContext) => AlertDialog(
+                                        title: const Text(
+                                          'Видалити повідомлення з пристрою?',
+                                        ),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () => Navigator.pop(
+                                              dialogContext,
+                                              false,
+                                            ),
+                                            child: const Text('Залишити'),
+                                          ),
+                                          FilledButton(
+                                            onPressed: () => Navigator.pop(
+                                              dialogContext,
+                                              true,
+                                            ),
+                                            child: const Text('Видалити'),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                    if (yes == true) {
+                                      await store.deleteMessage(message.id);
+                                    }
+                                  }),
+                            icon: const Icon(
+                              Icons.delete_outline_rounded,
+                              size: 18,
+                            ),
+                            label: const Text('Видалити'),
+                          ),
                         ],
                       ),
                     ],
                   ),
                 ),
               ),
+          if (store.messages.length > _visible)
+            OutlinedButton(
+              onPressed: () => setState(() => _visible += 40),
+              child: const Text('Старіші повідомлення'),
+            ),
         ],
       );
     },

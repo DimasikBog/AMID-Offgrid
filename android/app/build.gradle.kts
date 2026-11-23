@@ -1,8 +1,22 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
+
+// Development builds are explicit. Distribution builds must never fall back to a debug key.
+val amidSigning = System.getenv("AMID_SIGNING") ?: "development"
+require(amidSigning in setOf("development", "distribution")) { "Unknown AMID_SIGNING mode" }
+val amidKeyProperties = Properties().apply {
+    val source = rootProject.file("key.properties")
+    if (source.isFile) source.inputStream().use { load(it) }
+}
+fun amidSigningValue(environment: String, property: String): String =
+    (System.getenv(environment) ?: amidKeyProperties.getProperty(property))
+        ?.takeIf { it.isNotBlank() }
+        ?: error("Distribution signing requires $environment or android/key.properties:$property")
 
 android {
     namespace = "com.amid.offgrid"
@@ -19,7 +33,6 @@ android {
             abiFilters.clear()
             abiFilters.add("arm64-v8a")
         }
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.amid.offgrid"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
@@ -33,13 +46,25 @@ android {
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        if (amidSigning == "distribution") {
+            create("distribution") {
+                storeFile = rootProject.file(amidSigningValue("ANDROID_KEYSTORE_PATH", "storeFile"))
+                require(storeFile!!.isFile) { "Distribution keystore file does not exist" }
+                storePassword = amidSigningValue("ANDROID_KEYSTORE_PASSWORD", "storePassword")
+                keyAlias = amidSigningValue("ANDROID_KEY_ALIAS", "keyAlias")
+                keyPassword = amidSigningValue("ANDROID_KEY_PASSWORD", "keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
             isShrinkResources = false
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName(
+                if (amidSigning == "distribution") "distribution" else "debug"
+            )
         }
     }
 }

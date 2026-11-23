@@ -88,7 +88,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
             children: [
               Expanded(
                 child: FilledButton.icon(
-                  onPressed: ai.generating || ai.loading
+                  onPressed: ai.busy
                       ? null
                       : () => guarded(context, () => ai.ask(_input.text)),
                   icon: const Icon(Icons.arrow_upward_rounded),
@@ -97,7 +97,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
                   ),
                 ),
               ),
-              if (ai.generating)
+              if (ai.generating || ai.searching)
                 Padding(
                   padding: const EdgeInsets.only(left: 10),
                   child: IconButton.filledTonal(
@@ -112,7 +112,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
             const SizedBox(height: 24),
             Text(ai.question, style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 14),
-            if (ai.generating) const LinearProgressIndicator(),
+            if (ai.generating || ai.searching) const LinearProgressIndicator(),
             if (ai.generated && (ai.answer.isNotEmpty || ai.generating))
               Panel(
                 child: Column(
