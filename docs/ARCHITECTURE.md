@@ -62,3 +62,19 @@ Verified starter bytes return to the resumable partial file if activation fails.
 Route fitting runs after the route panel has laid out. Short viewports and large
 text get an independently controlled scroll area and visible scrollbar, preserving
 map gestures and access to controls without forcing text to shrink.
+
+RasterArchive owns an asynchronous read-only sqflite connection. Metadata rows
+and returned strings are capped in SQL; tile data is returned only if its BLOB
+length is within the byte limit. Opening checks an actual decoded sample.
+Subsequent tiles are checked lazily. Both physical tables and normalized views
+are accepted. XYZ requests are converted to MBTiles TMS rows. Without geographic
+metadata, the first stored tile supplies the fallback center.
+
+The codec checks encoded signatures and ImageDescriptor dimensions before
+pixel decoding. Animated images are rejected. RasterTileProvider scopes cache
+keys to one archive, retires old keys and evicts them on disposal. Archive close
+rejects queued reads and drains in-flight SQL before closing the connection.
+Widget generations close late opens and ignore stale errors. Corrupt lazy tiles
+fall back to transparency; the map reports a bounded warning. SQL result limits
+do not bound evaluation cost inside SQLite, including complex views or text
+conversions. See OFFLINE_MAPS.md for limits and remaining phone checks.

@@ -572,8 +572,6 @@ class _MapScreenState extends State<MapScreen> {
                       OfflineTiles(
                         key: ValueKey(map['path']),
                         path: map['path'] as String,
-                        minZoom: (map['minZoom'] as num? ?? 0).toDouble(),
-                        maxZoom: (map['maxZoom'] as num? ?? 20).toDouble(),
                       ),
                     PolylineLayer(polylines: lines),
                     MarkerLayer(markers: markers),

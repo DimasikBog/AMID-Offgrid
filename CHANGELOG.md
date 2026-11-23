@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.4.2 candidate
+
+- Reject duplicate, oversized or mistyped MBTiles metadata before activation.
+- Verify a real raster sample at import/open; bound encoded bytes, dimensions
+  and pixel count before pixel decoding on every accessed tile.
+- Support PNG/JPEG/WebP, normalized SQLite views and TMS row conversion.
+- Derive a usable fallback center from an actual tile when metadata lacks one.
+- Replace synchronous tile access with owned asynchronous read-only archives.
+- Bound retained image keys, evict on close and close stale archive opens.
+- Skip damaged later tiles with a visible warning and offer retry on open errors.
+- Correct the about text to describe the existing imported-network routes.
+- Add import, real SQLite, image-codec, cache and widget lifecycle regressions.
+
+This validates a sample plus accessed tiles, not the entire archive or arbitrary
+SQLite query cost. Physical phone memory/performance and native platform behavior
+remain unverified. See docs/OFFLINE_MAPS.md for deliberate application limits.
+
 ## 0.4.1 candidate
 
 - Cancel stalled imports and checksum reads by closing the upstream subscription.

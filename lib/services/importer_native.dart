@@ -7,14 +7,13 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
-import 'package:sqflite/sqflite.dart';
 import 'package:uuid/uuid.dart';
 
 import '../models/data.dart';
-import '../models/map_metadata.dart';
 import 'backup_codec.dart';
 import 'cancellable_reader.dart';
 import 'document_codec.dart';
+import 'raster_archive_native.dart';
 import 'store.dart';
 
 class ImportService extends ChangeNotifier {
@@ -265,18 +264,11 @@ class ImportService extends ChangeNotifier {
   }
 
   Future<Json> inspectMap(String path) async {
-    final db = await openReadOnlyDatabase(path, singleInstance: false);
+    final archive = await RasterArchive.open(path);
     try {
-      final rows = await db.query('metadata'),
-          metadata = {for (final r in rows) '${r['name']}': '${r['value']}'};
-      if ((await db.rawQuery(
-        'SELECT zoom_level,tile_column,tile_row,tile_data FROM tiles LIMIT 1',
-      )).isEmpty) {
-        throw const FormatException('Карта не містить тайлів.');
-      }
-      return parseRasterMapMetadata(metadata);
+      return Json.from(archive.info);
     } finally {
-      await db.close();
+      await archive.close();
     }
   }
 

@@ -8,6 +8,9 @@
 | Stalled sources and queued writes | Never-ending stream, checksum cancellation and blocked SQLite queue | Source cancelled without new input; cancelled writes do not activate data |
 | Route worker ownership | Native/web contract, cancellation/replacement/disposal and spawn failure | Typed errors, reusable workers and closed task state |
 | Lifecycle and layout | Pause/resume, tall-route viewport and 320×280 at 2× text | Stale output suppressed; route contained in camera bounds; controls reachable |
+| Raster archives | Real SQLite fixtures, normalized views, invalid metadata, duplicate/oversized tiles and TMS coordinates | Reject invalid activation; preserve source bytes; queue recovers; close rejects pending reads |
+| Raster decoding and cache | Synthetic real PNG/JPEG/WebP, excessive dimensions/pixels, animated WebP and 513 image keys | Validate before pixel decode, transparent fallback, cache retirement and close eviction |
+| Raster widget ownership | Controlled late-open futures and archive doubles, including open-error retry | Disposed/stale archives closed; latest selected archive remains active; separate from real SQL/codec/provider tests |
 | Note creation, favorites, unsaved draft preservation | Widget tests at 390×844 | Passing screen interaction tests |
 | Routing | Dijkstra versus independent Floyd-Warshall oracle on 50 random directed multigraphs; 10 000-node chain | Matching minimum distances, correct geometry and no invented path |
 | Routing persistence and UI | File import, SQLite reopen, backup, cancel/source removal and 320px large-text widget tests | Passing automated checks; real network data and phones still required |
