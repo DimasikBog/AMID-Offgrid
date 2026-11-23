@@ -1,15 +1,29 @@
-# AMID Offgrid Mobile 0.4.1
+# AMID Offgrid Mobile 0.4.2
 
 Один Flutter-застосунок для Android та iPhone: локальні знання, власні нотатки,
 помічник GGUF, офлайн-карти та прямий Bluetooth-зв’язок. Український інтерфейс,
 системна/світла/темна тема. Код виконується нативно, WebView не використовується.
 
-**0.4.1+5 — поточний кандидат коду.** Нові збірки підтверджуються лише успішним
+**0.4.2+6 — поточний кандидат коду.** Нові збірки підтверджуються лише успішним
 запуском Actions саме цього коміту. Наявний реліз v0.2.0-beta.1, RELEASE.json
 та попередня частина VALIDATION.md стосуються старої версії 0.2.0.
 
 Репозиторій: https://github.com/DimasikBog/AMID-Offgrid (приватний).
 Працюй під акаунтом із доступом. Великі моделі, карти й ключі не входять у Git.
+
+## Технічні виправлення 0.4.2
+
+- Обмежена перевірка метаданих MBTiles і справжнього зображення перед активацією.
+- Ліміти байтів та роздільності застосовуються також до наступних тайлів;
+  пошкоджені ділянки пропускаються з повідомленням.
+- Правильний порядок TMS, підтримка SQLite views і центр за наявним тайлом,
+  якщо пакет не містить center/bounds.
+- Асинхронне читання, закриття попередньої карти, очищення її ключів кешу
+  та захист від запізнілого відкриття після перемикання/закриття екрана.
+- Повторне відкриття після помилки. Це перевірка зразка з подальшою перевіркою
+  прочитаних тайлів, а не повний аудит усього файлу.
+
+Дивись [формат, ліміти й обмеження карт](docs/OFFLINE_MAPS.md).
 
 ## Технічні виправлення 0.4.1
 
@@ -116,7 +130,7 @@ Flutter 3.47.6 / Dart 3.13.5; залежності зафіксовані в pub
 flutter pub get --enforce-lockfile
 dart format --output=none --set-exit-if-changed lib test
 flutter analyze --no-pub
-flutter test --no-pub --reporter expanded
+flutter test --no-pub --concurrency 2 --reporter expanded
 python3 scripts/check_project.py
 python3 -m unittest discover -s scripts -p 'test_*.py'
 flutter build apk --release --target-platform android-arm64 --no-pub
@@ -130,6 +144,7 @@ iOS-збірка потребує macOS/Xcode; її запускай через 
 [Приватність](docs/PRIVACY.md) · [Критерії магазинів](docs/RELEASE_CHECKLIST.md) ·
 [Історія змін](CHANGELOG.md) · [Сторонні компоненти](THIRD_PARTY_NOTICES.md).
 
-Результати перевірки коду: [VALIDATION_0_4_1.md](docs/VALIDATION_0_4_1.md).
-Попередні докази: [VALIDATION_0_4.md](docs/VALIDATION_0_4.md),
+Результати перевірки коду: [VALIDATION_0_4_2.md](docs/VALIDATION_0_4_2.md).
+Попередні докази: [VALIDATION_0_4_1.md](docs/VALIDATION_0_4_1.md),
+[VALIDATION_0_4.md](docs/VALIDATION_0_4.md),
 [VALIDATION_0_3.md](docs/VALIDATION_0_3.md).

@@ -1,6 +1,12 @@
 import 'data.dart';
 
 Json parseRasterMapMetadata(Map<String, String> metadata) {
+  if (metadata.containsKey('scheme') &&
+      metadata['scheme']!.trim().toLowerCase() != 'tms') {
+    throw const FormatException(
+      'MBTiles має використовувати TMS-рядки; XYZ потрібно перетворити перед імпортом.',
+    );
+  }
   if (!{
     'png',
     'jpg',
@@ -14,13 +20,17 @@ Json parseRasterMapMetadata(Map<String, String> metadata) {
   double zoom(String key, double fallback) {
     if (!metadata.containsKey(key)) return fallback;
     final value = double.tryParse(metadata[key]!);
-    if (value == null || !value.isFinite || value < 0 || value > 24) {
+    if (value == null ||
+        !value.isFinite ||
+        value < 0 ||
+        value > 24 ||
+        value != value.roundToDouble()) {
       throw FormatException('Некоректний масштаб карти: $key');
     }
     return value;
   }
 
-  final minZoom = zoom('minzoom', 0), maxZoom = zoom('maxzoom', 20);
+  final minZoom = zoom('minzoom', 0), maxZoom = zoom('maxzoom', 24);
   if (minZoom > maxZoom) {
     throw const FormatException('Переплутані масштаби карти.');
   }

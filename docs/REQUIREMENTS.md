@@ -1,4 +1,4 @@
-# AMID Offgrid 0.4.1 candidate
+# AMID Offgrid 0.4.2 candidate
 
 One Flutter app for Android and iPhone, developed through DimasikBog/AMID-Offgrid.
 An owned Mac is not required: iOS compilation runs on macOS CI. Personal iPhone
@@ -9,7 +9,7 @@ authorized by this project work.
 | --- | --- | --- |
 | Knowledge | SQLite search, TXT/MD/AMID JSON, personal notes, categories, favorites, paging | Import, edit, close/reopen, search and backup tests |
 | Assistant | GGUF on native devices; source retrieval on web | Cancel/error/race tests; actual mobile model loading still needs a phone |
-| Maps | Bundled overview, raster MBTiles, GeoJSON, GPS, editable pins and GeoJSON export | Metadata validation; real Files/GPS/map checks on both platforms |
+| Maps | Bundled overview, raster MBTiles, GeoJSON, GPS, editable pins and GeoJSON export | Bounded metadata/tile validation, TMS/views, decode/cache/lifecycle tests; real Files/GPS/map checks on both platforms |
 | Offline routes | Imported AMID network, directed shortest-distance paths, map overlay and GeoJSON export | Algorithm oracle, invalid graphs, SQLite/backup and UI tests; real datasets and phones still required |
 | Messages | Authenticated direct foreground BLE, QR pairing, drafts and delivery acknowledgments | Protocol tests; Android/iPhone radio and lifecycle checks still required |
 | Backup | Version 1 JSON plus optional AES-256-GCM/PBKDF2 password envelope | Round trip, wrong password, corruption, merge limits and atomic restore |
@@ -34,3 +34,9 @@ Version 0.4.1 addresses lifecycle/resource edge cases: stalled-source cancellati
 queued-write cancellation, owned native route workers, app backgrounding and
 short/large-text map layouts. Native cancellation requests isolate termination;
 the browser fallback cannot interrupt a calculation already running synchronously.
+
+Version 0.4.2 hardens native raster maps with bounded SQL results, image header
+checks and pixel limits, a verified first image, lazy checks for later tiles and
+explicit archive/cache ownership. It is not a full-file validator, a SQLite
+query sandbox or evidence of measured phone memory consumption. Application
+limits and compatibility tradeoffs are listed in OFFLINE_MAPS.md.
