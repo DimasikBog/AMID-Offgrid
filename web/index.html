@@ -1,47 +1,52 @@
 <!DOCTYPE html>
-<html>
+<html lang="uk">
 <head>
-  <!--
-    If you are serving your web app in a path other than the root, change the
-    href value below to reflect the base path you are serving from.
-
-    The path provided below has to start and end with a slash "/" in order for
-    it to work correctly.
-
-    For more details:
-    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-
-    This is a placeholder for base href that will be replaced by the value of
-    the `--base-href` argument provided to `flutter build`.
-  -->
   <base href="$FLUTTER_BASE_HREF">
-
   <meta charset="UTF-8">
-  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="description" content="AMID Offgrid — локальні знання, нотатки та карти.">
-
-  <!-- iOS meta tags & icons -->
+  <meta name="theme-color" content="#193e30">
   <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="AMID Offgrid">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
-
-  <!-- Favicon -->
-  <link rel="icon" type="image/png" href="favicon.png"/>
-
-  <title>AMID Offgrid</title>
+  <link rel="icon" type="image/png" href="favicon.png">
   <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="pwa.css">
+  <title>AMID Offgrid</title>
 </head>
 <body>
-  <!--
-    You can customize the "flutter_bootstrap.js" script.
-    This is useful to provide a custom configuration to the Flutter loader
-    or to give the user feedback during the initialization process.
-
-    For more details:
-    * https://docs.flutter.dev/platform-integration/web/initialization
-  -->
-  <script src="flutter_bootstrap.js" async></script>
-<script>if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('amid-sw.js').catch(() => {}); }); }</script>
+  <header id="web-tools" aria-label="Встановлення та офлайн">
+    <button id="offline-status" aria-haspopup="dialog" aria-controls="offline-help">Офлайн: перевіряю…</button>
+    <span class="spacer"></span>
+    <button id="update-app" hidden>Є оновлення</button>
+    <button id="install-app">Встановити</button>
+  </header>
+  <main id="flutter-host" aria-label="AMID Offgrid">
+    <div id="startup" role="status" aria-live="polite">
+      <h1>AMID Offgrid</h1>
+      <p id="startup-message">Відкриваю твої матеріали… Перше завантаження потребує мережі.</p>
+      <button id="restart-app" hidden>Повторити запуск</button>
+    </div>
+  </main>
+  <dialog id="offline-help" aria-labelledby="help-title">
+    <form method="dialog"><button class="close" aria-label="Закрити">✕</button></form>
+    <h2 id="help-title">Встановлення та офлайн</h2>
+    <p id="offline-detail" role="status" aria-live="polite">Перевіряю файли програми…</p>
+    <p id="network-detail"></p>
+    <button id="prepare-offline">Повторити підготовку</button>
+    <button id="check-update">Перевірити оновлення</button>
+    <p id="action-detail" role="status" aria-live="polite"></p>
+    <h3>На iPhone та iPad</h3>
+    <p>Відкрий цю адресу у Safari → меню поширення → «На екран Додому» → увімкни «Open as Web App», якщо показано → «Додати».</p>
+    <h3>На Android та комп’ютері</h3>
+    <p>Натисни «Встановити», коли браузер запропонує встановлення. Інакше скористайся меню браузера: «Встановити застосунок» або «Додати на головний екран».</p>
+    <h3>Перед поїздкою</h3>
+    <p>Дочекайся збереження файлів, закрий і знову відкрий програму, потім перевір її без мережі. Позначка файлів не замінює такої перевірки.</p>
+    <p>Нотатки зберігаються окремо у цьому браузері. Очищення даних сайту чи нестача місця може їх видалити. Збережи резервну копію в «Моєму офлайн-наборі». Вебверсія не запускає GGUF, BLE або MBTiles.</p>
+  </dialog>
+  <noscript>Для AMID Offgrid увімкни JavaScript у браузері.</noscript>
+  <script src="pwa.js"></script>
+  <script src="flutter_bootstrap.js" async onerror="window.amidPwa.startupError()"></script>
 </body>
 </html>

@@ -38,3 +38,11 @@ lib/version.dart і watch-клієнтах: check_project.py перевіряє 
 Не прикладай особисту базу або резервну копію; мінімальний синтетичний приклад
 достатній. Тести на справжніх телефонах/годинниках позначай виконаними лише з
 описом конкретного пристрою та точного артефакту.
+
+## Перевірки вебофлайн
+
+Для `scripts/test_web_offline.py` потрібен Node.js 22+ (перевірено з 24).
+Використовуються лише вбудовані Web API/VM fixtures, без npm та Node-проєкту.
+`python3 -m unittest discover -s scripts -p 'test_*.py'` виконує всі перевірки.
+Після `flutter build web` виконай `python3 scripts/build_web_cache.py build/web`.
+Не публікуй build до генерації offline manifest/worker. Див. docs/WEB_OFFLINE.md.

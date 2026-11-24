@@ -3,7 +3,7 @@ name: Publish web app
 on:
   push:
     branches: [main]
-    paths: ['lib/**', 'assets/**', 'web/**', 'pubspec.*', 'scripts/build_web_cache.py', '.github/workflows/pages.yml']
+    paths: ['lib/**', 'assets/**', 'web/**', 'pubspec.*', 'scripts/build_web_cache.py', 'scripts/web_worker.js', 'scripts/test_web_offline.py', '.github/workflows/pages.yml']
   workflow_dispatch:
 
 permissions:
@@ -36,6 +36,7 @@ jobs:
           cache: true
       - uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b
         id: pages
+      - run: python3 -m unittest discover -s scripts -p 'test_*.py'
       - run: flutter pub get --enforce-lockfile
       - name: Build for the configured Pages path
         env:
