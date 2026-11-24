@@ -36,13 +36,15 @@ void main() {
     await settle(tester);
     await tester.enterText(find.byType(TextFormField).at(0), title);
     await tester.enterText(find.byType(TextFormField).at(2), body);
-    tester.testTextInput.hide();
+    FocusManager.instance.primaryFocus?.unfocus();
+    await settle(tester);
     await tester.ensureVisible(find.text('Зберегти на пристрої'));
     await tester.tap(find.text('Зберегти на пристрої'));
     await settle(tester);
     await store.flush();
     await tester.enterText(find.byType(TextField).first, title);
-    tester.testTextInput.hide();
+    FocusManager.instance.primaryFocus?.unfocus();
+    await settle(tester);
     await settle(tester);
     expect(find.text(title), findsOneWidget);
     final tile = find.ancestor(

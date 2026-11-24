@@ -8,7 +8,7 @@ on:
       platform:
         description: Platforms to test
         type: choice
-        options: [all, android, wearos, ios, watchos, android-and-wearos]
+        options: [all, android, wearos, ios, watchos, android-and-wearos, phones]
         default: all
 
 permissions:
@@ -37,7 +37,7 @@ jobs:
       - run: python3 -m unittest discover -s scripts -p 'test_*.py'
 
   android:
-    if: github.event_name != 'workflow_dispatch' || inputs.platform == 'all' || inputs.platform == 'android' || inputs.platform == 'android-and-wearos'
+    if: github.event_name != 'workflow_dispatch' || inputs.platform == 'all' || inputs.platform == 'android' || inputs.platform == 'phones' || inputs.platform == 'android-and-wearos'
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     env:
@@ -103,7 +103,7 @@ jobs:
           retention-days: 14
 
   ios:
-    if: github.event_name != 'workflow_dispatch' || inputs.platform == 'all' || inputs.platform == 'ios'
+    if: github.event_name != 'workflow_dispatch' || inputs.platform == 'all' || inputs.platform == 'ios' || inputs.platform == 'phones'
     runs-on: macos-15
     timeout-minutes: 45
     env:
