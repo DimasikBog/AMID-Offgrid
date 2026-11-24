@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-24",
+  "kind": "native-emulator-ci",
+  "sourceCommit": "61fc263a5ce3519651b7cc049895b696da728c71",
+  "runId": 45471135743,
+  "runConclusion": "success",
+  "platforms": [
+    {
+      "platform": "android",
+      "result": "passed",
+      "jobId": 138719086982,
+      "artifactId": 14956409642,
+      "artifactSha256": "9ac2343a324fef2fab6f4eeb474e0a16e25930a3f0e81f412ef25fceb3580300",
+      "deviceMetadata": "android-device.json",
+      "screenshots": [
+        "android/01-home.png",
+        "android/02-note-favorite.png",
+        "android/03-map.png",
+        "android/04-lite.png",
+        "android/05-reopened.png"
+      ]
+    },
+    {
+      "platform": "ios",
+      "result": "passed",
+      "jobId": 138719086887,
+      "artifactId": 14956528819,
+      "artifactSha256": "794109085b10e147265b35a4318abef9c0bdd420ecb40909d3e975e152242801",
+      "deviceMetadata": "ios-device.json",
+      "screenshots": [
+        "ios/01-home.png",
+        "ios/02-note-favorite.png",
+        "ios/03-map.png",
+        "ios/04-lite.png",
+        "ios/05-reopened.png"
+      ]
+    },
+    {
+      "platform": "wearos",
+      "result": "passed",
+      "jobId": 138719086915,
+      "artifactId": 14957564481,
+      "artifactSha256": "fe919494cb9c35e75e812e4b847788c6f0b67d9ea7b19a2c7152107a8ff4fb2a",
+      "deviceMetadata": "wearos-device.json",
+      "screenshots": [
+        "wearos/01-checklist.png",
+        "wearos/card-0.png",
+        "wearos/card-1.png",
+        "wearos/card-2.png",
+        "wearos/card-3.png",
+        "wearos/card-4.png",
+        "wearos/card-5.png"
+      ]
+    },
+    {
+      "platform": "watchos",
+      "result": "passed",
+      "jobId": 138719086880,
+      "artifactId": 14956978906,
+      "artifactSha256": "cddb016f91f9ba62ed6cac02a6c7388d27671593e1c87d6967e3105aa3954864",
+      "deviceMetadata": "watchos-device.json",
+      "screenshots": [
+        "watchos/01-checklist.png",
+        "watchos/card-backup.png",
+        "watchos/card-before.png",
+        "watchos/card-nearby.png",
+        "watchos/card-offline.png",
+        "watchos/card-power.png",
+        "watchos/card-privacy.png"
+      ]
+    }
+  ],
+  "physicalDeviceAcceptance": false,
+  "storeAcceptance": false,
+  "iosInitialFrameVisualAcceptance": false,
+  "additionalIosHarnessCheck": {
+    "sourceCommit": "9b7318ee1cc0fdf323d0f18837388c2206ebb770",
+    "runId": 45472246094,
+    "jobId": 138723015686,
+    "result": "passed",
+    "productCodeChanged": false,
+    "resultFile": "ios-harness-retry-result.txt"
+  }
+}

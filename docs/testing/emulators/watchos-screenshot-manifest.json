@@ -5,64 +5,64 @@
         "configurationName": "Test Scheme Action",
         "deviceId": "78B196CD-4DA2-464A-AA4F-0A4A52C60E3E",
         "deviceName": "Apple Watch Series 11 (42mm)",
-        "exportedFileName": "D99B9016-FA01-4D3E-A8AE-E5B18A31F35D.png",
+        "exportedFileName": "FA50816A-5C1A-40CE-9985-13C6FE9072C5.png",
         "isAssociatedWithFailure": false,
-        "suggestedHumanReadableName": "card-privacy_0_7204506D-63F4-4BEB-BB5E-25DA0D2B7FAF.png",
-        "timestamp": 1795548036.813
+        "suggestedHumanReadableName": "card-privacy_0_AA0B06DA-FD8D-4B53-8DE1-9E3607DE4AE6.png",
+        "timestamp": 1795549042.223
       },
       {
         "configurationName": "Test Scheme Action",
         "deviceId": "78B196CD-4DA2-464A-AA4F-0A4A52C60E3E",
         "deviceName": "Apple Watch Series 11 (42mm)",
-        "exportedFileName": "BAA942D6-A9CB-447A-B3E4-501699B95B32.png",
+        "exportedFileName": "73F5A382-C89D-435D-AF83-F3871EE35F82.png",
         "isAssociatedWithFailure": false,
-        "suggestedHumanReadableName": "card-nearby_0_C669B563-EB9E-4A41-B0DA-A4E3064503E3.png",
-        "timestamp": 1795547998.683
+        "suggestedHumanReadableName": "card-nearby_0_3766AD1F-4DC1-4B3F-AB51-46A15ADA9260.png",
+        "timestamp": 1795549011.653
       },
       {
         "configurationName": "Test Scheme Action",
         "deviceId": "78B196CD-4DA2-464A-AA4F-0A4A52C60E3E",
         "deviceName": "Apple Watch Series 11 (42mm)",
-        "exportedFileName": "E0958641-7148-4610-99C2-150BE9869785.png",
+        "exportedFileName": "AB365E78-3F4F-4809-9576-A16BA6BCEC7F.png",
         "isAssociatedWithFailure": false,
-        "suggestedHumanReadableName": "card-power_0_4C555179-005D-4DD0-8C99-F331C1C7EFDC.png",
-        "timestamp": 1795547968.96
+        "suggestedHumanReadableName": "card-power_0_EDEEEA4B-EF42-4860-A09C-BE538FC61068.png",
+        "timestamp": 1795548983.516
       },
       {
         "configurationName": "Test Scheme Action",
         "deviceId": "78B196CD-4DA2-464A-AA4F-0A4A52C60E3E",
         "deviceName": "Apple Watch Series 11 (42mm)",
-        "exportedFileName": "FAFB6DC7-C7F1-423C-A589-CB0884A4F09A.png",
+        "exportedFileName": "0F72DD01-A957-40F2-9180-F0653C94C91D.png",
         "isAssociatedWithFailure": false,
-        "suggestedHumanReadableName": "card-backup_0_A7B8833B-0F8D-4B0A-B21A-DF85E505B0FF.png",
-        "timestamp": 1795547943.57
+        "suggestedHumanReadableName": "card-backup_0_AAD5D780-F8D1-408A-8C6E-AEC729A942F0.png",
+        "timestamp": 1795548959.468
       },
       {
         "configurationName": "Test Scheme Action",
         "deviceId": "78B196CD-4DA2-464A-AA4F-0A4A52C60E3E",
         "deviceName": "Apple Watch Series 11 (42mm)",
-        "exportedFileName": "64E65469-660D-44C2-A1DA-DDFE9DB6065B.png",
+        "exportedFileName": "1A3CED54-F9E5-4643-8126-76C56835E94D.png",
         "isAssociatedWithFailure": false,
-        "suggestedHumanReadableName": "card-offline_0_89AC2C7E-68FA-435D-A1EE-2013C0345F8A.png",
-        "timestamp": 1795547920.239
+        "suggestedHumanReadableName": "card-offline_0_31E09A54-D049-4583-9019-E1E4AAD17A65.png",
+        "timestamp": 1795548937.329
       },
       {
         "configurationName": "Test Scheme Action",
         "deviceId": "78B196CD-4DA2-464A-AA4F-0A4A52C60E3E",
         "deviceName": "Apple Watch Series 11 (42mm)",
-        "exportedFileName": "322AEE73-C83C-4F1D-8F71-E9BD97E8E2D9.png",
+        "exportedFileName": "FFD29412-B961-4A60-B338-0AD556EFD04B.png",
         "isAssociatedWithFailure": false,
-        "suggestedHumanReadableName": "card-before_0_F72B1670-299E-4640-BB5B-E53DCB7DDA1C.png",
-        "timestamp": 1795547898.722
+        "suggestedHumanReadableName": "card-before_0_A13D269F-B816-4EC0-B148-4F7C02761D6E.png",
+        "timestamp": 1795548917.479
       },
       {
         "configurationName": "Test Scheme Action",
         "deviceId": "78B196CD-4DA2-464A-AA4F-0A4A52C60E3E",
         "deviceName": "Apple Watch Series 11 (42mm)",
-        "exportedFileName": "137766C8-77A2-482C-A39E-663274FC7009.png",
+        "exportedFileName": "C2BCD80C-EC73-45B4-8FEB-7C75658C33D7.png",
         "isAssociatedWithFailure": false,
-        "suggestedHumanReadableName": "01-checklist_0_5AF8D948-A145-4922-8DAC-EF28F5ECD35F.png",
-        "timestamp": 1795547873.87
+        "suggestedHumanReadableName": "01-checklist_0_9ECC979A-09FF-45F4-8EFE-D61D905CDBFE.png",
+        "timestamp": 1795548894.839
       }
     ],
     "testIdentifier": "PocketUiTests/testChecklistPersistsAcrossProcessRestartAndAllCardsOpen()",

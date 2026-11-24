@@ -1,0 +1,5 @@
+Source: 9b7318ee1cc0fdf323d0f18837388c2206ebb770
+Run: https://github.com/DimasikBog/AMID-Offgrid/actions/runs/45472246094/job/138723015686
+2026-11-24T19:51:19.5943830Z [+11180 ms] flutter: AMID_MOBILE_EMULATOR_PASS ios: navigation, note, favorite, Lite, SQLite reopen
+2026-11-24T19:51:19.6199310Z [  +35 ms] flutter: 00:16 +2: All tests passed!
+2026-11-24T19:51:25.8785710Z [+6289 ms] All tests passed.

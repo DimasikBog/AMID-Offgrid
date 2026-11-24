@@ -1,0 +1,17 @@
+{
+  "sourceCommit": "61fc263a5ce3519651b7cc049895b696da728c71",
+  "platform": "ios",
+  "runtime": "com.apple.CoreSimulator.SimRuntime.iOS-26-2",
+  "device": {
+    "dataPath": "/Users/runner/Library/Developer/CoreSimulator/Devices/87C401A1-6137-4CF6-8AAC-E12E171B64D7/data",
+    "dataPathSize": 18337792,
+    "logPath": "/Users/runner/Library/Logs/CoreSimulator/87C401A1-6137-4CF6-8AAC-E12E171B64D7",
+    "udid": "87C401A1-6137-4CF6-8AAC-E12E171B64D7",
+    "isAvailable": true,
+    "deviceTypeIdentifier": "com.apple.CoreSimulator.SimDeviceType.iPhone-SE-3rd-generation",
+    "state": "Shutdown",
+    "name": "iPhone SE (3rd generation)"
+  },
+  "physicalDevice": false,
+  "xcode": "Xcode 26.2\nBuild version 17C52\n"
+}

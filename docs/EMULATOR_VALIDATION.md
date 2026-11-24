@@ -4,17 +4,24 @@
 Android UiAutomator та Apple XCUITest. Браузерні розміри екрана не замінюють
 ці результати. Тести використовують лише синтетичну нотатку й локальний чеклист.
 
+**Спільний прогін усіх чотирьох платформ успішний:**
+[Actions №11](https://github.com/DimasikBog/AMID-Offgrid/actions/runs/45471135743),
+source `61fc263a5ce3519651b7cc049895b696da728c71`. Усі п’ять jobs, включно з
+аналізом і тестами коду, завершились успішно. Підтверджено базові сценарії,
+а не всі функції й моделі пристроїв.
+
 | Платформа | Пристрій / ОС | Результат | Прогін |
 | --- | --- | --- | --- |
-| Android | Очікується завершення повтору | Очікується | [Телефони](https://github.com/DimasikBog/AMID-Offgrid/actions/runs/45469729414) |
-| iPhone | Очікується завершення повтору | Очікується | [Телефони](https://github.com/DimasikBog/AMID-Offgrid/actions/runs/45469729414) |
-| Wear OS | wearos_small_round, 384×384; Android Wear API 34, Android 14, x86_64 | PASS: 1 нативний UI-тест, 0 помилок; 7 знімків | [Wear OS](https://github.com/DimasikBog/AMID-Offgrid/actions/runs/45466482167/job/138702638281) |
-| Apple Watch | Series 11, 42 мм; watchOS 26.2, Xcode 26.2 | PASS: 1 нативний UI-тест, 0 помилок; 7 знімків | [watchOS](https://github.com/DimasikBog/AMID-Offgrid/actions/runs/45467845341/job/138707432862) |
+| Android | Pixel 2, 1080×1920; Android 15 / API 35, x86_64 | PASS: нативний сценарій, український пошук, 5 знімків | [Android](https://github.com/DimasikBog/AMID-Offgrid/actions/runs/45471135743/job/138719086982) |
+| iPhone | SE, 3-тє покоління, 750×1334; iOS 26.2, Xcode 26.2 | PASS: нативний сценарій, український пошук, 5 знімків | [iOS](https://github.com/DimasikBog/AMID-Offgrid/actions/runs/45471135743/job/138719086887) |
+| Wear OS | wearos_small_round, 384×384; Android Wear API 34, Android 14, x86_64 | PASS: 1 нативний UI-тест, 0 помилок; 7 знімків | [Wear OS](https://github.com/DimasikBog/AMID-Offgrid/actions/runs/45471135743/job/138719086915) |
+| Apple Watch | Series 11, 42 мм; watchOS 26.2, Xcode 26.2 | PASS: 1 нативний UI-тест, 0 помилок; 7 знімків | [watchOS](https://github.com/DimasikBog/AMID-Offgrid/actions/runs/45471135743/job/138719086880) |
 
 ## Що перевіряється
 
 Телефони: запуск справжнього `app.main`, нативна SQLite без підміни плагінів,
-навігація між знаннями, помічником, картою і повідомленнями; створення
+навігація між знаннями, помічником, картою і повідомленнями; очікування
+реальних контурів вбудованої GeoJSON-карти перед знімком; створення
 української нотатки, обране, Lite та чеклист. Після закриття й повторного
 відкриття SQLite перевіряються текст нотатки, обране, чеклист, повний запит і
 український початок слова. Це повторне відкриття бази в тому самому процесі,
@@ -45,7 +52,7 @@ SQLite-тест українських початків слів і змішан
 
 Під час налаштування тестів окремо виправлено шлях AVD, отримання версії
 headless-емулятора, роботу тесту з реальною клавіатурою, очікування асинхронного
-рядка пошуку, прокрутку нативного watchOS List і збереження знімків Wear OS
+рядка пошуку й геометрії карти, прокрутку полів/повідомлень на малому iPhone SE, прокрутку нативного watchOS List і збереження знімків Wear OS
 перед очищенням UTP. Невдалі попередні прогони залишені в Actions; вони не
 позначаються як успішні.
 
@@ -53,20 +60,31 @@ headless-емулятора, роботу тесту з реальною кла�
 
 | Ціль | Source commit | Artifact ID | SHA-256 ZIP |
 | --- | --- | --- | --- |
-| Wear OS | `2092a15aeb9143516f4828d7ec589617772d78e4` | `14953854850` | `b410210e7e7426cd06141c1828ec54162c4f8a4625a6ce1200778874dbe0da6e` |
-| watchOS | `e70ec23483050546a13436ebc8adb2b20be6d765` | `14955952371` | `b8a5991eab2546bcd0236a53330802e7676cd700163ec382d84ae155489f981c` |
+| Wear OS | `61fc263a5ce3519651b7cc049895b696da728c71` | `14957564481` | `fe919494cb9c35e75e812e4b847788c6f0b67d9ea7b19a2c7152107a8ff4fb2a` |
+| watchOS | `61fc263a5ce3519651b7cc049895b696da728c71` | `14956978906` | `cddb016f91f9ba62ed6cac02a6c7388d27671593e1c87d6967e3105aa3954864` |
+| Android | `61fc263a5ce3519651b7cc049895b696da728c71` | `14956409642` | `9ac2343a324fef2fab6f4eeb474e0a16e25930a3f0e81f412ef25fceb3580300` |
+| iOS | `61fc263a5ce3519651b7cc049895b696da728c71` | `14956528819` | `794109085b10e147265b35a4318abef9c0bdd420ecb40909d3e975e152242801` |
 
 Повні журнали та тимчасові артефакти зберігаються у відповідних Actions runs
-14 днів. ZIP перевірено за SHA-256 і CRC. Постійні копії вибраних доказів:
+14 днів. ZIP перевірено за SHA-256 і CRC. XML/JSON відформатовано для Git; зображення збережено без змін.
+Постійні копії вибраних доказів: [машинний запис](testing/emulators/verification.json)
+та [SHA-256 файлів](testing/emulators/SHA256SUMS).
 
+- [Android: метадані](testing/emulators/android-device.json), [результат](testing/emulators/android-result.txt), [5 знімків](testing/emulators/android/).
+- [iOS: метадані](testing/emulators/ios-device.json), [результат](testing/emulators/ios-result.txt), [5 знімків](testing/emulators/ios/).
 - [Wear OS: метадані](testing/emulators/wearos-device.json), [JUnit](testing/emulators/wearos-junit.xml), [7 знімків](testing/emulators/wearos/).
 - [watchOS: метадані](testing/emulators/watchos-device.json), [результат](testing/emulators/watchos-result.txt), [7 знімків](testing/emulators/watchos/), [маніфест XCUITest](testing/emulators/watchos-screenshot-manifest.json).
 
 Поле Apple `device.state` у метаданих — стан до виклику `simctl boot`;
 фактичне завантаження та запуск підтверджуються завершеним нативним тестом.
-Різні прогони мають різні source SHA: відтворювати потрібно конкретну ціль
-за наведеним SHA. Виправлення телефонного SQLite не входить до окремих
-Kotlin/SwiftUI програм годинника.
+Усі наведені нативні результати й 24 знімки належать одному source SHA.
+Після нього у `9b7318ee1cc0fdf323d0f18837388c2206ebb770` змінено лише
+прокрутку тестової форми/повідомлень для малого екрана та докладність iOS-журналу;
+код програм, активи й залежності незмінні. Цей варіант має успішний локальний
+прогін форми 375×667 та CI аналіз/113 Flutter/13 Python. Окремий
+[нативний iOS-повтор №12](https://github.com/DimasikBog/AMID-Offgrid/actions/runs/45472246094/job/138723015686)
+після цих змін також успішний; [журнал результату](testing/emulators/ios-harness-retry-result.txt). Виправлення телефонного
+SQLite не входить до окремих Kotlin/SwiftUI програм годинника.
 
 ## Повторити
 
@@ -85,5 +103,9 @@ Kotlin/SwiftUI програм годинника.
 - Safari/PWA на власному iPhone, встановлення і перезапуск без мережі.
 - Особистий Apple-підпис, поновлення, магазинні підписи та приймання магазинів.
 - Інші розміри/версії ОС, доступність, збільшений шрифт на нативних пристроях.
+- Повний візуальний аудит: у початковому iOS-знімку головної верхня панель
+  відсутня в кадрі; причину (момент захоплення чи початковий layout) не встановлено.
+  Наступні екрани мають панель, а її кнопки працюють у сценарії. Не вважати
+  цей знімок доказом остаточної якості першого кадру на фізичному iPhone.
 
 Жоден пункт фізичного або магазинного приймання цим протоколом не закрито.
