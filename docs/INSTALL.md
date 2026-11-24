@@ -72,8 +72,16 @@ flutter build web --release --no-web-resources-cdn
 python3 scripts/build_web_cache.py build/web
 ```
 
-Для підкаталогу додай правильний `--base-href /назва/`. Автоматичне розгортання
-на GitHub Pages не налаштоване: ZIP є готовим статичним пакетом, а не URL сайту.
+Для підкаталогу додай правильний `--base-href /назва/`. Публічна вебверсія вже розгорнута:
+https://dimasikbog.github.io/AMID-Offgrid/ . Її окремий `pages.yml` збирає
+базовий шлях автоматично та обмежує deployment гілкою `main`.
+
+На iPhone відкрий адресу саме у Safari, скористайся меню поширення та
+«На екран Додому» (Add to Home Screen), залиш увімкненим Open as Web App,
+якщо цей перемикач показано. Це вебдодаток; Apple-підпис не потрібний.
+[Інструкція Apple для iOS 26](https://support.apple.com/en-az/guide/iphone/iphea86e5236/26/ios/26).
+Встановлення, офлайн-перезапуск і квоти Safari на фізичному iPhone ще
+не перевірені.
 
 ## Що перевірено, а що потребує пристрою
 
