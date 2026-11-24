@@ -22,26 +22,45 @@
 - Roboto і його OFL включено в пакет; SHA-256 та походження в
   `assets/fonts/provenance.json`. Український текст не потребує Google Fonts.
 
-## Перші результати Actions
+## Підтверджено через Actions
 
-У запуску 45446396755 успішні quality, Windows, Linux, Wear OS і web.
-Обидві desktop-перевірки надрукували `AMID_SELF_TEST_OK`. iOS preflight
-виявив стандартний Xcode 16.4 замість потрібного SDK; workflow виправлено
-на явний Xcode 26.2, наявний в образі runner. Повну фінальну матрицю після
-цього виправлення потрібно перевірити окремо. BLE desktop вимкнений у коді;
-його додавання — окреме завдання, а не наявна функція.
+[Повна матриця 45448473679](https://github.com/DimasikBog/AMID-Offgrid/actions/runs/45448473679)
+успішно завершила quality, Android, iOS, Windows, Linux, macOS, Wear OS,
+watchOS, web та публікацію. Точне джерело:
+`736a9b4c48149823dc26d05c3fd72799215eafe1`, дерево
+`0c52efc9788db6d5d5f999dee3460acdf0d5ade8`.
+PR №5 злитий у `ce76672e28c0666fd3c042327f648ffbabcab31e`;
+дерево merge-коміту збігається з перевіреним.
 
-## Потрібно перевірити через Actions
+[Публічний тестовий реліз v0.5.0-beta.7](https://github.com/DimasikBog/AMID-Offgrid/releases/tag/v0.5.0-beta.7)
+містить 9 пакетів і 8 маніфестів. Усі завантажені пакети перевірено за
+байтами/SHA-256, CRC ZIP і точним source commit. Публічні маніфести та
+GitHub release digests звірено з перевіреними файлами.
 
-Нові Android, iOS, Windows, Linux, macOS, Wear OS, watchOS і web пакети
-повинні отримати маніфести з точною ревізією вихідного коду, розміром та
-SHA-256 кожного файлу. Для нових нативних завдань потрібен public-репозиторій.
-Наявність конфігурації CI не означає успішної компіляції.
+- Windows x64 / Linux x64: повні bundles і `AMID_SELF_TEST_OK` після
+  створення/повторного відкриття SQLite, пошуку, reader scale та checklist.
+- macOS: `.app`, ARM64 / Apple Silicon, unsigned; runtime не перевірено.
+- Android: ARM64 APK 86 133 979 байтів, 22 нативні .so; apksigner і
+  zipalign успішні, development-підпис.
+- iOS: Xcode 26.2, iOS SDK 26.2, bundle `com.amid.offgrid`, 0.5.0+7,
+  min iOS 17; unsigned IPA 16 222 870 байтів. Це не доказ встановлення.
+- Wear OS: APK 2 298 627 байтів, без нативних .so, картки включено;
+  підпис development.
+- watchOS: native watch-only SwiftUI app, min watchOS 10, версія 0.5.0+7,
+  вбудований cards.json; unsigned ZIP 75 887 байтів.
+- Web: локальний renderer, Roboto та власний service worker у ZIP.
 
-Windows/Linux мають додатковий запуск з `--self-test`, який перевіряє
-SQLite, повторне відкриття даних і пошук в окремій тимчасовій директорії.
-macOS та годинники наразі перевіряються компіляцією; фізичної перевірки немає.
-Автоматична публікація кандидата дозволена лише після всіх восьми платформ.
+Перший iOS preflight правильно відхилив стандартний Xcode 16.4; workflow
+виправлено на явний Xcode 26.2. Остаточна матриця підтвердила виправлення.
+Попередні незавершені/скасовані запуски не є джерелом цього релізу.
+BLE desktop вимкнений у коді; його додавання — окреме завдання.
+
+## Вебпублікація
+
+Окремий `pages.yml` збирає той самий Flutter web із базовим шляхом GitHub
+Pages, додає точний `source.json`, генерує кеш і розгортає лише `main`.
+Права Pages/OIDC обмежено відповідними jobs. Фактичну адресу та успіх
+розгортання потрібно звірити після першого запуску цього workflow.
 
 ## Ще не підтверджено
 
