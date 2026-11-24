@@ -17,7 +17,9 @@ integration and applicable permissions/licenses.
 - User-imported texts, maps and models retain their original licenses. A file's
   presence or ability to import it does not grant redistribution rights.
 
-No new open-source license grant for the owner's application code is made by
-this update. Select the intended license/distribution terms before public source
-release. Before store publication audit the complete native dependency notices
-and attribution requirements against the final built artifacts.
+AMID application code is available under the MIT license in LICENSE, as
+authorized by the owner for this open-source release. This grant does not
+relicense Flutter, Gradle, plugins, native dependencies, Natural Earth or
+user-imported materials. Their original terms and notices continue to apply.
+Before store publication audit the complete native dependency notices and
+attribution requirements against the final built artifacts.
