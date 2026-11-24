@@ -2,10 +2,15 @@ import XCTest
 
 final class PocketUiTests: XCTestCase {
     private func reveal(_ element: XCUIElement, in app: XCUIApplication) {
-        for _ in 0..<14 {
+        for _ in 0..<28 {
             if element.exists && element.isHittable { return }
-            app.swipeUp()
+            // Small drags avoid skipping lazily-created rows on a 40/42 mm watch.
+            let start = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.72))
+            let end = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.48))
+            start.press(forDuration: 0.05, thenDragTo: end)
         }
+        capture(app, "unreachable-row")
+        print(app.debugDescription)
         XCTAssertTrue(element.exists && element.isHittable, "Element cannot be reached")
     }
 
@@ -41,7 +46,10 @@ final class PocketUiTests: XCTestCase {
             app.terminate()
             app.launch()
             let id = try XCTUnwrap(card["id"])
-            let link = app.descendants(matching: .any).matching(identifier: "card-\(id)").firstMatch
+            let title = try XCTUnwrap(card["title"])
+            let link = app.descendants(matching: .any).matching(
+                NSPredicate(format: "identifier == %@ OR label == %@", "card-\(id)", title)
+            ).firstMatch
             reveal(link, in: app)
             link.tap()
             let body = app.staticTexts["card-body"]
