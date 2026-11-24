@@ -206,7 +206,7 @@ jobs:
           ./gradlew :wear:assembleRelease
           cd ..
           mkdir -p dist
-          cp android/wear/build/outputs/apk/release/wear-release.apk dist/AMID_Pocket_WearOS.apk
+          cp build/wear/outputs/apk/release/wear-release.apk dist/AMID_Pocket_WearOS.apk
           python3 scripts/verify_wear_apk.py dist/AMID_Pocket_WearOS.apk
           python3 scripts/create_manifest.py --artifact dist/AMID_Pocket_WearOS.apk --platform wearos --signing development --commit "$GITHUB_SHA" --run-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" --quality success
       - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
