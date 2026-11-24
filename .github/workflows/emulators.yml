@@ -89,7 +89,7 @@ jobs:
           (cd android && ./gradlew :wear:connectedDebugAndroidTest) 2>&1 | tee build/emulator-evidence/test.log
       - name: Collect watch captures
         if: always()
-        run: adb pull /sdcard/Android/data/com.amid.offgrid.wear/files/emulator-evidence build/emulator-evidence/screenshots || true
+        run: adb pull /data/local/tmp/amid-pocket-evidence build/emulator-evidence/screenshots || true
       - name: Retain emulator evidence
         if: always()
         uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4

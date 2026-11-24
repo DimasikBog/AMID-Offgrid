@@ -33,7 +33,7 @@ class PocketUiTest {
         device.waitForIdle()
         assertEquals(!before, check.isChecked)
         val output = File(context.getExternalFilesDir(null), "emulator-evidence").apply { mkdirs() }
-        device.takeScreenshot(File(output, "01-checklist.png"))
+        assertTrue("Checklist screenshot failed", device.takeScreenshot(File(output, "01-checklist.png")))
         context.startActivity(intent)
         device.waitForIdle()
         reveal(first)
@@ -46,12 +46,17 @@ class PocketUiTest {
             device.findObject(UiSelector().className("android.widget.Button").text(card.getString("title"))).click()
             device.waitForIdle()
             assertTrue("Card body missing", device.findObject(UiSelector().text(card.getString("body"))).exists())
-            device.takeScreenshot(File(output, "card-$i.png"))
+            assertTrue("Card screenshot failed", device.takeScreenshot(File(output, "card-$i.png")))
             reveal("До списку")
             device.findObject(UiSelector().text("До списку")).click()
             device.waitForIdle()
         }
         assertEquals(6, pack.getJSONArray("checklist").length())
+        // The Gradle device runner uninstalls its test app after completion.
+        // Preserve only synthetic test captures outside that app's data directory.
+        device.executeShellCommand("cp -R ${output.absolutePath} /data/local/tmp/amid-pocket-evidence")
+        val captures = device.executeShellCommand("ls /data/local/tmp/amid-pocket-evidence")
+        assertTrue("Captures were not retained", captures.contains("01-checklist.png") && captures.contains("card-5.png"))
         println("AMID_WEAR_EMULATOR_PASS: six cards, checklist, activity restart")
     }
 }
