@@ -6,6 +6,7 @@ import 'package:uuid/uuid.dart';
 
 import '../models/data.dart';
 import '../models/preferences.dart';
+import '../models/starter_content.dart';
 import 'backend_native.dart' if (dart.library.js_interop) 'backend_web.dart';
 
 class AppStore extends ChangeNotifier {
@@ -19,10 +20,11 @@ class AppStore extends ChangeNotifier {
   String themePreference = 'system';
   double readerScale = 1;
   Set<String> preparation = {};
+  bool starterAutoSetup = true;
   int contentRevision = 0;
   static const notesId = 'amid-personal-notes';
   static const starterId = 'amid-mobile-starter';
-  static const starterRevision = 2;
+  static const starterRevision = 3;
   String draft = '', selectedModel = '', selectedMap = '';
   Future<void> _writes = Future.value();
   bool _closed = false;
@@ -98,6 +100,9 @@ class AppStore extends ChangeNotifier {
         : 'system';
     readerScale = checkedReaderScale(data['readerScale'] ?? 1);
     preparation = checkedPreparation(data['preparation'] ?? <String>[]);
+    starterAutoSetup = data['starterAutoSetup'] is bool
+        ? data['starterAutoSetup'] as bool
+        : true;
   }
 
   Json snapshot() => {
@@ -112,6 +117,7 @@ class AppStore extends ChangeNotifier {
     'themePreference': themePreference,
     'readerScale': readerScale,
     'preparation': preparation.toList(),
+    'starterAutoSetup': starterAutoSetup,
   };
   Future<void> _mutate(
     void Function() change, {
@@ -174,6 +180,23 @@ class AppStore extends ChangeNotifier {
         packs.add(pack);
         if (pack['kind'] == 'model') selectedModel = pack['id'] as String;
         if (pack['kind'] == 'map') selectedMap = pack['id'] as String;
+      }, checkActive: checkActive);
+
+  /// Replaces only the official model's metadata after its bytes were verified.
+  /// A user's selected custom model remains selected.
+  Future<void> installStarterModel(Json pack, {void Function()? checkActive}) =>
+      _mutate(() {
+        if (pack['id'] != starterModelId || pack['kind'] != 'model') {
+          throw const FormatException('Невідомий стартовий пакет.');
+        }
+        packs = [
+          ...packs.where((p) => p['id'] != starterModelId),
+          Json.from(pack),
+        ];
+        starterAutoSetup = true;
+        if (selectedModel.isEmpty || selectedModel == starterModelId) {
+          selectedModel = starterModelId;
+        }
       }, checkActive: checkActive);
   Future<void> savePin(Pin pin) => _mutate(() {
     final valid = Pin.fromJson(pin.toJson());
@@ -322,6 +345,7 @@ class AppStore extends ChangeNotifier {
       throw const FormatException('Стартовий набір входить до застосунку.');
     }
     packs.removeWhere((p) => p['id'] == id);
+    if (id == starterModelId) starterAutoSetup = false;
     articles.removeWhere((a) => a.packId == id);
     final articleKeys = articles.map((a) => a.key).toSet();
     favoriteKeys.removeWhere((key) => !articleKeys.contains(key));

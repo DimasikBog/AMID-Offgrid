@@ -40,6 +40,7 @@ jobs:
       - run: dart format --output=none --set-exit-if-changed lib test
       - run: flutter analyze --no-pub
       - run: flutter test --no-pub --concurrency 2 --reporter expanded
+      - run: python3 scripts/prepare_offline_payload.py
       - name: Build with the distribution key
         env:
           AMID_SIGNING: distribution
@@ -69,7 +70,7 @@ jobs:
           cp build/app/outputs/bundle/release/app-release.aab dist/AMID_Offgrid_distribution.aab
           python3 scripts/verify_apk.py dist/AMID_Offgrid_distribution.apk
           jarsigner -verify dist/AMID_Offgrid_distribution.aab
-          python3 scripts/create_manifest.py --artifact dist/AMID_Offgrid_distribution.apk --artifact dist/AMID_Offgrid_distribution.aab --platform android --signing distribution --commit "$GITHUB_SHA" --run-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" --quality success
+          python3 scripts/create_manifest.py --artifact dist/AMID_Offgrid_distribution.apk --artifact dist/AMID_Offgrid_distribution.aab --platform android --signing distribution --commit "$GITHUB_SHA" --run-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" --quality success --bundled-starter
       - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
         with:
           name: AMID-Offgrid-Android-distribution-${{ github.run_number }}

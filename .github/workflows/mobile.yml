@@ -64,6 +64,7 @@ jobs:
           channel: stable
           cache: true
       - run: flutter pub get --enforce-lockfile
+      - run: python3 scripts/prepare_offline_payload.py
       - run: flutter build apk --release --target-platform android-arm64 --no-pub
       - name: Verify and package APK
         run: |
@@ -73,13 +74,14 @@ jobs:
           cp docs/OFFLINE_ROUTES.md docs/OFFLINE_MAPS.md dist/docs/
           cp examples/route_network.json dist/examples/
           python3 scripts/verify_apk.py dist/AMID_Offgrid_android_arm64.apk
-          python3 scripts/create_manifest.py --artifact dist/AMID_Offgrid_android_arm64.apk --platform android --signing development --commit "$GITHUB_SHA" --run-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" --quality success
+          python3 scripts/create_manifest.py --artifact dist/AMID_Offgrid_android_arm64.apk --platform android --signing development --commit "$GITHUB_SHA" --run-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" --quality success --bundled-starter
       - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
         with:
           name: AMID-Offgrid-Android-${{ github.run_number }}
           path: dist/
           if-no-files-found: error
           retention-days: 7
+          compression-level: 0
 
   ios:
     if: github.event.repository.private == false || (github.event_name == 'workflow_dispatch' && inputs.build_ios)
@@ -98,6 +100,7 @@ jobs:
           channel: stable
           cache: true
       - run: flutter config --enable-swift-package-manager
+      - run: python3 scripts/prepare_offline_payload.py
       - run: bash scripts/build_ios.sh
       - name: Package unsigned app
         run: |
@@ -107,13 +110,14 @@ jobs:
           cp docs/OFFLINE_ROUTES.md docs/OFFLINE_MAPS.md dist/docs/
           cp examples/route_network.json dist/examples/
           python3 scripts/package_ios.py build/ios/iphoneos/Runner.app dist/AMID_Offgrid_iOS_unsigned.ipa
-          python3 scripts/create_manifest.py --artifact dist/AMID_Offgrid_iOS_unsigned.zip --artifact dist/AMID_Offgrid_iOS_unsigned.ipa --platform ios --signing unsigned --commit "$GITHUB_SHA" --run-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" --quality success
+          python3 scripts/create_manifest.py --artifact dist/AMID_Offgrid_iOS_unsigned.zip --artifact dist/AMID_Offgrid_iOS_unsigned.ipa --platform ios --signing unsigned --commit "$GITHUB_SHA" --run-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" --quality success --bundled-starter
       - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
         with:
           name: AMID-Offgrid-iOS-unsigned-${{ github.run_number }}
           path: dist/
           if-no-files-found: error
           retention-days: 7
+          compression-level: 0
 
   desktop:
     if: github.event.repository.private == false
@@ -144,27 +148,28 @@ jobs:
         run: |
           echo 'DEVELOPER_DIR=/Applications/Xcode_26.2.app/Contents/Developer' >> "$GITHUB_ENV"
           flutter config --enable-swift-package-manager
+      - run: python3 scripts/prepare_offline_payload.py
       - run: flutter build ${{ matrix.platform }} --release --no-pub
       - name: Probe Windows persistence and package the complete bundle
         if: matrix.platform == 'windows'
         shell: pwsh
         run: |
           $exe = Resolve-Path build/windows/x64/runner/Release/amid_offgrid.exe
-          $p = Start-Process -FilePath $exe -ArgumentList '--self-test' -PassThru -RedirectStandardOutput probe.log -RedirectStandardError probe-errors.log
-          if (-not $p.WaitForExit(60000)) { $p.Kill(); throw 'Desktop probe timed out' }
+          $p = Start-Process -FilePath $exe -ArgumentList '--self-test-full' -PassThru -RedirectStandardOutput probe.log -RedirectStandardError probe-errors.log
+          if (-not $p.WaitForExit(240000)) { $p.Kill(); throw 'Desktop probe timed out' }
           Get-Content probe.log,probe-errors.log
-          if ($p.ExitCode -ne 0 -or -not (Select-String -Path probe.log -Pattern AMID_SELF_TEST_OK -Quiet)) { throw 'Desktop persistence probe failed' }
+          if ($p.ExitCode -ne 0 -or -not (Select-String -Path probe.log -Pattern AMID_FULL_SETUP_OK -Quiet)) { throw 'Desktop persistence probe failed' }
           python scripts/package_desktop.py build/windows/x64/runner/Release dist/AMID_Offgrid_Windows_x64.zip --extra LICENSE --extra THIRD_PARTY_NOTICES.md --extra docs/INSTALL.md
-          python scripts/create_manifest.py --artifact dist/AMID_Offgrid_Windows_x64.zip --platform windows --signing unsigned --commit "$env:GITHUB_SHA" --run-url "$env:GITHUB_SERVER_URL/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID" --quality success
+          python scripts/create_manifest.py --artifact dist/AMID_Offgrid_Windows_x64.zip --platform windows --signing unsigned --commit "$env:GITHUB_SHA" --run-url "$env:GITHUB_SERVER_URL/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID" --quality success --bundled-starter
       - name: Probe Linux persistence and package the complete bundle
         if: matrix.platform == 'linux'
         shell: bash
         run: |
           set -euo pipefail
-          LIBGL_ALWAYS_SOFTWARE=1 timeout 60s xvfb-run -a build/linux/x64/release/bundle/amid_offgrid --self-test | tee probe.log
-          grep -q AMID_SELF_TEST_OK probe.log
+          LIBGL_ALWAYS_SOFTWARE=1 timeout 240s xvfb-run -a build/linux/x64/release/bundle/amid_offgrid --self-test-full | tee probe.log
+          grep -q AMID_FULL_SETUP_OK probe.log
           python3 scripts/package_desktop.py build/linux/x64/release/bundle dist/AMID_Offgrid_Linux_x64.zip --extra LICENSE --extra THIRD_PARTY_NOTICES.md --extra docs/INSTALL.md
-          python3 scripts/create_manifest.py --artifact dist/AMID_Offgrid_Linux_x64.zip --platform linux --signing unsigned --commit "$GITHUB_SHA" --run-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" --quality success
+          python3 scripts/create_manifest.py --artifact dist/AMID_Offgrid_Linux_x64.zip --platform linux --signing unsigned --commit "$GITHUB_SHA" --run-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" --quality success --bundled-starter
       - name: Package unsigned macOS candidate
         if: matrix.platform == 'macos'
         shell: bash
@@ -175,13 +180,14 @@ jobs:
           cp LICENSE THIRD_PARTY_NOTICES.md docs/INSTALL.md stage-macos/AMID_DOCUMENTATION/
           uname -m > stage-macos/BUILD_ARCHITECTURE.txt
           ditto -c -k --sequesterRsrc stage-macos dist/AMID_Offgrid_macOS.zip
-          python3 scripts/create_manifest.py --artifact dist/AMID_Offgrid_macOS.zip --platform macos --signing unsigned --commit "$GITHUB_SHA" --run-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" --quality success
+          python3 scripts/create_manifest.py --artifact dist/AMID_Offgrid_macOS.zip --platform macos --signing unsigned --commit "$GITHUB_SHA" --run-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" --quality success --bundled-starter
       - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
         with:
           name: AMID-Offgrid-${{ matrix.platform }}-${{ github.run_number }}
           path: dist/
           if-no-files-found: error
           retention-days: 7
+          compression-level: 0
 
   wear:
     if: github.event.repository.private == false
@@ -220,6 +226,7 @@ jobs:
           path: dist/
           if-no-files-found: error
           retention-days: 7
+          compression-level: 0
 
   watchos:
     if: github.event.repository.private == false
@@ -250,6 +257,7 @@ jobs:
           path: dist/
           if-no-files-found: error
           retention-days: 7
+          compression-level: 0
 
   web:
     if: github.event.repository.private == false
@@ -276,6 +284,7 @@ jobs:
           path: dist/
           if-no-files-found: error
           retention-days: 7
+          compression-level: 0
 
   publish:
     needs: [quality, android, ios, desktop, wear, watchos, web]

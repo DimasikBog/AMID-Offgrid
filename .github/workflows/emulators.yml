@@ -3,6 +3,9 @@ name: Native phone and watch emulator checks
 on:
   push:
     branches: [codex/emulator-checks]
+  pull_request:
+    branches: [main]
+    paths: ['lib/**', 'integration_test/**', 'assets/**', 'android/**', 'ios/**', 'watchos/**', 'wearables/**', 'pubspec.*', 'scripts/prepare_offline_payload.py', 'scripts/boot_*', '.github/workflows/emulators.yml']
   workflow_dispatch:
     inputs:
       platform:
@@ -50,6 +53,7 @@ jobs:
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2
         with: {flutter-version: '3.47.6', channel: stable, cache: true}
       - run: flutter pub get --enforce-lockfile
+      - run: python3 scripts/prepare_offline_payload.py
       - run: bash scripts/boot_android_emulator.sh android
       - name: Native Flutter integration test
         shell: bash
@@ -115,6 +119,7 @@ jobs:
         with: {flutter-version: '3.47.6', channel: stable, cache: true}
       - run: flutter config --enable-swift-package-manager
       - run: flutter pub get --enforce-lockfile
+      - run: python3 scripts/prepare_offline_payload.py
       - run: python3 scripts/boot_apple_simulator.py ios
       - name: Native Flutter integration test
         shell: bash

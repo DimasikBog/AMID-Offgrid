@@ -17,6 +17,8 @@ def project_version(root=ROOT):
 
 
 def main():
+    from prepare_offline_payload import catalog
+    catalog()
     version, build = project_version()
     dart = (ROOT / 'lib/version.dart').read_text()
     if f"const appVersion = '{version}';" not in dart:

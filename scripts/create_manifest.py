@@ -14,7 +14,7 @@ PLATFORM_EXTENSIONS = {
     'wearos': {'.apk'}, 'watchos': {'.zip'}, 'web': {'.zip'},
 }
 
-def create_manifest(artifacts, *, commit, platform, signing, run_url, quality='not_recorded'):
+def create_manifest(artifacts, *, commit, platform, signing, run_url, quality='not_recorded', bundled_starter=False):
     if not re.fullmatch(r'[0-9a-f]{40}', commit):
         raise ValueError('An exact source commit is required')
     if platform not in PLATFORM_EXTENSIONS or signing not in {'development', 'distribution', 'unsigned'}:
@@ -27,8 +27,21 @@ def create_manifest(artifacts, *, commit, platform, signing, run_url, quality='n
         raise ValueError('Invalid quality result')
     version, build = project_version()
     files = []
+    offline = None
+    if bundled_starter:
+        if platform not in {'android', 'ios', 'windows', 'linux', 'macos'}:
+            raise ValueError('This platform cannot contain the native GGUF starter')
+        from prepare_offline_payload import catalog
+        from verify_offline_payload import verify
+        data = catalog()
     for artifact in artifacts:
         path = Path(artifact)
+        if bundled_starter:
+            record = verify(path, data)
+            offline = {'modelIncluded': True, 'modelBytes': record['bytes'],
+                       'modelSha256': record['sha256'], 'mapDetail': 'world overview',
+                       'mapSha256': data['map']['sha256'],
+                       'knowledgeSha256': data['knowledge']['sha256']}
         if path.suffix not in PLATFORM_EXTENSIONS[platform]:
             raise ValueError('Artifact extension does not match its platform')
         with path.open('rb') as source:
@@ -41,7 +54,7 @@ def create_manifest(artifacts, *, commit, platform, signing, run_url, quality='n
     return {'schemaVersion': 1, 'product': 'AMID Offgrid', 'version': version, 'build': build,
             'platform': platform, 'sourceCommit': commit, 'githubRunUrl': run_url,
             'quality': quality, 'deviceTesting': 'not_run', 'storeSubmission': 'not_run',
-            'artifacts': files}
+            'artifacts': files, 'offlineStarter': offline}
 
 
 def main():
@@ -52,10 +65,12 @@ def main():
     parser.add_argument('--signing', required=True, choices=['development', 'distribution', 'unsigned'])
     parser.add_argument('--run-url', default='')
     parser.add_argument('--quality', default='not_recorded', choices=['success', 'not_recorded'])
+    parser.add_argument('--bundled-starter', action='store_true')
     parser.add_argument('--output', type=Path, default=Path('dist/release-manifest.json'))
     args = parser.parse_args()
     manifest = create_manifest(args.artifact, commit=args.commit, platform=args.platform,
-                               signing=args.signing, run_url=args.run_url, quality=args.quality)
+                               signing=args.signing, run_url=args.run_url, quality=args.quality,
+                               bundled_starter=args.bundled_starter)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + '\n')
     (args.output.parent / 'SHA256SUMS.txt').write_text(''.join(

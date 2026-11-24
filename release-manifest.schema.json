@@ -108,6 +108,49 @@
         },
         "additionalProperties": false
       }
+    },
+    "offlineStarter": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "required": [
+            "modelIncluded",
+            "modelBytes",
+            "modelSha256",
+            "mapDetail",
+            "mapSha256",
+            "knowledgeSha256"
+          ],
+          "properties": {
+            "modelIncluded": {
+              "const": true
+            },
+            "modelBytes": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "modelSha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "mapDetail": {
+              "const": "world overview"
+            },
+            "mapSha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "knowledgeSha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
     }
   },
   "additionalProperties": false

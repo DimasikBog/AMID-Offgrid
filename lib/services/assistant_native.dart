@@ -86,6 +86,27 @@ class AssistantService extends ChangeNotifier {
 
   Future<void> ask(String value) async {
     if (_disposed || busy || value.trim().isEmpty) return;
+    if (_engine == null && store.selectedModel.isNotEmpty) {
+      final selected = store.packs
+          .where((p) => p['id'] == store.selectedModel && p['kind'] == 'model')
+          .firstOrNull;
+      if (selected != null) {
+        final expectedRequest = _request + 1;
+        try {
+          await load(selected);
+        } catch (_) {
+          if (!_disposed && _request == expectedRequest) {
+            question = boundedText(value.trim(), 2000);
+            answer = '';
+            sources = [];
+            generated = false;
+            _changed();
+          }
+          return;
+        }
+        if (_disposed || busy || _request != expectedRequest) return;
+      }
+    }
     final request = ++_request;
     searching = true;
     question = boundedText(value.trim(), 2000);

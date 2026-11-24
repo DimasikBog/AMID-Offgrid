@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../services/services.dart';
@@ -31,6 +32,13 @@ class _AssistantScreenState extends State<AssistantScreen> {
     listenable: widget.services.assistant,
     builder: (context, _) {
       final ai = widget.services.assistant;
+      final savedModel =
+          !kIsWeb &&
+          widget.services.store.packs.any(
+            (p) =>
+                p['kind'] == 'model' &&
+                p['id'] == widget.services.store.selectedModel,
+          );
       return ListView(
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 30),
         children: [
@@ -42,7 +50,13 @@ class _AssistantScreenState extends State<AssistantScreen> {
                   style: Theme.of(context).textTheme.headlineMedium,
                 ),
               ),
-              Pill(ai.ready ? 'Локальна модель' : 'Пошук у матеріалах'),
+              Pill(
+                ai.ready
+                    ? 'Локальна модель'
+                    : savedModel
+                    ? 'Модель збережена'
+                    : 'Пошук у матеріалах',
+              ),
             ],
           ),
           const SizedBox(height: 16),
@@ -53,6 +67,8 @@ class _AssistantScreenState extends State<AssistantScreen> {
                 Text(
                   ai.ready
                       ? 'Обчислення на цьому пристрої'
+                      : savedModel
+                      ? 'ШІ готовий до першого запиту'
                       : 'Спочатку знайдемо відповідь у довіднику',
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
@@ -60,7 +76,11 @@ class _AssistantScreenState extends State<AssistantScreen> {
                 Text(
                   ai.ready
                       ? 'Запит не надсилається на сервер. Відповідь моделі може містити помилки.'
-                      : 'Для генерації додай GGUF-модель у пакетах і завантаж її в пам’ять. Без моделі працює пошук статей.',
+                      : savedModel
+                      ? 'Модель завантажиться в пам’ять автоматично з першим запитом. Обчислення відбуваються на цьому пристрої.'
+                      : kIsWeb
+                      ? 'У вебверсії працює пошук статей. Для локальної GGUF-моделі встанови нативний застосунок.'
+                      : 'Натисни «Встановити все» в офлайн-наборі. Карта й довідник уже вбудовані; модель підготується автоматично.',
                 ),
                 const SizedBox(height: 12),
                 OutlinedButton.icon(
@@ -93,7 +113,11 @@ class _AssistantScreenState extends State<AssistantScreen> {
                       : () => guarded(context, () => ai.ask(_input.text)),
                   icon: const Icon(Icons.arrow_upward_rounded),
                   label: Text(
-                    ai.ready ? 'Запитати модель' : 'Знайти у довіднику',
+                    ai.loading
+                        ? 'Запускаю модель…'
+                        : (ai.ready || savedModel)
+                        ? 'Запитати модель'
+                        : 'Знайти у довіднику',
                   ),
                 ),
               ),

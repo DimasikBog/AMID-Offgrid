@@ -1,7 +1,7 @@
 name: amid_offgrid
 description: Native offline knowledge, local AI, maps and nearby communication.
 publish_to: none
-version: 0.5.0+7
+version: 0.6.0+8
 environment:
   sdk: '>=3.13.0 <4.0.0'
 dependencies:
@@ -44,6 +44,7 @@ flutter:
   assets:
     - assets/starter.json
     - assets/world.geojson
+    - assets/offline_model/
     - assets/fonts/OFL-Roboto.txt
 hooks:
   user_defines:

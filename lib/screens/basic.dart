@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -26,13 +28,22 @@ class HomeScreen extends StatelessWidget {
       services.store,
       services.assistant,
       services.nearby,
+      services.setup,
     ]),
     builder: (context, _) {
       final data = services.store;
       return ListView(
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 30),
         children: [
-          HomeHero(store: data, openPacks: openPacks),
+          HomeHero(
+            store: data,
+            openPacks: openPacks,
+            needsSetup: !kIsWeb && !services.setup.modelReady,
+            preparing: services.setup.installing,
+            progress: services.files.progress > 0
+                ? services.files.progress
+                : null,
+          ),
           const Section('Швидкий старт'),
           Wrap(
             spacing: 10,

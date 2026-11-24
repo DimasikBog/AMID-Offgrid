@@ -1,4 +1,4 @@
-# AMID Offgrid 0.5.0 candidate
+# AMID Offgrid 0.6.0 candidate
 
 One Flutter app for Android and iPhone, developed through DimasikBog/AMID-Offgrid.
 An owned Mac is not required: iOS compilation runs on macOS CI. Personal iPhone
@@ -52,3 +52,13 @@ Wear OS 3+ and watchOS 10+. No watch GGUF, raster maps, BLE relay, emergency
 transmission or phone synchronization. Other closed watch platforms need their
 own implementation. CI targets are documented in INSTALL.md; only actual run
 outputs certify compilation. Device support still requires real acceptance.
+
+
+Version 0.6 prepares the complete baseline in native builds: the official pinned
+Qwen3 0.6B Q8, world overview and AMID guide. Full builds stream bundled chunks
+into private storage automatically; source/light builds use one explicit network
+setup action. The selected model auto-loads on the first question. Existing
+custom selections and notes are preserved; deliberate removal suppresses silent
+reinstallation. This does not supply regional street maps or all Wikipedia.
+Acceptance is defined in STARTER_SETUP.md and requires current-source native
+build/content checks and real local generation, independently of physical tests.

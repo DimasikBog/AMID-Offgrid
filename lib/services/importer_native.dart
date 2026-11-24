@@ -10,6 +10,7 @@ import 'package:path/path.dart' as p;
 import 'package:uuid/uuid.dart';
 
 import '../models/data.dart';
+import '../models/starter_content.dart';
 import 'backup_codec.dart';
 import 'cancellable_reader.dart';
 import 'document_codec.dart';
@@ -30,7 +31,19 @@ class ImportService extends ChangeNotifier {
     super.dispose();
   }
 
-  ImportService(this.store);
+  ImportService(
+    this.store, {
+    AssetBundle? bundle,
+    this.catalogOverride,
+    HttpClient Function()? clientFactory,
+  }) : _bundle = bundle ?? rootBundle,
+       _clientFactory = clientFactory ?? HttpClient.new;
+  final AssetBundle _bundle;
+  StarterCatalog? _catalog;
+  final StarterCatalog? catalogOverride;
+  final HttpClient Function() _clientFactory;
+  Future<StarterCatalog> get starterCatalog async =>
+      _catalog ??= catalogOverride ?? await StarterCatalog.load(_bundle);
   final AppStore store;
   final _reads = CancellableReader();
   bool busy = false, _cancelled = false;
@@ -38,12 +51,6 @@ class ImportService extends ChangeNotifier {
   String label = '';
   HttpClient? _client;
   static const _files = MethodChannel('com.amid.offgrid/files');
-  static const starterId = 'qwen3-06b-q8';
-  static const modelBytes = 639446688;
-  static const modelHash =
-      '9465e63a22add5354d9bb4b99e90117043c7124007664907259bd16d043bb031';
-  static const modelUrl =
-      'https://huggingface.co/Qwen/Qwen3-0.6B-GGUF/resolve/23749fefcc72300e3a2ad315e1317431b06b590a/Qwen3-0.6B-Q8_0.gguf';
   void _report(double value, String text) {
     progress = value.clamp(0, 1);
     label = text;
@@ -272,117 +279,210 @@ class ImportService extends ChangeNotifier {
     }
   }
 
-  Future<String> downloadStarter() => _run('Готую завантаження', () async {
-    if (store.packs.any((p) => p['id'] == starterId)) {
-      return 'Стартова модель уже збережена.';
+  Future<bool> hasBundledStarter() async =>
+      await BundledModel.load(_bundle, (await starterCatalog).model) != null;
+
+  Future<bool> starterAvailable() async {
+    final model = (await starterCatalog).model;
+    final asset = store.packs
+        .where((p) => p['id'] == starterModelId)
+        .firstOrNull;
+    if (asset == null ||
+        asset['path'] is! String ||
+        asset['sha256'] != model.sha256) {
+      return false;
+    }
+    try {
+      return await File(asset['path'] as String).length() == model.bytes;
+    } on FileSystemException {
+      return false;
+    }
+  }
+
+  Future<String> downloadStarter() => prepareStarter();
+
+  Future<String> prepareStarter({
+    bool allowNetwork = true,
+    bool repair = false,
+  }) => _run('Готую офлайн-модель', () async {
+    final model = (await starterCatalog).model;
+    if (await starterAvailable()) {
+      if (!repair) {
+        if (store.selectedModel.isEmpty) {
+          await store.selectModel(starterModelId);
+        }
+        return 'Модель уже збережена. Запуститься з першим запитом.';
+      }
+      final asset = store.packs.firstWhere((p) => p['id'] == starterModelId);
+      if (await _modelMatches(File(asset['path'] as String), model)) {
+        _report(1, 'Контрольна сума моделі правильна');
+        return 'Модель перевірена.';
+      }
     }
     final dir = Directory(p.join(store.backend.directory, 'files'));
     await dir.create(recursive: true);
-    final partial = File(p.join(dir.path, 'qwen3-06b-q8.gguf.partial')),
-        target = File(p.join(dir.path, 'qwen3-06b-q8.gguf'));
-    try {
-      var offset = await partial.exists() ? await partial.length() : 0;
-      if (offset > modelBytes) {
+    final partial = File(p.join(dir.path, '${model.fileName}.partial')),
+        target = File(p.join(dir.path, model.fileName));
+    if (!await _modelMatches(target, model)) {
+      if (await target.exists()) await target.delete();
+      if (await partial.exists() && await partial.length() > model.bytes) {
         await partial.delete();
-        offset = 0;
       }
-      if (offset < modelBytes) {
-        _client = HttpClient()..connectionTimeout = const Duration(seconds: 30);
-        final request = await _client!.getUrl(Uri.parse(modelUrl));
-        if (offset > 0) {
-          request.headers.set(HttpHeaders.rangeHeader, 'bytes=$offset-');
-        }
-        final response = await request.close();
-        if (response.statusCode == 200) {
-          offset = 0;
-        } else if (response.statusCode == 206) {
-          final range = RegExp(r'^bytes (\d+)-(\d+)/(\d+)$').firstMatch(
-            response.headers.value(HttpHeaders.contentRangeHeader) ?? '',
-          );
-          if (range == null ||
-              int.parse(range[1]!) != offset ||
-              int.parse(range[2]!) < offset ||
-              int.parse(range[2]!) >= modelBytes ||
-              int.parse(range[3]!) != modelBytes) {
-            throw const HttpException('Сервер не підтвердив докачування.');
-          }
-        } else {
-          throw HttpException('Сервер відповів: ${response.statusCode}');
-        }
-        final sink = partial.openWrite(
-          mode: offset > 0 ? FileMode.append : FileMode.write,
-        );
-        var received = offset, last = offset;
-        try {
-          await for (final chunk in _reads.read(
-            response.timeout(const Duration(seconds: 60)),
-            _checkCancelled,
-          )) {
-            if (_cancelled) {
-              throw StateError(
-                'Завантаження скасовано. Можна продовжити пізніше.',
-              );
-            }
-            received += chunk.length;
-            if (received > modelBytes) {
-              throw const FormatException(
-                'Завантажений файл має інший розмір.',
-              );
-            }
-            sink.add(chunk);
-            if (received - last > 2 * 1024 * 1024) {
-              last = received;
-              await sink.flush();
-              _report(
-                received / modelBytes * .9,
-                'Завантажено ${prettyBytes(received)} із ${prettyBytes(modelBytes)}',
-              );
-            }
-          }
-        } finally {
-          await sink.close();
-        }
-      }
-      if (await partial.length() != modelBytes) {
+      final bundled = await BundledModel.load(_bundle, model);
+      if (bundled != null) {
+        await _copyBundled(model, bundled, partial);
+      } else if (allowNetwork) {
+        await _downloadModel(model, partial);
+      } else {
         throw const FileSystemException(
-          'Файл завантажено не повністю. Натисни завантаження ще раз для продовження.',
+          'Ця збірка не містить моделі. Встанови набір через інтернет.',
         );
       }
-      _report(.92, 'Перевіряю контрольну суму');
-      final hash = await sha256
-          .bind(_reads.read(partial.openRead(), _checkCancelled))
-          .first;
-      if (hash.toString() != modelHash) {
+      if (!await partial.exists() || await partial.length() != model.bytes) {
+        throw const FileSystemException(
+          'Завантаження неповне. Продовжи встановлення, коли буде мережа.',
+        );
+      }
+      _report(.92, 'Перевіряю контрольну суму моделі');
+      if (!await _modelMatches(partial, model)) {
         await partial.delete();
-        throw const FormatException('Контрольна сума моделі не збігається.');
+        throw const FormatException(
+          'Контрольна сума моделі не збігається. Повтори встановлення.',
+        );
       }
       _checkCancelled();
       await _protect(partial.path);
       _checkCancelled();
       await partial.rename(target.path);
-      try {
-        await store.addAsset({
-          'id': starterId,
-          'title': 'Qwen3 0.6B · Q8',
-          'kind': 'model',
-          'path': target.path,
-          'bytes': modelBytes,
-          'count': 1,
-          'sha256': modelHash,
-          'license': 'Qwen Team · Apache-2.0 · https://huggingface.co/Qwen/Qwen3-0.6B-GGUF',
-        }, checkActive: _checkCancelled);
-      } catch (_) {
-        // Retain verified bytes for a retry if activation never committed.
-        if (await target.exists()) await target.rename(partial.path);
-        rethrow;
-      }
-      _report(1, 'Модель збережено');
-      return 'Модель перевірено. Завантаж її в помічнику.';
-    } finally {
-      _client?.close(force: true);
-      _client = null;
     }
+    try {
+      await store.installStarterModel({
+        'id': starterModelId,
+        'title': model.title,
+        'kind': 'model',
+        'path': target.path,
+        'bytes': model.bytes,
+        'count': 1,
+        'sha256': model.sha256,
+        'license': model.license,
+      }, checkActive: _checkCancelled);
+    } catch (_) {
+      // Retain verified bytes if persistence/cancellation prevents activation.
+      if (await target.exists()) await target.rename(partial.path);
+      rethrow;
+    }
+    _report(1, 'Офлайн-модель збережена');
+    return 'Набір готовий. ШІ запуститься з першим запитом.';
   });
+
+  Future<bool> _modelMatches(File file, StarterModel model) async {
+    if (!await file.exists() || await file.length() != model.bytes) {
+      return false;
+    }
+    _checkCancelled();
+    final hash = await sha256
+        .bind(_reads.read(file.openRead(), _checkCancelled))
+        .first;
+    _checkCancelled();
+    return hash.toString() == model.sha256;
+  }
+
+  Future<void> _copyBundled(
+    StarterModel model,
+    BundledModel bundled,
+    File partial,
+  ) async {
+    var offset = await partial.exists() ? await partial.length() : 0;
+    if (offset == model.bytes) return;
+    // An interrupted chunk is recopied; memory use is bounded by 8 MiB per asset.
+    offset = offset ~/ bundled.chunkBytes * bundled.chunkBytes;
+    final output = await partial.open(mode: FileMode.append);
+    await output.truncate(offset);
+    await output.setPosition(offset);
+    try {
+      for (var i = offset ~/ bundled.chunkBytes; i < bundled.parts; i++) {
+        _checkCancelled();
+        final bytes = await _bundle.load(bundled.asset(i));
+        _checkCancelled();
+        final expected = (model.bytes - offset).clamp(0, bundled.chunkBytes);
+        if (bytes.lengthInBytes != expected) {
+          throw const FormatException('Частина вбудованої моделі пошкоджена.');
+        }
+        await output.writeFrom(
+          bytes.buffer.asUint8List(bytes.offsetInBytes, bytes.lengthInBytes),
+        );
+        await output.flush();
+        offset += bytes.lengthInBytes;
+        _report(
+          offset / model.bytes * .9,
+          'Готую ШІ: ${prettyBytes(offset)} із ${prettyBytes(model.bytes)} · без мережі',
+        );
+      }
+    } finally {
+      await output.close();
+    }
+  }
+
+  Future<void> _downloadModel(StarterModel model, File partial) async {
+    var offset = await partial.exists() ? await partial.length() : 0;
+    if (offset == model.bytes) return;
+    _client = _clientFactory()..connectionTimeout = const Duration(seconds: 30);
+    final request = await _client!
+        .getUrl(model.url)
+        .timeout(const Duration(seconds: 30));
+    _checkCancelled();
+    request.headers.set(HttpHeaders.acceptEncodingHeader, 'identity');
+    if (offset > 0) {
+      request.headers.set(HttpHeaders.rangeHeader, 'bytes=$offset-');
+    }
+    final response = await request.close().timeout(const Duration(seconds: 30));
+    _checkCancelled();
+    if (response.statusCode == 200) {
+      offset = 0;
+    } else if (response.statusCode == 206) {
+      final range = RegExp(r'^bytes (\d+)-(\d+)/(\d+)$').firstMatch(
+        response.headers.value(HttpHeaders.contentRangeHeader) ?? '',
+      );
+      if (range == null ||
+          int.parse(range[1]!) != offset ||
+          int.parse(range[2]!) != model.bytes - 1 ||
+          int.parse(range[3]!) != model.bytes) {
+        throw const HttpException('Сервер не підтвердив докачування.');
+      }
+    } else {
+      throw HttpException('Сервер відповів: ${response.statusCode}');
+    }
+    if (response.contentLength >= 0 &&
+        response.contentLength != model.bytes - offset) {
+      throw const HttpException('Сервер повідомив інший розмір моделі.');
+    }
+    final sink = partial.openWrite(
+      mode: offset > 0 ? FileMode.append : FileMode.write,
+    );
+    var received = offset, last = offset;
+    try {
+      await for (final chunk in _reads.read(
+        response.timeout(const Duration(seconds: 60)),
+        _checkCancelled,
+      )) {
+        received += chunk.length;
+        if (received > model.bytes) {
+          throw const FormatException('Завантажено забагато даних.');
+        }
+        sink.add(chunk);
+        if (received - last > 2 << 20) {
+          last = received;
+          await sink.flush();
+          _report(
+            received / model.bytes * .9,
+            'Завантажено ${prettyBytes(received)} із ${prettyBytes(model.bytes)}',
+          );
+        }
+      }
+    } finally {
+      await sink.close();
+    }
+  }
 
   Future<void> deleteAsset(Json asset) async {
     final path = asset['path'];
