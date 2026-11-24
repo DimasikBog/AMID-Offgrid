@@ -72,9 +72,9 @@ def main():
                                signing=args.signing, run_url=args.run_url, quality=args.quality,
                                bundled_starter=args.bundled_starter)
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + '\n')
+    args.output.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
     (args.output.parent / 'SHA256SUMS.txt').write_text(''.join(
-        f'{entry["sha256"]}  {entry["file"]}\n' for entry in manifest['artifacts']))
+        f'{entry["sha256"]}  {entry["file"]}\n' for entry in manifest['artifacts']), encoding='utf-8')
     print(f'Recorded {len(manifest["artifacts"])} artifacts for {manifest["sourceCommit"]}; devices and stores: not run')
 
 

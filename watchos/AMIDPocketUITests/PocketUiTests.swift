@@ -34,6 +34,11 @@ final class PocketUiTests: XCTestCase {
         reveal(check, in: app)
         let before = String(describing: check.value)
         check.tap()
+        let changedValue = XCTNSPredicateExpectation(
+            predicate: NSPredicate { _, _ in String(describing: check.value) != before },
+            object: nil)
+        XCTAssertEqual(XCTWaiter.wait(for: [changedValue], timeout: 10), .completed,
+                       "Checklist toggle must change before persistence is checked")
         let changed = String(describing: check.value)
         XCTAssertNotEqual(before, changed)
         capture(app, "01-checklist")

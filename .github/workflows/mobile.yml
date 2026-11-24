@@ -65,7 +65,8 @@ jobs:
           cache: true
       - run: flutter pub get --enforce-lockfile
       - run: python3 scripts/prepare_offline_payload.py
-      - run: flutter build apk --release --target-platform android-arm64 --no-pub
+      # Release tooling must regenerate registrants to exclude dev-only plugins.
+      - run: flutter build apk --release --target-platform android-arm64
       - name: Verify and package APK
         run: |
           mkdir -p dist

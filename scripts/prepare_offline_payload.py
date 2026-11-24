@@ -12,7 +12,7 @@ CHUNK_BYTES = 8 * 1024 * 1024
 
 
 def catalog(root=ROOT):
-    data = json.loads((root / 'assets/offline_model/catalog.json').read_text())
+    data = json.loads((root / 'assets/offline_model/catalog.json').read_text(encoding='utf-8'))
     model = data['model']
     if data.get('format') != 'AMID_OFFLINE_STARTER' or data.get('version') != 1:
         raise ValueError('Invalid starter catalog')
@@ -100,7 +100,7 @@ def split_model(model, source, destination, chunk_bytes=CHUNK_BYTES):
               'bytes': model['bytes'], 'sha256': model['sha256'],
               'chunkBytes': chunk_bytes, 'parts': count}
     temporary = destination / 'bundle.tmp'
-    temporary.write_text(json.dumps(record, indent=2) + '\n')
+    temporary.write_text(json.dumps(record, indent=2) + '\n', encoding='utf-8')
     temporary.replace(destination / 'bundle.json')
     return record
 
