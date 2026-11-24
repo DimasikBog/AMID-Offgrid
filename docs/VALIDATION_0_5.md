@@ -22,6 +22,15 @@
 - Roboto і його OFL включено в пакет; SHA-256 та походження в
   `assets/fonts/provenance.json`. Український текст не потребує Google Fonts.
 
+## Перші результати Actions
+
+У запуску 45446396755 успішні quality, Windows, Linux, Wear OS і web.
+Обидві desktop-перевірки надрукували `AMID_SELF_TEST_OK`. iOS preflight
+виявив стандартний Xcode 16.4 замість потрібного SDK; workflow виправлено
+на явний Xcode 26.2, наявний в образі runner. Повну фінальну матрицю після
+цього виправлення потрібно перевірити окремо. BLE desktop вимкнений у коді;
+його додавання — окреме завдання, а не наявна функція.
+
 ## Потрібно перевірити через Actions
 
 Нові Android, iOS, Windows, Linux, macOS, Wear OS, watchOS і web пакети
