@@ -1,0 +1,23 @@
+:root { color-scheme: light dark; font-family: system-ui, sans-serif; background: #f7f8f2; color: #193e30; }
+* { box-sizing: border-box; }
+html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; }
+body { display: flex; flex-direction: column; }
+[hidden] { display: none !important; }
+button { font: inherit; min-height: 44px; border-radius: 12px; border: 1px solid currentColor; padding: 7px 12px; cursor: pointer; background: transparent; color: inherit; }
+button:focus-visible { outline: 3px solid #edc38a; outline-offset: 2px; }
+button:disabled { opacity: .65; cursor: default; }
+#web-tools { display: flex; flex-shrink: 0; align-items: center; gap: 6px; padding: calc(4px + env(safe-area-inset-top)) 8px 4px; background: #193e30; color: #d1f0dd; font-size: 13px; }
+#web-tools button { border-color: transparent; }
+#web-tools button:hover { background: #315e40; }
+.spacer { flex: 1; }
+#app-stage { flex: 1; min-height: 0; position: relative; overflow: hidden; }
+#flutter-host { position: absolute; inset: 0; width: 100%; height: 100%; overflow: hidden; }
+#startup { z-index: 2; background: #f7f8f2; position: absolute; inset: 0; padding: 28px; display: grid; align-content: center; justify-items: center; text-align: center; }
+dialog { color: #193e30; background: #f7f8f2; border: 0; border-radius: 22px; padding: 24px; width: min(540px, calc(100% - 24px)); max-height: calc(100% - 32px); overflow: auto; line-height: 1.5; }
+dialog::backdrop { background: #101b19b3; }
+dialog h2 { margin-top: 8px; padding-right: 35px; }
+dialog button { margin: 4px 4px 4px 0; }
+.close { float: right; margin: -8px -8px 0 8px; border: 0; }
+#action-detail:empty { display: none; }
+@media (max-width: 420px) { #web-tools { gap: 0; font-size: 12px; } #web-tools button { padding: 5px 8px; } }
+@media (prefers-color-scheme: dark) { :root, dialog, #startup { color: #d1f0dd; background: #101b19; } }

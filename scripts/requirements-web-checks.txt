@@ -1,0 +1,2 @@
+# Test tooling only; never bundled with the Flutter app.
+playwright==1.62.0
