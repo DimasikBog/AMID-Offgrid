@@ -12,6 +12,13 @@ Future<void> settle(WidgetTester tester) => tester.pumpAndSettle(
   const Duration(seconds: 45),
 );
 
+Future<void> waitFor(WidgetTester tester, Finder finder) async {
+  for (var i = 0; i < 100 && finder.evaluate().isEmpty; i++) {
+    await tester.pump(const Duration(milliseconds: 100));
+  }
+  expect(finder, findsOneWidget);
+}
+
 void main() {
   final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
   testWidgets('native navigation, note, favorite, Lite and reopened SQLite', (
@@ -44,13 +51,11 @@ void main() {
     await store.flush();
     await tester.enterText(find.byType(TextField).first, title);
     FocusManager.instance.primaryFocus?.unfocus();
-    await settle(tester);
-    await settle(tester);
-    expect(find.text(title), findsOneWidget);
-    final tile = find.ancestor(
-      of: find.text(title),
-      matching: find.byType(ListTile),
-    );
+    await tester.tap(find.byTooltip('Знайти'));
+    final tile = find.widgetWithText(ListTile, title);
+    // A query's EditableText is not evidence that its async result has loaded.
+    await waitFor(tester, tile);
+    await tester.ensureVisible(tile);
     await tester.tap(
       find.descendant(of: tile, matching: find.byType(IconButton)),
     );
