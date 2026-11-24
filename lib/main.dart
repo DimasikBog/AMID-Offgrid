@@ -1,6 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart'
+    show LicenseRegistry, LicenseEntryWithLineBreaks;
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'services/store.dart';
@@ -10,10 +13,24 @@ import 'screens/assistant_screen.dart';
 import 'screens/packs_screen.dart';
 import 'screens/map_screen.dart';
 import 'screens/messages_screen.dart';
+import 'screens/lite_screen.dart';
+import 'screens/note_editor.dart';
 import 'widgets/common.dart';
+import 'widgets/app_theme.dart';
+import 'services/self_test_native.dart'
+    if (dart.library.js_interop) 'services/self_test_web.dart';
 
-void main() {
+Future<void> main(List<String> arguments) async {
   WidgetsFlutterBinding.ensureInitialized();
+  LicenseRegistry.addLicense(() async* {
+    yield LicenseEntryWithLineBreaks([
+      'Roboto',
+    ], await rootBundle.loadString('assets/fonts/OFL-Roboto.txt'));
+  });
+  if (arguments.contains('--self-test')) {
+    await runSelfTest();
+    return;
+  }
   runApp(const OffgridApp());
 }
 
@@ -60,64 +77,7 @@ class _OffgridAppState extends State<OffgridApp> {
     super.dispose();
   }
 
-  ThemeData _theme(Brightness brightness) {
-    final dark = brightness == Brightness.dark;
-    final colors =
-        ColorScheme.fromSeed(
-          seedColor: const Color(0xff456f52),
-          brightness: brightness,
-        ).copyWith(
-          primary: dark ? mint : const Color(0xff315e40),
-          onPrimary: dark ? ink : Colors.white,
-          surface: dark ? const Color(0xff101b19) : const Color(0xfff7f8f2),
-          surfaceContainerLow: dark
-              ? const Color(0xff192622)
-              : const Color(0xffeef1e8),
-        );
-    return ThemeData(
-      useMaterial3: true,
-      colorScheme: colors,
-      scaffoldBackgroundColor: colors.surface,
-      textTheme: ThemeData(brightness: brightness).textTheme
-          .apply(bodyColor: colors.onSurface, displayColor: colors.onSurface),
-      appBarTheme: AppBarTheme(
-        backgroundColor: colors.surface,
-        surfaceTintColor: Colors.transparent,
-        centerTitle: false,
-      ),
-      inputDecorationTheme: InputDecorationTheme(
-        filled: true,
-        fillColor: colors.surfaceContainerLow,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide.none,
-        ),
-        contentPadding: const EdgeInsets.all(17),
-      ),
-      navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: colors.surface,
-        indicatorColor: colors.primaryContainer,
-        height: 76,
-        labelTextStyle: WidgetStateProperty.all(const TextStyle(fontSize: 11)),
-      ),
-      filledButtonTheme: FilledButtonThemeData(
-        style: FilledButton.styleFrom(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
-          ),
-        ),
-      ),
-      outlinedButtonTheme: OutlinedButtonThemeData(
-        style: OutlinedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
-          ),
-        ),
-      ),
-    );
-  }
+  ThemeData _theme(Brightness brightness) => offgridTheme(brightness);
 
   @override
   Widget build(BuildContext context) => MaterialApp(
@@ -166,6 +126,22 @@ class _OffgridAppState extends State<OffgridApp> {
   );
 }
 
+const _labels = ['Головна', 'Знання', 'Помічник', 'Карта', 'Зв’язок'];
+const _icons = [
+  Icons.grid_view_outlined,
+  Icons.menu_book_outlined,
+  Icons.auto_awesome_outlined,
+  Icons.map_outlined,
+  Icons.forum_outlined,
+];
+const _selectedIcons = [
+  Icons.grid_view_rounded,
+  Icons.menu_book_rounded,
+  Icons.auto_awesome_rounded,
+  Icons.map_rounded,
+  Icons.forum_rounded,
+];
+
 class OffgridShell extends StatefulWidget {
   const OffgridShell({
     super.key,
@@ -181,6 +157,8 @@ class OffgridShell extends StatefulWidget {
 class _OffgridShellState extends State<OffgridShell>
     with WidgetsBindingObserver {
   late Services services;
+  final _visited = <int>{0};
+  final _searchFocus = FocusNode(debugLabel: 'Library search');
   int _tab = 0;
   @override
   void initState() {
@@ -190,12 +168,38 @@ class _OffgridShellState extends State<OffgridShell>
   }
 
   void _navigate(int tab) {
-    if (mounted) setState(() => _tab = tab);
+    if (mounted) {
+      setState(() {
+        _visited.add(tab);
+        _tab = tab;
+      });
+    }
   }
 
-  void _packs() => Navigator.of(context).push(
-    MaterialPageRoute<void>(builder: (_) => PacksScreen(services: services)),
+  void _search() {
+    _navigate(1);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && ModalRoute.of(context)?.isCurrent == true) {
+        _searchFocus.requestFocus();
+      }
+    });
+  }
+
+  void _packs() => Navigator.of(context).push<void>(
+    MaterialPageRoute(builder: (_) => PacksScreen(services: services)),
   );
+
+  void _lite() => unawaited(
+    guarded(context, () async {
+      await services.assistant.unload();
+      await services.nearby.stop();
+      if (!mounted) return;
+      await Navigator.of(context).push<void>(
+        MaterialPageRoute(builder: (_) => LiteScreen(services: services)),
+      );
+    }),
+  );
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.paused ||
@@ -208,122 +212,215 @@ class _OffgridShellState extends State<OffgridShell>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _searchFocus.dispose();
     services.dispose();
-    // Child editors enqueue their last draft while disposing.
     scheduleMicrotask(() => unawaited(widget.store.close()));
     super.dispose();
   }
 
+  Widget _page(int i) => switch (i) {
+    0 => HomeScreen(services: services, navigate: _navigate, openPacks: _packs),
+    1 => LibraryScreen(
+      services: services,
+      navigate: _navigate,
+      searchFocusNode: _searchFocus,
+    ),
+    2 => AssistantScreen(
+      services: services,
+      navigate: _navigate,
+      openPacks: _packs,
+    ),
+    3 => MapScreen(services: services, navigate: _navigate),
+    _ => MessagesScreen(services: services),
+  };
+
   @override
-  Widget build(BuildContext context) => ListenableBuilder(
-    listenable: widget.store,
-    builder: (context, _) => Scaffold(
-      appBar: AppBar(
-        title: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 30,
-              height: 30,
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.primary,
-                borderRadius: BorderRadius.circular(9),
-              ),
-              child: Icon(
-                Icons.bolt_rounded,
-                color: Theme.of(context).colorScheme.onPrimary,
-                size: 23,
-              ),
-            ),
-            const SizedBox(width: 10),
-            const Text(
-              'AMID',
-              style: TextStyle(
-                letterSpacing: 2,
-                fontSize: 19,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(width: 7),
-            Text(
-              'offgrid',
-              style: TextStyle(
-                fontSize: 16,
-                color: Theme.of(context).colorScheme.outline,
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          IconButton(
-            tooltip: 'Світла або темна тема',
-            onPressed: widget.themeAction,
-            icon: const Icon(Icons.contrast_rounded),
-          ),
-          IconButton(
-            tooltip: 'Пакети та налаштування',
-            onPressed: _packs,
-            icon: const Icon(Icons.inventory_2_outlined),
-          ),
-          const SizedBox(width: 7),
-        ],
-      ),
-      body: SafeArea(
-        top: false,
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 1100),
-            child: IndexedStack(
-              index: _tab,
-              children: [
-                HomeScreen(
-                  services: services,
-                  navigate: _navigate,
-                  openPacks: _packs,
+  Widget build(BuildContext context) => CallbackShortcuts(
+    bindings: {
+      const SingleActivator(LogicalKeyboardKey.keyK, control: true): _search,
+      const SingleActivator(LogicalKeyboardKey.keyK, meta: true): _search,
+      const SingleActivator(LogicalKeyboardKey.keyN, control: true): () =>
+          unawaited(editNote(context, widget.store)),
+      const SingleActivator(LogicalKeyboardKey.keyN, meta: true): () =>
+          unawaited(editNote(context, widget.store)),
+      for (var i = 0; i < 5; i++)
+        SingleActivator(
+          const [
+            LogicalKeyboardKey.digit1,
+            LogicalKeyboardKey.digit2,
+            LogicalKeyboardKey.digit3,
+            LogicalKeyboardKey.digit4,
+            LogicalKeyboardKey.digit5,
+          ][i],
+          alt: Theme.of(context).platform != TargetPlatform.macOS,
+          meta: Theme.of(context).platform == TargetPlatform.macOS,
+        ): () =>
+            _navigate(i),
+    },
+    child: Focus(
+      autofocus: true,
+      child: PopScope(
+        canPop: _tab == 0,
+        onPopInvokedWithResult: (didPop, _) {
+          if (!didPop) _navigate(0);
+        },
+        child: ListenableBuilder(
+          listenable: widget.store,
+          builder: (context, _) => LayoutBuilder(
+            builder: (context, size) {
+              final rail = size.maxWidth >= 840 && size.maxHeight >= 480;
+              final extended =
+                  size.maxWidth >= 1200 ||
+                  MediaQuery.textScalerOf(context).scale(14) > 20;
+              final content = Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1200),
+                  child: IndexedStack(
+                    index: _tab,
+                    children: [
+                      for (var i = 0; i < 5; i++)
+                        _visited.contains(i)
+                            ? _page(i)
+                            : const SizedBox.shrink(),
+                    ],
+                  ),
                 ),
-                LibraryScreen(services: services, navigate: _navigate),
-                AssistantScreen(
-                  services: services,
-                  navigate: _navigate,
-                  openPacks: _packs,
+              );
+              return Scaffold(
+                appBar: AppBar(
+                  title: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 30,
+                        height: 30,
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.primary,
+                          borderRadius: BorderRadius.circular(9),
+                        ),
+                        child: Icon(
+                          Icons.bolt_rounded,
+                          size: 23,
+                          color: Theme.of(context).colorScheme.onPrimary,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      const Flexible(
+                        child: Text(
+                          'AMID',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            letterSpacing: 2,
+                            fontSize: 19,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      if (size.maxWidth >= 500) ...[
+                        const SizedBox(width: 8),
+                        Text(
+                          'offgrid',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Theme.of(context).colorScheme.outline,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                  actions: [
+                    IconButton(
+                      tooltip: 'Пошук · Ctrl/⌘ K',
+                      onPressed: _search,
+                      icon: const Icon(Icons.search_rounded),
+                    ),
+                    IconButton(
+                      tooltip: 'Пакети та налаштування',
+                      onPressed: _packs,
+                      icon: const Icon(Icons.inventory_2_outlined),
+                    ),
+                    PopupMenuButton<String>(
+                      tooltip: 'Швидкі дії',
+                      onSelected: (value) {
+                        switch (value) {
+                          case 'note':
+                            unawaited(editNote(context, widget.store));
+                          case 'theme':
+                            widget.themeAction();
+                          case 'lite':
+                            _lite();
+                        }
+                      },
+                      itemBuilder: (_) => const [
+                        PopupMenuItem(
+                          value: 'note',
+                          child: Text('Нова нотатка · Ctrl/⌘ N'),
+                        ),
+                        PopupMenuItem(
+                          value: 'lite',
+                          child: Text('Легкий режим'),
+                        ),
+                        PopupMenuItem(
+                          value: 'theme',
+                          child: Text('Світла або темна тема'),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-                MapScreen(services: services, navigate: _navigate),
-                MessagesScreen(services: services),
-              ],
-            ),
+                body: SafeArea(
+                  top: false,
+                  child: rail
+                      ? Row(
+                          children: [
+                            NavigationRail(
+                              selectedIndex: _tab,
+                              onDestinationSelected: _navigate,
+                              extended: extended,
+                              minWidth: 88,
+                              minExtendedWidth: 220,
+                              labelType: extended
+                                  ? null
+                                  : NavigationRailLabelType.all,
+                              destinations: [
+                                for (var i = 0; i < 5; i++)
+                                  NavigationRailDestination(
+                                    icon: Icon(_icons[i]),
+                                    selectedIcon: Icon(_selectedIcons[i]),
+                                    label: Text(_labels[i]),
+                                  ),
+                              ],
+                            ),
+                            const VerticalDivider(width: 1),
+                            Expanded(child: content),
+                          ],
+                        )
+                      : content,
+                ),
+                bottomNavigationBar: rail
+                    ? null
+                    : NavigationBar(
+                        selectedIndex: _tab,
+                        onDestinationSelected: _navigate,
+                        labelBehavior:
+                            MediaQuery.textScalerOf(context).scale(14) > 20
+                            ? NavigationDestinationLabelBehavior
+                                  .onlyShowSelected
+                            : null,
+                        destinations: [
+                          for (var i = 0; i < 5; i++)
+                            NavigationDestination(
+                              icon: Icon(_icons[i]),
+                              selectedIcon: Icon(_selectedIcons[i]),
+                              label: _labels[i],
+                            ),
+                        ],
+                      ),
+              );
+            },
           ),
         ),
-      ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _tab,
-        onDestinationSelected: _navigate,
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.grid_view_outlined),
-            selectedIcon: Icon(Icons.grid_view_rounded),
-            label: 'Головна',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.menu_book_outlined),
-            selectedIcon: Icon(Icons.menu_book_rounded),
-            label: 'Знання',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.auto_awesome_outlined),
-            selectedIcon: Icon(Icons.auto_awesome_rounded),
-            label: 'Помічник',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.map_outlined),
-            selectedIcon: Icon(Icons.map_rounded),
-            label: 'Карта',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.forum_outlined),
-            selectedIcon: Icon(Icons.forum_rounded),
-            label: 'Зв’язок',
-          ),
-        ],
       ),
     ),
   );

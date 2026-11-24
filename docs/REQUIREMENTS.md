@@ -1,4 +1,4 @@
-# AMID Offgrid 0.4.2 candidate
+# AMID Offgrid 0.5.0 candidate
 
 One Flutter app for Android and iPhone, developed through DimasikBog/AMID-Offgrid.
 An owned Mac is not required: iOS compilation runs on macOS CI. Personal iPhone
@@ -40,3 +40,15 @@ checks and pixel limits, a verified first image, lazy checks for later tiles and
 explicit archive/cache ownership. It is not a full-file validator, a SQLite
 query sandbox or evidence of measured phone memory consumption. Application
 limits and compatibility tradeoffs are listed in OFFLINE_MAPS.md.
+
+Version 0.5 adds owner-authorized MIT source distribution, desktop hosts for
+Windows/Linux/macOS, adaptive navigation, keyboard access, personal preparation
+and reader scale with legacy-safe backups. Desktop Windows/Linux use the
+already-pinned sqflite_common_ffi 2.4.7 at runtime. Full-app light mode is a UI
+mode, not a smaller APK; standalone pocket clients have separate native builds.
+
+Pocket scope: six bundled offline cards and local manual checklist states on
+Wear OS 3+ and watchOS 10+. No watch GGUF, raster maps, BLE relay, emergency
+transmission or phone synchronization. Other closed watch platforms need their
+own implementation. CI targets are documented in INSTALL.md; only actual run
+outputs certify compilation. Device support still requires real acceptance.

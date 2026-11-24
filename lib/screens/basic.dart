@@ -1,11 +1,13 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../models/data.dart';
 import '../services/services.dart';
 import '../services/store.dart';
 import '../widgets/common.dart';
+import '../widgets/home_hero.dart';
 import 'note_editor.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -30,41 +32,46 @@ class HomeScreen extends StatelessWidget {
       return ListView(
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 30),
         children: [
-          Panel(
-            color: const Color(0xff254231),
-            padding: const EdgeInsets.all(25),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'ТВІЙ ПРОСТІР AMID',
-                  style: TextStyle(color: mint, fontSize: 12, letterSpacing: 2),
-                ),
-                const SizedBox(height: 20),
-                const Text(
-                  'Твій світ.\nБез мережі.',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 38,
-                    height: 1.06,
-                    letterSpacing: -1.8,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  'Знання, локальний ШІ, карти\nта зв’язок у твоїй кишені.',
-                  style: TextStyle(color: Color(0xffcadcc9), height: 1.6),
-                ),
-                const SizedBox(height: 22),
-                FilledButton.icon(
-                  onPressed: openPacks,
-                  icon: const Icon(Icons.download_rounded),
-                  label: const Text('Мій офлайн-набір'),
-                ),
-              ],
-            ),
+          HomeHero(store: data, openPacks: openPacks),
+          const Section('Швидкий старт'),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              FilledButton.tonalIcon(
+                onPressed: () => editNote(context, data),
+                icon: const Icon(Icons.note_add_outlined),
+                label: const Text('Швидка нотатка'),
+              ),
+              OutlinedButton.icon(
+                onPressed: () => navigate(1),
+                icon: const Icon(Icons.search_rounded),
+                label: const Text('Знайти матеріал'),
+              ),
+              OutlinedButton.icon(
+                onPressed: openPacks,
+                icon: const Icon(Icons.add_rounded),
+                label: const Text('Імпорт і резервні копії'),
+              ),
+            ],
           ),
+          if (data.favoriteKeys.isNotEmpty) ...[
+            const Section('Під рукою · обране'),
+            for (final a
+                in data.articles
+                    .where((a) => data.favoriteKeys.contains(a.key))
+                    .take(3))
+              ListTile(
+                leading: const Icon(Icons.star_rounded),
+                title: Text(
+                  a.title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                subtitle: Text(a.category),
+                onTap: () => openArticle(context, a, services, navigate),
+              ),
+          ],
           const Section('Все потрібне поруч'),
           LayoutBuilder(
             builder: (context, c) => GridView.count(
@@ -219,9 +226,11 @@ class LibraryScreen extends StatefulWidget {
     super.key,
     required this.services,
     required this.navigate,
+    this.searchFocusNode,
   });
   final Services services;
   final void Function(int) navigate;
+  final FocusNode? searchFocusNode;
   @override
   State<LibraryScreen> createState() => _LibraryScreenState();
 }
@@ -288,6 +297,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
             children: [
               Expanded(
                 child: TextField(
+                  focusNode: widget.searchFocusNode,
                   controller: _query,
                   decoration: InputDecoration(
                     hintText: 'Пошук у твоїх матеріалах',
@@ -451,14 +461,16 @@ void openArticle(
   BuildContext context,
   Article article,
   Services services,
-  void Function(int) navigate,
-) {
+  void Function(int) navigate, {
+  bool readerOnly = false,
+}) {
   Navigator.of(context).push<void>(
     MaterialPageRoute(
       builder: (_) => _ArticleScreen(
         articleKey: article.key,
         services: services,
         navigate: navigate,
+        readerOnly: readerOnly,
       ),
     ),
   );
@@ -469,10 +481,12 @@ class _ArticleScreen extends StatelessWidget {
     required this.articleKey,
     required this.services,
     required this.navigate,
+    this.readerOnly = false,
   });
   final String articleKey;
   final Services services;
   final void Function(int) navigate;
+  final bool readerOnly;
   @override
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: services.store,
@@ -525,10 +539,62 @@ class _ArticleScreen extends StatelessWidget {
                   ?.copyWith(fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 22),
+            Wrap(
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                IconButton(
+                  tooltip: 'Менший шрифт',
+                  onPressed: store.readerScale <= .8
+                      ? null
+                      : () => guarded(
+                          context,
+                          () => store.setReaderScale(
+                            (store.readerScale - .1).clamp(.8, 1.8),
+                          ),
+                        ),
+                  icon: const Icon(Icons.text_decrease_rounded),
+                ),
+                Text('${(store.readerScale * 100).round()}%'),
+                IconButton(
+                  tooltip: 'Більший шрифт',
+                  onPressed: store.readerScale >= 1.8
+                      ? null
+                      : () => guarded(
+                          context,
+                          () => store.setReaderScale(
+                            (store.readerScale + .1).clamp(.8, 1.8),
+                          ),
+                        ),
+                  icon: const Icon(Icons.text_increase_rounded),
+                ),
+                TextButton(
+                  onPressed: () =>
+                      guarded(context, () => store.setReaderScale(1)),
+                  child: const Text('Скинути'),
+                ),
+                IconButton(
+                  tooltip: 'Скопіювати текст',
+                  onPressed: () => guarded(context, () async {
+                    await Clipboard.setData(
+                      ClipboardData(
+                        text:
+                            '${article.title}\n\n${article.body}\n\n${article.license}',
+                      ),
+                    );
+                    return 'Текст скопійовано.';
+                  }),
+                  icon: const Icon(Icons.copy_outlined),
+                ),
+              ],
+            ),
             SelectableText(
               article.body,
-              style: Theme.of(context).textTheme.bodyLarge
-                  ?.copyWith(height: 1.8),
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                height: 1.8,
+                fontSize:
+                    (Theme.of(context).textTheme.bodyLarge?.fontSize ?? 16) *
+                    store.readerScale,
+              ),
             ),
             const SizedBox(height: 25),
             Text(article.license, style: Theme.of(context).textTheme.bodySmall),
@@ -541,29 +607,31 @@ class _ArticleScreen extends StatelessWidget {
                 ),
               ),
             const SizedBox(height: 25),
-            FilledButton.icon(
-              icon: const Icon(Icons.auto_awesome_rounded),
-              label: const Text('Запитати про статтю'),
-              onPressed: () {
-                Navigator.pop(context);
-                navigate(2);
-                unawaitedAsk(services, article.title);
-              },
-            ),
-            const SizedBox(height: 10),
-            OutlinedButton.icon(
-              icon: const Icon(Icons.chat_bubble_outline_rounded),
-              label: const Text('Додати до повідомлення'),
-              onPressed: () => guarded(context, () async {
-                await store.setDraft(
-                  '${article.title}\n\n${article.body}\n\n${article.license}',
-                );
-                if (context.mounted) {
+            if (!readerOnly)
+              FilledButton.icon(
+                icon: const Icon(Icons.auto_awesome_rounded),
+                label: const Text('Запитати про статтю'),
+                onPressed: () {
                   Navigator.pop(context);
-                  navigate(4);
-                }
-              }),
-            ),
+                  navigate(2);
+                  unawaitedAsk(services, article.title);
+                },
+              ),
+            const SizedBox(height: 10),
+            if (!readerOnly)
+              OutlinedButton.icon(
+                icon: const Icon(Icons.chat_bubble_outline_rounded),
+                label: const Text('Додати до повідомлення'),
+                onPressed: () => guarded(context, () async {
+                  await store.setDraft(
+                    '${article.title}\n\n${article.body}\n\n${article.license}',
+                  );
+                  if (context.mounted) {
+                    Navigator.pop(context);
+                    navigate(4);
+                  }
+                }),
+              ),
             if (article.packId == AppStore.notesId) ...[
               const SizedBox(height: 12),
               TextButton.icon(

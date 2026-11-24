@@ -9,6 +9,7 @@ import '../models/data.dart';
 import '../models/map_metadata.dart';
 import '../models/raster_limits.dart';
 import 'raster_codec_native.dart';
+import 'native_database.dart';
 
 /// Read-only MBTiles access. Result sizes are bounded in SQL before crossing
 /// the platform channel; the same checks apply to every subsequently read tile.
@@ -29,7 +30,7 @@ class RasterArchive {
     if (!await File(path).exists()) {
       throw const FileSystemException('Файл карти не знайдено.');
     }
-    final db = await (factory ?? databaseFactory).openDatabase(
+    final db = await (factory ?? nativeDatabaseFactory).openDatabase(
       path,
       options: OpenDatabaseOptions(readOnly: true, singleInstance: false),
     );

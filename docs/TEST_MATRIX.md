@@ -32,3 +32,16 @@ model load/cancel/unload, package removal and upgrade from the prior version.
 
 Keep device reports next to the release record. Record SDK/OS/hardware and the
 exact source/artifact; never carry a green result forward to different code.
+
+## Version 0.5 additions
+
+- Reader/preparation reopen, backup round trip, malformed-field rejection and
+  preserving queued preferences during a legacy restore.
+- Default native desktop database factory without a mobile method channel.
+- Adaptive shell at 390×844, 1440×900 and 320×480 with 2× text; search focus and
+  deferred map creation. Light reader checklist, font controls and clipboard.
+- Complete bundle packaging, executable mode, outside-link rejection and
+  deterministic/versioned web cache generation.
+- CI Windows/Linux native --self-test: real temporary storage and search only.
+  macOS/watchOS compilation, actual watch installs and all phone hardware checks
+  remain distinct results, never inferred from unit tests.

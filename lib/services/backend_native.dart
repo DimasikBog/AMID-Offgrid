@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:sqflite/sqflite.dart';
 
 import '../models/data.dart';
+import 'native_database.dart';
 
 class PlatformBackend {
   PlatformBackend._(this.db, this.directory);
@@ -26,7 +27,7 @@ class PlatformBackend {
       await const MethodChannel('com.amid.offgrid/files')
           .invokeMethod<void>('excludeFromBackup', {'path': dir.path});
     }
-    final db = await (factory ?? databaseFactory).openDatabase(
+    final db = await (factory ?? nativeDatabaseFactory).openDatabase(
       p.join(dir.path, 'offgrid.sqlite'),
       options: OpenDatabaseOptions(
         version: 1,
