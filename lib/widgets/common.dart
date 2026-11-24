@@ -39,15 +39,18 @@ class Panel extends StatelessWidget {
     required this.child,
     this.padding = const EdgeInsets.all(20),
     this.color,
+    this.gradient,
   });
   final Widget child;
   final EdgeInsets padding;
   final Color? color;
+  final Gradient? gradient;
   @override
   Widget build(BuildContext context) => Container(
     padding: padding,
     decoration: BoxDecoration(
       color: color ?? Theme.of(context).colorScheme.surfaceContainerLow,
+      gradient: gradient,
       borderRadius: BorderRadius.circular(22),
       border: Border.all(
         color: Theme.of(context).colorScheme.outlineVariant

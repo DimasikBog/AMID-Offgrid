@@ -3,7 +3,7 @@ name: Mobile checks and builds
 on:
   push:
     branches: [main]
-    paths: ['lib/**', 'test/**', 'assets/**', 'examples/**', 'docs/OFFLINE_*.md', 'android/**', 'ios/**', 'scripts/**', 'pubspec.*', '.github/**']
+    paths: ['lib/**', 'test/**', 'assets/**', 'examples/**', 'android/**', 'ios/**', 'windows/**', 'linux/**', 'macos/**', 'watchos/**', 'wearables/**', 'web/**', 'scripts/**', 'pubspec.*', '.github/**']
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -17,7 +17,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: mobile-${{ github.workflow }}-${{ github.ref }}
+  group: mobile-${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
   cancel-in-progress: true
 
 env:
@@ -46,6 +46,7 @@ jobs:
       - run: flutter test --no-pub --concurrency 2 --reporter expanded
 
   android:
+    if: github.event.repository.private == false
     needs: quality
     runs-on: ubuntu-24.04
     timeout-minutes: 40
@@ -81,9 +82,11 @@ jobs:
           retention-days: 7
 
   ios:
-    if: github.event_name == 'workflow_dispatch' && inputs.build_ios
+    if: github.event.repository.private == false || (github.event_name == 'workflow_dispatch' && inputs.build_ios)
     needs: quality
     runs-on: macos-15
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
@@ -111,3 +114,185 @@ jobs:
           path: dist/
           if-no-files-found: error
           retention-days: 7
+
+  desktop:
+    if: github.event.repository.private == false
+    needs: quality
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {os: windows-2022, platform: windows}
+          - {os: ubuntu-24.04, platform: linux}
+          - {os: macos-15, platform: macos}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - if: matrix.platform == 'linux'
+        run: sudo apt-get update && sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev libsecret-1-dev libgeoclue-2-dev libbluetooth-dev libudev-dev xvfb
+      - run: flutter pub get --enforce-lockfile
+      - if: matrix.platform == 'macos'
+        name: Select Xcode 26.2 and Swift Package Manager
+        run: |
+          echo 'DEVELOPER_DIR=/Applications/Xcode_26.2.app/Contents/Developer' >> "$GITHUB_ENV"
+          flutter config --enable-swift-package-manager
+      - run: flutter build ${{ matrix.platform }} --release --no-pub
+      - name: Probe Windows persistence and package the complete bundle
+        if: matrix.platform == 'windows'
+        shell: pwsh
+        run: |
+          $exe = Resolve-Path build/windows/x64/runner/Release/amid_offgrid.exe
+          $p = Start-Process -FilePath $exe -ArgumentList '--self-test' -PassThru -RedirectStandardOutput probe.log -RedirectStandardError probe-errors.log
+          if (-not $p.WaitForExit(60000)) { $p.Kill(); throw 'Desktop probe timed out' }
+          Get-Content probe.log,probe-errors.log
+          if ($p.ExitCode -ne 0 -or -not (Select-String -Path probe.log -Pattern AMID_SELF_TEST_OK -Quiet)) { throw 'Desktop persistence probe failed' }
+          python scripts/package_desktop.py build/windows/x64/runner/Release dist/AMID_Offgrid_Windows_x64.zip --extra LICENSE --extra THIRD_PARTY_NOTICES.md --extra docs/INSTALL.md
+          python scripts/create_manifest.py --artifact dist/AMID_Offgrid_Windows_x64.zip --platform windows --signing unsigned --commit "$env:GITHUB_SHA" --run-url "$env:GITHUB_SERVER_URL/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID" --quality success
+      - name: Probe Linux persistence and package the complete bundle
+        if: matrix.platform == 'linux'
+        shell: bash
+        run: |
+          set -euo pipefail
+          LIBGL_ALWAYS_SOFTWARE=1 timeout 60s xvfb-run -a build/linux/x64/release/bundle/amid_offgrid --self-test | tee probe.log
+          grep -q AMID_SELF_TEST_OK probe.log
+          python3 scripts/package_desktop.py build/linux/x64/release/bundle dist/AMID_Offgrid_Linux_x64.zip --extra LICENSE --extra THIRD_PARTY_NOTICES.md --extra docs/INSTALL.md
+          python3 scripts/create_manifest.py --artifact dist/AMID_Offgrid_Linux_x64.zip --platform linux --signing unsigned --commit "$GITHUB_SHA" --run-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" --quality success
+      - name: Package unsigned macOS candidate
+        if: matrix.platform == 'macos'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p stage-macos/AMID_DOCUMENTATION dist
+          ditto 'build/macos/Build/Products/Release/AMID Offgrid.app' 'stage-macos/AMID Offgrid.app'
+          cp LICENSE THIRD_PARTY_NOTICES.md docs/INSTALL.md stage-macos/AMID_DOCUMENTATION/
+          uname -m > stage-macos/BUILD_ARCHITECTURE.txt
+          ditto -c -k --sequesterRsrc stage-macos dist/AMID_Offgrid_macOS.zip
+          python3 scripts/create_manifest.py --artifact dist/AMID_Offgrid_macOS.zip --platform macos --signing unsigned --commit "$GITHUB_SHA" --run-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" --quality success
+      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+        with:
+          name: AMID-Offgrid-${{ matrix.platform }}-${{ github.run_number }}
+          path: dist/
+          if-no-files-found: error
+          retention-days: 7
+
+  wear:
+    if: github.event.repository.private == false
+    needs: quality
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter pub get --enforce-lockfile
+      - run: flutter build apk --config-only
+      - name: Build standalone Wear OS APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd android
+          ./gradlew :wear:assembleRelease
+          cd ..
+          mkdir -p dist
+          cp build/wear/outputs/apk/release/wear-release.apk dist/AMID_Pocket_WearOS.apk
+          python3 scripts/verify_wear_apk.py dist/AMID_Pocket_WearOS.apk
+          python3 scripts/create_manifest.py --artifact dist/AMID_Pocket_WearOS.apk --platform wearos --signing development --commit "$GITHUB_SHA" --run-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" --quality success
+      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+        with:
+          name: AMID-Pocket-WearOS-${{ github.run_number }}
+          path: dist/
+          if-no-files-found: error
+          retention-days: 7
+
+  watchos:
+    if: github.event.repository.private == false
+    needs: quality
+    runs-on: macos-15
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - name: Build watch-only SwiftUI candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          command -v xcodegen || brew install xcodegen
+          xcodegen --version
+          xcodebuild -version
+          (cd watchos && xcodegen generate)
+          xcodebuild -project watchos/AMIDPocket.xcodeproj -scheme AMIDPocket -configuration Release -sdk watchos -destination 'generic/platform=watchOS' -derivedDataPath build/watchos CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO
+          mkdir -p dist
+          ditto -c -k --keepParent build/watchos/Build/Products/Release-watchos/AMIDPocket.app dist/AMID_Pocket_watchOS_unsigned.zip
+          python3 scripts/create_manifest.py --artifact dist/AMID_Pocket_watchOS_unsigned.zip --platform watchos --signing unsigned --commit "$GITHUB_SHA" --run-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" --quality success
+      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+        with:
+          name: AMID-Pocket-watchOS-unsigned-${{ github.run_number }}
+          path: dist/
+          if-no-files-found: error
+          retention-days: 7
+
+  web:
+    if: github.event.repository.private == false
+    needs: quality
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter pub get --enforce-lockfile
+      - run: flutter build web --release --no-pub --no-web-resources-cdn
+      - run: python3 scripts/build_web_cache.py build/web
+      - run: python3 scripts/package_desktop.py build/web dist/AMID_Offgrid_Web.zip --extra LICENSE --extra THIRD_PARTY_NOTICES.md --extra docs/INSTALL.md
+      - run: python3 scripts/create_manifest.py --artifact dist/AMID_Offgrid_Web.zip --platform web --signing unsigned --commit "$GITHUB_SHA" --run-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" --quality success
+      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+        with:
+          name: AMID-Offgrid-Web-${{ github.run_number }}
+          path: dist/
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    needs: [quality, android, ios, desktop, wear, watchos, web]
+    if: github.event.repository.private == false && ((github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && github.actor == github.repository_owner))
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+        with:
+          path: downloaded
+          pattern: AMID-*
+      - name: Publish verified installation candidates
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/publish_candidate.py

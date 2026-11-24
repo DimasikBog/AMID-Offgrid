@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:uuid/uuid.dart';
 
 import '../models/data.dart';
+import '../models/preferences.dart';
 import 'backend_native.dart' if (dart.library.js_interop) 'backend_web.dart';
 
 class AppStore extends ChangeNotifier {
@@ -16,6 +17,8 @@ class AppStore extends ChangeNotifier {
   List<Message> messages = [];
   Set<String> favoriteKeys = {};
   String themePreference = 'system';
+  double readerScale = 1;
+  Set<String> preparation = {};
   int contentRevision = 0;
   static const notesId = 'amid-personal-notes';
   static const starterId = 'amid-mobile-starter';
@@ -93,6 +96,8 @@ class AppStore extends ChangeNotifier {
         {'system', 'light', 'dark'}.contains(data['themePreference'])
         ? data['themePreference'] as String
         : 'system';
+    readerScale = checkedReaderScale(data['readerScale'] ?? 1);
+    preparation = checkedPreparation(data['preparation'] ?? <String>[]);
   }
 
   Json snapshot() => {
@@ -105,6 +110,8 @@ class AppStore extends ChangeNotifier {
     'selectedMap': selectedMap,
     'favoriteKeys': favoriteKeys.toList(),
     'themePreference': themePreference,
+    'readerScale': readerScale,
+    'preparation': preparation.toList(),
   };
   Future<void> _mutate(
     void Function() change, {
@@ -181,6 +188,14 @@ class AppStore extends ChangeNotifier {
       throw const FormatException('Невідома тема.');
     }
     themePreference = value;
+  });
+  Future<void> setReaderScale(double value) =>
+      _mutate(() => readerScale = checkedReaderScale(value));
+  Future<void> setPrepared(String id, bool value) => _mutate(() {
+    if (!preparationItems.containsKey(id)) {
+      throw const FormatException('Невідомий пункт підготовки.');
+    }
+    value ? preparation.add(id) : preparation.remove(id);
   });
   Future<void> toggleFavorite(String key) => _mutate(() {
     if (!articles.any((a) => a.key == key)) {
@@ -388,6 +403,8 @@ class AppStore extends ChangeNotifier {
     'draft': draft,
     'favoriteKeys': favoriteKeys.toList(),
     'themePreference': themePreference,
+    'readerScale': readerScale,
+    'preparation': preparation.toList(),
   };
   Future<void> restore(Json value, {void Function()? checkActive}) async {
     if (value['format'] != 'AMID_OFFGRID_BACKUP' ||
@@ -432,8 +449,14 @@ class AppStore extends ChangeNotifier {
         favorites.any((v) => v is! String || v.length > 202)) {
       throw const FormatException('Некоректний список обраного.');
     }
-    final theme = value['themePreference'] ?? themePreference;
-    if (!{'system', 'light', 'dark'}.contains(theme)) {
+    final theme = value['themePreference'];
+    final scale = value.containsKey('readerScale')
+        ? checkedReaderScale(value['readerScale'])
+        : null;
+    final prepared = value.containsKey('preparation')
+        ? checkedPreparation(value['preparation'])
+        : null;
+    if (theme != null && !{'system', 'light', 'dark'}.contains(theme)) {
       throw const FormatException('Некоректна тема резервної копії.');
     }
     void unique(Iterable<String> ids) {
@@ -492,7 +515,9 @@ class AppStore extends ChangeNotifier {
           favorites.cast<String>().where(articleKeys.contains),
         );
         if (draft.isEmpty) draft = incomingDraft;
-        themePreference = theme as String;
+        if (theme != null) themePreference = theme as String;
+        if (scale != null) readerScale = scale;
+        if (prepared != null) preparation = prepared;
       },
       reindex: true,
       checkActive: checkActive,

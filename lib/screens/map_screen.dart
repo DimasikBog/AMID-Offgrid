@@ -202,7 +202,7 @@ class _MapScreenState extends State<MapScreen> {
     setState(() => _locating = true);
     try {
       if (!await Geolocator.isLocationServiceEnabled()) {
-        throw StateError('Увімкни геолокацію на телефоні.');
+        throw StateError('Увімкни геолокацію на пристрої.');
       }
       var permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {

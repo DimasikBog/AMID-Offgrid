@@ -6,6 +6,10 @@ BitChat. Do not claim affiliation or interoperability without a separate tested
 integration and applicable permissions/licenses.
 
 - Flutter and Dart: retain the license notices distributed with their SDKs.
+- Bundled Roboto variable font: Google Fonts, SIL Open Font License 1.1.
+  Original license and source/blob/SHA-256 are in assets/fonts/. The font is
+  bundled for offline Cyrillic/Latin rendering; AMID's MIT grant does not
+  relicense the font.
 - Pub dependencies: versions and hosted-package digests are recorded in
   pubspec.lock. The app's «Ліцензії компонентів» screen exposes registered
   Flutter/plugin notices. Native transitive libraries also require review.

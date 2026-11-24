@@ -299,7 +299,7 @@ class PacksScreen extends StatelessWidget {
             ),
             const Section('Про застосунок'),
             Text(
-              'AMID Offgrid · $appVersion\\nFlutter для Android та iPhone\\nКарти світу: Natural Earth, public domain.\\nОглядова карта не містить вулиць. Офлайн-маршрути працюють через імпортовану мережу AMID. Загальна дорожня навігація та ZIM-Вікіпедія ще не додані.\\nBluetooth: прямий сеанс між двома AMID; сумісність із Briar/BitChat не заявляється.'
+              'AMID Offgrid · $appVersion\\nFlutter для телефонів, комп’ютерів і web; окремі мініклієнти годинників\\nКарти світу: Natural Earth, public domain.\\nОглядова карта не містить вулиць. Офлайн-маршрути працюють через імпортовану мережу AMID. Загальна дорожня навігація та ZIM-Вікіпедія ще не додані.\\nBluetooth: прямий сеанс між двома AMID; сумісність із Briar/BitChat не заявляється.'
                   .replaceAll(r'\n', '\n'),
               style: TextStyle(height: 1.7),
             ),

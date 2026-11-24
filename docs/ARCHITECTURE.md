@@ -78,3 +78,20 @@ Widget generations close late opens and ignore stale errors. Corrupt lazy tiles
 fall back to transparency; the map reports a bounded warning. SQL result limits
 do not bound evaluation cost inside SQLite, including complex views or text
 conversions. See OFFLINE_MAPS.md for limits and remaining phone checks.
+
+The shell creates tabs on first visit and retains their state. Desktop-sized
+windows use a NavigationRail; compact windows keep a NavigationBar. Search
+focus requests are scoped to the current route. Reader scale and personal
+preparation are optional version-1 fields. Legacy restore changes only fields
+actually present in its backup, preserving queued newer preferences.
+
+Desktop Windows/Linux choose the FFI factory once; Apple/mobile keep sqflite's
+platform adapter. --self-test uses a temporary database and exits; personal
+data is never opened by this diagnostic. Wear OS and watchOS are separate
+managed/native UI apps, reading the same bundled guide and maintaining local
+preferences. They do not include a Flutter engine or a phone-sync transport.
+
+The web cache is generated from final build bytes, scoped to one deployment
+URL, and includes the local renderer. It does not cache other origins or force
+a worker change over open tabs. Packaging verifies artifacts by source/version
+and digest before publishing an all-platform prerelease. PR runs cannot publish.

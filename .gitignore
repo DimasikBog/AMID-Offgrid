@@ -68,3 +68,6 @@ android/productos-debug-keystore.b64
 .env
 .env.*
 __pycache__/
+/watchos/AMIDPocket.xcodeproj/
+/stage-macos/
+/downloaded/

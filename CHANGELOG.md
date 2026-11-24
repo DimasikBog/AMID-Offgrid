@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.5.0 candidate
+
+- MIT license for AMID-owned code and contribution/install guides.
+- Adaptive rail/bottom navigation, keyboard shortcuts, lazy visited tabs and back-to-home.
+- New responsive home panel, favorite previews and quick actions.
+- Persistent reader scale, text copy and personal checklist, including portable backups.
+- Preserve queued preferences when restoring legacy backups with missing optional fields.
+- Light interface unloads inference and stops the nearby session; reader-only article actions.
+- Native desktop hosts, runtime SQLite FFI and temporary-database diagnostic entrypoint.
+- Local-renderer PWA cache and bounded same-scope service worker ownership.
+- Standalone Kotlin Wear OS and SwiftUI watchOS pocket clients with bundled cards.
+- Standard public-runner build matrix and all-platform hash-gated beta publication.
+
+Compilation is separate from physical-device acceptance, Apple signing and stores.
+
+
 ## 0.4.2 candidate
 
 - Reject duplicate, oversized or mistyped MBTiles metadata before activation.
