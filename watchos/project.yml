@@ -25,4 +25,18 @@ targets:
         INFOPLIST_KEY_WKWatchOnly: YES
         INFOPLIST_KEY_CFBundleDisplayName: AMID Pocket
     scheme:
-      testTargets: []
+      testTargets: [AMIDPocketUITests]
+  AMIDPocketUITests:
+    type: bundle.ui-testing
+    platform: watchOS
+    sources:
+      - path: AMIDPocketUITests
+      - path: ../wearables/cards.json
+        buildPhase: resources
+    dependencies:
+      - target: AMIDPocket
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.amid.offgrid.watch.uitests
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_TARGET_NAME: AMIDPocket

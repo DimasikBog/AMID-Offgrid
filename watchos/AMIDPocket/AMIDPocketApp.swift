@@ -29,14 +29,16 @@ struct PocketView: View {
                                     if value { checked.insert(item.id) } else { checked.remove(item.id) }
                                     UserDefaults.standard.set(Array(checked), forKey: "preparation")
                                 }))
+                                .accessibilityIdentifier("check-\(item.id)")
                         }
                     }
                     Section("Короткі картки") {
                         ForEach(guide.cards) { card in
                             NavigationLink(card.title) {
-                                ScrollView { Text(card.body).padding() }
+                                ScrollView { Text(card.body).padding().accessibilityIdentifier("card-body") }
                                     .navigationTitle(card.title)
                             }
+                            .accessibilityIdentifier("card-\(card.id)")
                         }
                     }
                 } else { Text(message ?? "Відкриваю матеріали…") }
