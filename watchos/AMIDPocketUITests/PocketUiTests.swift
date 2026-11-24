@@ -3,16 +3,19 @@ import XCTest
 final class PocketUiTests: XCTestCase {
     private func reveal(_ element: XCUIElement, in app: XCUIApplication) {
         for _ in 0..<28 {
-            if element.exists && element.isHittable { return }
+            // XCTest can scroll a realized native Button into view when tapping.
+            // Waiting for isHittable here can oscillate between snapped List pages.
+            if element.exists { return }
             // Small drags avoid skipping lazily-created rows on a 40/42 mm watch.
             let above = element.exists && element.frame.midY < app.frame.midY
             let start = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: above ? 0.38 : 0.72))
             let end = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: above ? 0.62 : 0.48))
-            start.press(forDuration: 0.05, thenDragTo: end)
+            start.press(forDuration: 0.05, thenDragTo: end,
+                        withVelocity: XCUIGestureVelocity(rawValue: 60), thenHoldForDuration: 0.6)
         }
         capture(app, "unreachable-row")
         print(app.debugDescription)
-        XCTAssertTrue(element.exists && element.isHittable, "Element cannot be reached")
+        XCTAssertTrue(element.exists, "Element cannot be reached")
     }
 
     private func capture(_ app: XCUIApplication, _ name: String) {
