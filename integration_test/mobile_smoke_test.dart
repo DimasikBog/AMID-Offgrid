@@ -4,6 +4,7 @@ import 'package:amid_offgrid/main.dart' as app;
 import 'package:amid_offgrid/screens/lite_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:integration_test/integration_test.dart';
 
 Future<void> settle(WidgetTester tester) => tester.pumpAndSettle(
@@ -71,6 +72,14 @@ void main() {
     await tester.tap(find.text('Карта').last);
     await settle(tester);
     expect(find.text('Оглядова карта світу · без вулиць'), findsOneWidget);
+    // An idle frame may precede the asynchronous bundled GeoJSON load.
+    await waitFor(
+      tester,
+      find.byWidgetPredicate(
+        (widget) => widget is PolygonLayer && widget.polygons.isNotEmpty,
+      ),
+    );
+    await settle(tester);
     await binding.takeScreenshot('03-map');
     await tester.tap(find.text('Зв’язок').last);
     await settle(tester);
