@@ -9,6 +9,12 @@ plugins {
 // Development builds are explicit. Distribution builds must never fall back to a debug key.
 val amidSigning = System.getenv("AMID_SIGNING") ?: "development"
 require(amidSigning in setOf("development", "distribution")) { "Unknown AMID_SIGNING mode" }
+// Only the isolated simulator workflow overrides the ARM64 distribution ABI.
+val amidTestAbi = System.getenv("AMID_TEST_ABI")
+require(amidTestAbi == null || amidTestAbi == "x86_64") { "Unsupported emulator ABI" }
+require(amidTestAbi == null || gradle.startParameter.taskNames.none { it.contains("release", ignoreCase = true) }) {
+    "AMID_TEST_ABI is allowed only for debug emulator builds"
+}
 val amidKeyProperties = Properties().apply {
     val source = rootProject.file("key.properties")
     if (source.isFile) source.inputStream().use { load(it) }
@@ -31,7 +37,7 @@ android {
     defaultConfig {
         ndk {
             abiFilters.clear()
-            abiFilters.add("arm64-v8a")
+            abiFilters.add(amidTestAbi ?: "arm64-v8a")
         }
         applicationId = "com.amid.offgrid"
         // You can update the following values to match your application needs.

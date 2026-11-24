@@ -1,0 +1,146 @@
+name: Native phone and watch emulator checks
+
+on:
+  push:
+    branches: [codex/emulator-checks]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: emulators-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CI: true
+  FLUTTER_SUPPRESS_ANALYTICS: true
+
+jobs:
+  quality:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with: {persist-credentials: false}
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2
+        with: {flutter-version: '3.47.6', channel: stable, cache: true}
+      - run: flutter pub get --enforce-lockfile
+      - run: flutter analyze --no-pub
+      - run: flutter test --no-pub --concurrency 2 --reporter expanded
+      - run: python3 -m unittest discover -s scripts -p 'test_*.py'
+
+  android:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    env:
+      AMID_TEST_ABI: x86_64
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with: {persist-credentials: false}
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961
+        with: {distribution: temurin, java-version: '17'}
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2
+        with: {flutter-version: '3.47.6', channel: stable, cache: true}
+      - run: flutter pub get --enforce-lockfile
+      - run: bash scripts/boot_android_emulator.sh android
+      - name: Native Flutter integration test
+        shell: bash
+        run: |
+          set -euo pipefail
+          adb shell cmd connectivity airplane-mode enable
+          flutter drive --no-pub --driver=test_driver/mobile.dart --target=integration_test/mobile_smoke_test.dart -d emulator-5554 2>&1 | tee build/emulator-evidence/test.log
+      - name: Retain emulator evidence
+        if: always()
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+        with:
+          name: Android-emulator-${{ github.run_number }}
+          path: build/emulator-evidence/
+          if-no-files-found: warn
+          retention-days: 14
+
+  wearos:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with: {persist-credentials: false}
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961
+        with: {distribution: temurin, java-version: '17'}
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2
+        with: {flutter-version: '3.47.6', channel: stable, cache: true}
+      - run: flutter pub get --enforce-lockfile
+      - run: flutter build apk --config-only
+      - run: bash scripts/boot_android_emulator.sh wearos
+      - name: Native watch UI test
+        shell: bash
+        run: |
+          set -euo pipefail
+          adb shell cmd connectivity airplane-mode enable
+          (cd android && ./gradlew :wear:connectedDebugAndroidTest) 2>&1 | tee build/emulator-evidence/test.log
+      - name: Collect watch captures
+        if: always()
+        run: adb pull /sdcard/Android/data/com.amid.offgrid.wear/files/emulator-evidence build/emulator-evidence/screenshots || true
+      - name: Retain emulator evidence
+        if: always()
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+        with:
+          name: WearOS-emulator-${{ github.run_number }}
+          path: |
+            build/emulator-evidence/
+            build/wear/reports/androidTests/
+            build/wear/outputs/androidTest-results/
+          if-no-files-found: warn
+          retention-days: 14
+
+  ios:
+    runs-on: macos-15
+    timeout-minutes: 45
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with: {persist-credentials: false}
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2
+        with: {flutter-version: '3.47.6', channel: stable, cache: true}
+      - run: flutter config --enable-swift-package-manager
+      - run: flutter pub get --enforce-lockfile
+      - run: python3 scripts/boot_apple_simulator.py ios
+      - name: Native Flutter integration test
+        shell: bash
+        run: |
+          set -euo pipefail
+          flutter drive --no-pub --driver=test_driver/mobile.dart --target=integration_test/mobile_smoke_test.dart -d "$AMID_SIMULATOR_ID" 2>&1 | tee build/emulator-evidence/test.log
+      - name: Retain simulator evidence
+        if: always()
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+        with:
+          name: iPhone-simulator-${{ github.run_number }}
+          path: build/emulator-evidence/
+          if-no-files-found: warn
+          retention-days: 14
+
+  watchos:
+    runs-on: macos-15
+    timeout-minutes: 35
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with: {persist-credentials: false}
+      - run: command -v xcodegen || brew install xcodegen
+      - run: python3 scripts/boot_apple_simulator.py watchos
+      - run: cd watchos && xcodegen generate
+      - name: Native Apple Watch UI test
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcodebuild test -project watchos/AMIDPocket.xcodeproj -scheme AMIDPocket -configuration Debug -destination "platform=watchOS Simulator,id=$AMID_SIMULATOR_ID" -derivedDataPath build/watchos-test -resultBundlePath build/emulator-evidence/watch.xcresult CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO 2>&1 | tee build/emulator-evidence/test.log
+      - name: Retain simulator evidence
+        if: always()
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+        with:
+          name: Apple-Watch-simulator-${{ github.run_number }}
+          path: build/emulator-evidence/
+          if-no-files-found: warn
+          retention-days: 14
