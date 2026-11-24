@@ -108,6 +108,10 @@ void main() {
       (await reopened.search(title)).map((item) => item.key),
       contains(restored.key),
     );
+    expect(
+      (await reopened.search('перевір')).map((item) => item.key),
+      contains(restored.key),
+    );
     await binding.takeScreenshot('05-reopened');
     expect(tester.takeException(), isNull);
     debugPrint(

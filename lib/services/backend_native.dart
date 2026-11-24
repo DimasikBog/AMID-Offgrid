@@ -87,7 +87,10 @@ class PlatformBackend {
     if (terms.isEmpty) return [];
     final rows = await db.rawQuery(
       'SELECT key FROM article_search WHERE article_search MATCH ? LIMIT ?',
-      [terms.map((t) => '"$t"*').join(' OR '), limit],
+      // searchTerms admits only lower-case letters and digits, so these are
+      // safe barewords. Quoted prefix syntax differs between FTS4 and FTS5:
+      // FTS4 does not reliably interpret a star outside Unicode quotes.
+      [terms.map((t) => '$t*').join(' OR '), limit],
     );
     return rows.map((r) => r['key'] as String).toList();
   }

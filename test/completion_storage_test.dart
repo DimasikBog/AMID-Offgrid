@@ -24,6 +24,37 @@ void main() {
   });
 
   test(
+    'Unicode prefixes and mixed-language queries survive SQLite reopen',
+    () async {
+      await store.saveNote(
+        id: 'emulator',
+        title: 'AMID перевірка емулятора',
+        body: 'Синтетичні дані',
+      );
+      final key = '${AppStore.notesId}::emulator';
+      Future<void> verify() async {
+        for (final query in [
+          'перевір',
+          'емулятор',
+          'AMID перевірка емулятора',
+        ]) {
+          expect((await store.search(query)).map((a) => a.key), contains(key));
+        }
+      }
+
+      await verify();
+      await store.close();
+      store = await AppStore.open(
+        backend: await PlatformBackend.open(
+          factory: databaseFactoryFfi,
+          root: root,
+        ),
+      );
+      await verify();
+    },
+  );
+
+  test(
     'notes edit, favorite and theme survive closing and reopening',
     () async {
       await store.saveNote(
