@@ -1,0 +1,71 @@
+[
+  {
+    "attachments": [
+      {
+        "configurationName": "Test Scheme Action",
+        "deviceId": "78B196CD-4DA2-464A-AA4F-0A4A52C60E3E",
+        "deviceName": "Apple Watch Series 11 (42mm)",
+        "exportedFileName": "D99B9016-FA01-4D3E-A8AE-E5B18A31F35D.png",
+        "isAssociatedWithFailure": false,
+        "suggestedHumanReadableName": "card-privacy_0_7204506D-63F4-4BEB-BB5E-25DA0D2B7FAF.png",
+        "timestamp": 1795548036.813
+      },
+      {
+        "configurationName": "Test Scheme Action",
+        "deviceId": "78B196CD-4DA2-464A-AA4F-0A4A52C60E3E",
+        "deviceName": "Apple Watch Series 11 (42mm)",
+        "exportedFileName": "BAA942D6-A9CB-447A-B3E4-501699B95B32.png",
+        "isAssociatedWithFailure": false,
+        "suggestedHumanReadableName": "card-nearby_0_C669B563-EB9E-4A41-B0DA-A4E3064503E3.png",
+        "timestamp": 1795547998.683
+      },
+      {
+        "configurationName": "Test Scheme Action",
+        "deviceId": "78B196CD-4DA2-464A-AA4F-0A4A52C60E3E",
+        "deviceName": "Apple Watch Series 11 (42mm)",
+        "exportedFileName": "E0958641-7148-4610-99C2-150BE9869785.png",
+        "isAssociatedWithFailure": false,
+        "suggestedHumanReadableName": "card-power_0_4C555179-005D-4DD0-8C99-F331C1C7EFDC.png",
+        "timestamp": 1795547968.96
+      },
+      {
+        "configurationName": "Test Scheme Action",
+        "deviceId": "78B196CD-4DA2-464A-AA4F-0A4A52C60E3E",
+        "deviceName": "Apple Watch Series 11 (42mm)",
+        "exportedFileName": "FAFB6DC7-C7F1-423C-A589-CB0884A4F09A.png",
+        "isAssociatedWithFailure": false,
+        "suggestedHumanReadableName": "card-backup_0_A7B8833B-0F8D-4B0A-B21A-DF85E505B0FF.png",
+        "timestamp": 1795547943.57
+      },
+      {
+        "configurationName": "Test Scheme Action",
+        "deviceId": "78B196CD-4DA2-464A-AA4F-0A4A52C60E3E",
+        "deviceName": "Apple Watch Series 11 (42mm)",
+        "exportedFileName": "64E65469-660D-44C2-A1DA-DDFE9DB6065B.png",
+        "isAssociatedWithFailure": false,
+        "suggestedHumanReadableName": "card-offline_0_89AC2C7E-68FA-435D-A1EE-2013C0345F8A.png",
+        "timestamp": 1795547920.239
+      },
+      {
+        "configurationName": "Test Scheme Action",
+        "deviceId": "78B196CD-4DA2-464A-AA4F-0A4A52C60E3E",
+        "deviceName": "Apple Watch Series 11 (42mm)",
+        "exportedFileName": "322AEE73-C83C-4F1D-8F71-E9BD97E8E2D9.png",
+        "isAssociatedWithFailure": false,
+        "suggestedHumanReadableName": "card-before_0_F72B1670-299E-4640-BB5B-E53DCB7DDA1C.png",
+        "timestamp": 1795547898.722
+      },
+      {
+        "configurationName": "Test Scheme Action",
+        "deviceId": "78B196CD-4DA2-464A-AA4F-0A4A52C60E3E",
+        "deviceName": "Apple Watch Series 11 (42mm)",
+        "exportedFileName": "137766C8-77A2-482C-A39E-663274FC7009.png",
+        "isAssociatedWithFailure": false,
+        "suggestedHumanReadableName": "01-checklist_0_5AF8D948-A145-4922-8DAC-EF28F5ECD35F.png",
+        "timestamp": 1795547873.87
+      }
+    ],
+    "testIdentifier": "PocketUiTests/testChecklistPersistsAcrossProcessRestartAndAllCardsOpen()",
+    "testIdentifierURL": "test://com.apple.xcode/AMIDPocket/AMIDPocketUITests/PocketUiTests/testChecklistPersistsAcrossProcessRestartAndAllCardsOpen"
+  }
+]

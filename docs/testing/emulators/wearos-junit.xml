@@ -1,0 +1,11 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="1" failures="0" errors="0" skipped="0" time="81.081" timestamp="2026-11-24T19:14:08" hostname="localhost">
+  <testsuite name="com.amid.offgrid.wear.PocketUiTest" tests="1" failures="0" errors="0" skipped="0" time="79.353" timestamp="2026-11-24T19:14:08" hostname="localhost">
+    <properties>
+      <property name="device" value="emulator-5554 - 14" />
+      <property name="flavor" value="" />
+      <property name="project" value=":wear" />
+    </properties>
+    <testcase name="checklistSurvivesActivityRestartAndAllCardsOpen" classname="com.amid.offgrid.wear.PocketUiTest" time="79.353" />
+  </testsuite>
+</testsuites>

@@ -19,6 +19,8 @@
 | Packaging and provenance | Python tests and manifest checker | Real artifact digests and source/run identifiers |
 | Android executable | GitHub Actions APK build + ELF/apksigner/zipalign checks | Successful final run and matching APK |
 | iOS executable | Manual macOS CI + package_ios.py | Successful final run, app/IPA and digest; remains unsigned |
+| Native Android/iPhone UI and SQLite | Flutter integration_test on actual OS emulator/simulator | Navigation, note/favorite, Lite, close/reopen and Unicode FTS; [exact results and source](EMULATOR_VALIDATION.md) |
+| Wear OS / watchOS native UI | UiAutomator / XCUITest on actual OS emulator/simulator | Six card bodies, checklist persistence, screenshots; [exact results and source](EMULATOR_VALIDATION.md) |
 | Android/iPhone BLE, GPS, Files and GGUF | Physical devices | Device model, OS, commit, artifact SHA, steps and observed results |
 | Personal iPhone signing/renewal | Windows + owner's iPhone | Successful install, launch and data retained after renewal |
 | Store candidate | Valid accounts + signed AAB/IPA + listings | Console validation and test tracks |
@@ -43,5 +45,5 @@ exact source/artifact; never carry a green result forward to different code.
 - Complete bundle packaging, executable mode, outside-link rejection and
   deterministic/versioned web cache generation.
 - CI Windows/Linux native --self-test: real temporary storage and search only.
-  macOS/watchOS compilation, actual watch installs and all phone hardware checks
+  macOS/watchOS compilation, physical watch installs and all phone hardware checks
   remain distinct results, never inferred from unit tests.

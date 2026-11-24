@@ -1,0 +1,11 @@
+{
+  "sourceCommit": "2092a15aeb9143516f4828d7ec589617772d78e4",
+  "platform": "wearos",
+  "image": "system-images;android-34;android-wear;x86_64",
+  "profile": "wearos_small_round",
+  "model": "sdk_gwear_x86_64",
+  "api": "34",
+  "release": "14",
+  "abi": "x86_64",
+  "physicalDevice": false
+}
