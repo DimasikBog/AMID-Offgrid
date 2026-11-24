@@ -120,7 +120,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          flutter drive --no-pub --driver=test_driver/mobile.dart --target=integration_test/mobile_smoke_test.dart -d "$AMID_SIMULATOR_ID" 2>&1 | tee build/emulator-evidence/test.log
+          flutter drive --verbose --no-pub --driver=test_driver/mobile.dart --target=integration_test/mobile_smoke_test.dart -d "$AMID_SIMULATOR_ID" 2>&1 | tee build/emulator-evidence/test.log
           grep -q AMID_MOBILE_EMULATOR_PASS build/emulator-evidence/test.log
       - name: Retain simulator evidence
         if: always()

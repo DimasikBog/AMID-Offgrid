@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:amid_offgrid/main.dart' as app;
 import 'package:amid_offgrid/screens/lite_screen.dart';
+import 'package:amid_offgrid/screens/messages_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -43,10 +44,28 @@ void main() {
     await tester.tap(find.byTooltip('Створити нотатку'));
     await settle(tester);
     await tester.enterText(find.byType(TextFormField).at(0), title);
-    await tester.enterText(find.byType(TextFormField).at(2), body);
     FocusManager.instance.primaryFocus?.unfocus();
     await settle(tester);
-    await tester.ensureVisible(find.text('Зберегти на пристрої'));
+    final formScroll = find
+        .descendant(
+          of: find.byType(ListView),
+          matching: find.byType(Scrollable),
+        )
+        .first;
+    final bodyField = find.byWidgetPredicate(
+      (widget) =>
+          widget is TextField && widget.decoration?.labelText == 'Текст',
+    );
+    // On iPhone SE the real keyboard can unmount lazy fields below the fold.
+    await tester.scrollUntilVisible(bodyField, 220, scrollable: formScroll);
+    await tester.enterText(bodyField, body);
+    FocusManager.instance.primaryFocus?.unfocus();
+    await settle(tester);
+    await tester.scrollUntilVisible(
+      find.text('Зберегти на пристрої'),
+      220,
+      scrollable: formScroll,
+    );
     await tester.tap(find.text('Зберегти на пристрої'));
     await settle(tester);
     await store.flush();
@@ -83,6 +102,16 @@ void main() {
     await binding.takeScreenshot('03-map');
     await tester.tap(find.text('Зв’язок').last);
     await settle(tester);
+    await tester.scrollUntilVisible(
+      find.text('Нове повідомлення'),
+      220,
+      scrollable: find
+          .descendant(
+            of: find.byType(MessagesScreen),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
     expect(find.text('Нове повідомлення'), findsOneWidget);
     await tester.tap(find.byTooltip('Швидкі дії'));
     await settle(tester);
