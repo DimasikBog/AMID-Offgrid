@@ -4,13 +4,19 @@ on:
   push:
     branches: [codex/emulator-checks]
   workflow_dispatch:
+    inputs:
+      platform:
+        description: Platforms to test
+        type: choice
+        options: [all, android, wearos, ios, watchos, android-and-wearos]
+        default: all
 
 permissions:
   contents: read
 
 concurrency:
-  group: emulators-${{ github.ref }}
-  cancel-in-progress: true
+  group: emulators-${{ github.ref }}-${{ inputs.platform || 'all' }}
+  cancel-in-progress: false
 
 env:
   CI: true
@@ -31,6 +37,7 @@ jobs:
       - run: python3 -m unittest discover -s scripts -p 'test_*.py'
 
   android:
+    if: github.event_name != 'workflow_dispatch' || inputs.platform == 'all' || inputs.platform == 'android' || inputs.platform == 'android-and-wearos'
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     env:
@@ -60,6 +67,7 @@ jobs:
           retention-days: 14
 
   wearos:
+    if: github.event_name != 'workflow_dispatch' || inputs.platform == 'all' || inputs.platform == 'wearos' || inputs.platform == 'android-and-wearos'
     runs-on: ubuntu-24.04
     timeout-minutes: 35
     steps:
@@ -94,6 +102,7 @@ jobs:
           retention-days: 14
 
   ios:
+    if: github.event_name != 'workflow_dispatch' || inputs.platform == 'all' || inputs.platform == 'ios'
     runs-on: macos-15
     timeout-minutes: 45
     env:
@@ -121,6 +130,7 @@ jobs:
           retention-days: 14
 
   watchos:
+    if: github.event_name != 'workflow_dispatch' || inputs.platform == 'all' || inputs.platform == 'watchos'
     runs-on: macos-15
     timeout-minutes: 35
     env:
