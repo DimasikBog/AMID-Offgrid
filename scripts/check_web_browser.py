@@ -36,10 +36,10 @@ def check(build):
                 page = context.new_page()
                 page.set_default_timeout(45000)
                 errors = []
-                page.on('pageerror', lambda error: errors.append(str(error)))
+                page.on('pageerror', lambda error: (errors.append(str(error)), print('Browser error:', error, flush=True)))
                 page.goto(url)
                 expect(page.locator('#offline-status')).to_have_text('Офлайн: файли збережені', timeout=60000)
-                page.wait_for_function('document.getElementById("startup").hidden')
+                page.wait_for_function('document.getElementById("startup")?.hidden === true')
                 assert page.locator('#flutter-host flt-glass-pane').count() == 1
                 bounds = page.locator('#flutter-host').bounding_box()
                 assert bounds and bounds['y'] >= 44 and bounds['width'] == 390
@@ -47,10 +47,10 @@ def check(build):
                 page.evaluate('localStorage.setItem("amid-web-integration", "preserve-me")')
                 context.set_offline(True)
                 page.reload(wait_until='domcontentloaded')
-                page.wait_for_function('document.getElementById("startup").hidden')
+                page.wait_for_function('document.getElementById("startup")?.hidden === true')
                 expect(page.locator('#offline-status')).to_have_text('Офлайн: файли збережені')
                 page.goto(url + 'saved/deep/link', wait_until='domcontentloaded')
-                page.wait_for_function('document.getElementById("startup").hidden')
+                page.wait_for_function('document.getElementById("startup")?.hidden === true')
                 assert page.evaluate('localStorage.getItem("amid-web-integration")') == 'preserve-me'
                 if os.environ.get('AMID_BROWSER_EVIDENCE'):
                     evidence = Path(os.environ['AMID_BROWSER_EVIDENCE'])
@@ -91,7 +91,7 @@ def check(build):
                 other.close()
                 with page.expect_navigation(wait_until='domcontentloaded'):
                     page.locator('#confirm-update').click()
-                page.wait_for_function('document.getElementById("startup").hidden')
+                page.wait_for_function('document.getElementById("startup")?.hidden === true')
                 expect(page.locator('#offline-status')).to_have_text('Офлайн: файли збережені')
                 assert page.evaluate('localStorage.getItem("amid-web-integration")') == 'preserve-me'
                 print('PASS actual Chromium: other window blocks activation; explicit update preserves data', flush=True)
@@ -104,7 +104,7 @@ def check(build):
                 expect(page.locator('#offline-status')).to_have_text('Офлайн: підготовка не вдалася', timeout=60000)
                 context.set_offline(True)
                 page.reload(wait_until='domcontentloaded')
-                page.wait_for_function('document.getElementById("startup").hidden')
+                page.wait_for_function('document.getElementById("startup")?.hidden === true')
                 assert page.evaluate('localStorage.getItem("amid-web-integration")') == 'preserve-me'
                 assert not errors, errors
                 print('PASS actual Chromium: corrupt replacement rejected; previous build still boots offline', flush=True)

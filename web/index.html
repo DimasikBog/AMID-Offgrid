@@ -22,13 +22,14 @@
     <button id="update-app" hidden>Є оновлення</button>
     <button id="install-app">Встановити</button>
   </header>
-  <main id="flutter-host" aria-label="AMID Offgrid">
+  <div id="app-stage">
+    <main id="flutter-host" aria-label="AMID Offgrid"></main>
     <div id="startup" role="status" aria-live="polite">
       <h1>AMID Offgrid</h1>
       <p id="startup-message">Відкриваю твої матеріали… Перше завантаження потребує мережі.</p>
       <button id="restart-app" hidden>Повторити запуск</button>
     </div>
-  </main>
+  </div>
   <dialog id="offline-help" aria-labelledby="help-title">
     <form method="dialog"><button class="close" aria-label="Закрити">✕</button></form>
     <h2 id="help-title">Встановлення та офлайн</h2>
