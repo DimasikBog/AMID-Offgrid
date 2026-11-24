@@ -3,7 +3,7 @@ name: Mobile checks and builds
 on:
   push:
     branches: [main]
-    paths: ['lib/**', 'test/**', 'assets/**', 'examples/**', 'android/**', 'ios/**', 'windows/**', 'linux/**', 'macos/**', 'watchos/**', 'wearables/**', 'web/**', 'scripts/**', 'pubspec.*', '.github/**']
+    paths: ['lib/**', 'test/**', 'assets/**', 'examples/**', 'android/**', 'ios/**', 'windows/**', 'linux/**', 'macos/**', 'watchos/**', 'wearables/**', 'web/**', 'scripts/**', 'pubspec.*', '.gitattributes', '.github/**']
   pull_request:
     branches: [main]
   workflow_dispatch:

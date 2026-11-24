@@ -1,0 +1,3 @@
+# Starter hashes describe the exact repository bytes on every operating system.
+# Binary payloads and text packs must never undergo checkout newline conversion.
+assets/** -text

@@ -5,7 +5,7 @@ on:
     branches: [codex/emulator-checks]
   pull_request:
     branches: [main]
-    paths: ['lib/**', 'integration_test/**', 'assets/**', 'android/**', 'ios/**', 'watchos/**', 'wearables/**', 'pubspec.*', 'scripts/prepare_offline_payload.py', 'scripts/boot_*', '.github/workflows/emulators.yml']
+    paths: ['lib/**', 'integration_test/**', 'assets/**', 'android/**', 'ios/**', 'watchos/**', 'wearables/**', 'pubspec.*', '.gitattributes', 'scripts/prepare_offline_payload.py', 'scripts/boot_*', '.github/workflows/emulators.yml']
   workflow_dispatch:
     inputs:
       platform:
