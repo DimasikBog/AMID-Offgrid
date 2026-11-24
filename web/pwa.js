@@ -147,7 +147,9 @@
     if (reloadRequested) { reloadRequested = false; location.reload(); } else { refresh(); }
   });
   navigator.serviceWorker.addEventListener('message', event => {
-    if (event.source !== registration?.installing && event.source !== registration?.active && event.source !== registration?.waiting) return;
+    // A failed installing worker can become redundant before its message arrives.
+    // Accept only workers observed from this registration, including that final failure.
+    if (!watched.has(event.source) && event.source !== registration?.active && event.source !== registration?.waiting) return;
     if (event.data?.type === 'PROGRESS') {
       ++statusRequest;
       showState('Офлайн: готую…', `Збережено ${event.data.done} із ${event.data.total} файлів програми.`);

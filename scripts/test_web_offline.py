@@ -121,7 +121,8 @@ function element(id) {
  return elements.get(id);
 }
 const active={postMessage(data,ports){if(data.type==='REPAIR')repairs++;if(ports?.[0]){ports[0].postMessage({ready:SCENARIO!=='missing',files:3});ports[0].close();}}};
-const registration={active,installing:null,waiting:null,addEventListener(){},async update(){updates++;}};
+const registrationEvents={};
+const registration={active,installing:null,waiting:null,addEventListener(type,fn){registrationEvents[type]=fn;},async update(){updates++;}};
 const navigator={onLine:false,standalone:false};
 if(SCENARIO!=='unsupported')navigator.serviceWorker={
  async register(){return registration;},addEventListener:(name,fn)=>swEvents[name]=fn};
@@ -151,7 +152,12 @@ async function settle() {
   assert.match(element('network-detail').textContent,/недоступна/);
   swEvents.controllerchange();assert.equal(reloads,0);
   if(SCENARIO==='failure') {
-   swEvents.message({source:active,data:{type:'FAILED',file:'asset.js',reason:'QuotaExceededError'}});
+   const failedWorker={addEventListener(){}};
+   registration.installing=failedWorker;registrationEvents.updatefound();
+   registration.installing=null;
+   swEvents.message({source:{},data:{type:'FAILED',file:'forged.js',reason:'untrusted'}});
+   assert.equal(element('offline-detail').attributes['data-failure-file'],undefined);
+   swEvents.message({source:failedWorker,data:{type:'FAILED',file:'asset.js',reason:'QuotaExceededError'}});
    assert.match(element('offline-status').textContent,/не вдалася/);
    assert.equal(element('offline-detail').attributes['data-failure-file'],'asset.js');
    assert.equal(element('offline-detail').attributes['data-failure-reason'],'QuotaExceededError');
