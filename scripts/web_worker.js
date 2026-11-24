@@ -5,7 +5,10 @@ const PREFIX = 'amid-offgrid:' + self.registration.scope + ':';
 const NAME = PREFIX + VERSION;
 const scoped = client => client.url.startsWith(self.registration.scope);
 const urlFor = file => new URL(file.path, self.registration.scope).href;
-let repair;
+let repair, preparingFile = '';
+async function failed(error) {
+  await broadcast({type: 'FAILED', file: preparingFile, reason: error.name + ': ' + error.message});
+}
 async function broadcast(data) {
   const clients = await self.clients.matchAll({type: 'window', includeUncontrolled: true});
   for (const client of clients.filter(scoped)) client.postMessage(data);
@@ -21,6 +24,7 @@ async function populate(missingOnly) {
   let done = 0;
   for (const file of FILES) {
     const url = urlFor(file);
+    preparingFile = file.path;
     if (!missingOnly || !await cache.match(url)) {
       const response = await fetch(url, {cache: 'no-store', credentials: 'same-origin', redirect: 'error'});
       if (!response.ok || response.type === 'opaque') throw new Error('Asset unavailable');
@@ -39,7 +43,7 @@ self.addEventListener('install', event => {
   event.waitUntil(populate(false).catch(async error => {
     // A failed replacement never destroys the previous version's cache.
     await caches.delete(NAME);
-    await broadcast({type: 'FAILED'});
+    await failed(error);
     throw error;
   }));
 });
@@ -67,7 +71,7 @@ self.addEventListener('message', event => {
     })());
   } else if (event.data?.type === 'REPAIR') {
     if (!repair) {
-      repair = populate(true).catch(() => broadcast({type: 'FAILED'})).finally(() => { repair = null; });
+      repair = populate(true).catch(error => failed(error)).finally(() => { repair = null; });
     }
     event.waitUntil(repair);
   }

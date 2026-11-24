@@ -20,7 +20,8 @@ def generate(root, template_path=None):
         index.write_text(html.replace('src="flutter_bootstrap.js"', 'src="amid-bootstrap.js"'))
     files = sorted(p for p in root.rglob('*') if p.is_file()
                    and p.name not in {'amid-sw.js', 'flutter_service_worker.js'}
-                   and p.suffix != '.map')
+                   and p.suffix != '.map'
+                   and not any(part.startswith('.') for part in p.relative_to(root).parts))
     template = Path(template_path or Path(__file__).with_name('web_worker.js')).read_text()
     digest = hashlib.sha256(template.encode())
     records = []

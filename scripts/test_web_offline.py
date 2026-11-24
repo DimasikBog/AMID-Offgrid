@@ -117,7 +117,7 @@ const {MessageChannel}=require('node:worker_threads');
 const elements=new Map(),events={},swEvents={};let reloads=0,updates=0,prompts=0,repairs=0;
 function element(id) {
  if(!elements.has(id))elements.set(id,{id,hidden:false,disabled:false,textContent:'',open:false,
-   showModal(){this.open=true;},after(child){elements.set(child.id,child);}});
+   attributes:{},setAttribute(name,value){this.attributes[name]=value;},showModal(){this.open=true;},after(child){elements.set(child.id,child);}});
  return elements.get(id);
 }
 const active={postMessage(data,ports){if(data.type==='REPAIR')repairs++;if(ports?.[0]){ports[0].postMessage({ready:SCENARIO!=='missing',files:3});ports[0].close();}}};
@@ -150,7 +150,12 @@ async function settle() {
   assert.equal(repairs,SCENARIO==='missing'?1:0);
   assert.match(element('network-detail').textContent,/недоступна/);
   swEvents.controllerchange();assert.equal(reloads,0);
-  if(SCENARIO==='install') {
+  if(SCENARIO==='failure') {
+   swEvents.message({source:active,data:{type:'FAILED',file:'asset.js',reason:'QuotaExceededError'}});
+   assert.match(element('offline-status').textContent,/не вдалася/);
+   assert.equal(element('offline-detail').attributes['data-failure-file'],'asset.js');
+   assert.equal(element('offline-detail').attributes['data-failure-reason'],'QuotaExceededError');
+  } else if(SCENARIO==='install') {
    let prevented=false;
    events.beforeinstallprompt({preventDefault(){prevented=true;},async prompt(){prompts++;},userChoice:Promise.resolve({outcome:'dismissed'})});
    await element('install-app').onclick();assert(prevented);assert.equal(prompts,1);assert.equal(reloads,0);
@@ -191,7 +196,7 @@ class WebOfflineTest(unittest.TestCase):
 
     def test_client_status_install_dismissal_and_explicit_update(self):
         source = (ROOT / 'web/pwa.js').read_text()
-        for scenario in ['unsupported', 'ready', 'missing', 'install', 'update']:
+        for scenario in ['unsupported', 'ready', 'missing', 'install', 'update', 'failure']:
             with self.subTest(scenario=scenario): self.execute(CLIENT, source, scenario)
 
     def test_worker_implementation_also_changes_cache_version(self):
@@ -217,3 +222,15 @@ class WebOfflineTest(unittest.TestCase):
             self.assertIn('src="amid-bootstrap.js"', (root / 'index.html').read_text())
             self.assertEqual((root / 'amid-bootstrap.js').read_text(), 'new host bootstrap')
             self.assertEqual(first, generate(root))
+
+    def test_compiler_metadata_is_not_a_public_offline_dependency(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / 'index.html').write_text('page')
+            (root / 'flutter_bootstrap.js').write_text('boot')
+            (root / '.last_build_id').write_text('compiler metadata')
+            (root / '.internal').mkdir()
+            (root / '.internal' / 'state').write_text('not a public asset')
+            result = generate(root)
+            self.assertEqual(result['files'], 2)
+            self.assertNotIn('.last_build_id', (root / 'amid-sw.js').read_text())

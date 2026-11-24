@@ -154,6 +154,8 @@
     } else if (event.data?.type === 'READY') { refresh(); }
     else if (event.data?.type === 'FAILED') {
       ++statusRequest;
+      el('offline-detail').setAttribute('data-failure-reason', event.data.reason || 'unknown');
+      el('offline-detail').setAttribute('data-failure-file', event.data.file || 'unknown');
       showState('Офлайн: підготовка не вдалася', 'Не всі файли збережені. Перевір мережу та вільне місце, потім повтори. Нотатки не очищуються.');
     }
   });
