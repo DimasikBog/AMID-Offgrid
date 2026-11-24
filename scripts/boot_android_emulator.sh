@@ -44,7 +44,7 @@ adb shell settings put global window_animation_scale 0
 adb shell settings put global transition_animation_scale 0
 adb shell settings put global animator_duration_scale 0
 adb shell getprop > build/emulator-evidence/getprop.txt
-emulator -version > build/emulator-evidence/emulator-version.txt 2>&1
+sed -n '1,5p' build/emulator-evidence/emulator.log > build/emulator-evidence/emulator-version.txt
 python3 - "$kind" "$image" "$profile" <<'PY'
 import json, os, subprocess, sys
 from pathlib import Path
