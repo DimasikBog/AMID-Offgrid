@@ -66,3 +66,14 @@ Flutter web release із базовим шляхом `/AMID-Offgrid/` скомп
 - https://docs.flutter.dev/platform-integration/web/initialization
 - https://docs.flutter.dev/platform-integration/web/embedding-flutter-web
 - https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API/Using_Service_Workers
+
+## Реальний браузерний CI
+
+Окремий web.yml перевіряє release-build у чистому headless Chromium; те саме
+виконується перед Pages deployment. Playwright 1.62.0 встановлюється лише
+в тимчасове Python-середовище CI. Програма тестується на localhost у копії
+збірки без особистого профілю. Скрипт перевіряє офлайн root/deep-link запуск,
+repair, блокування оновлення іншою вкладкою, явне оновлення та відхилення
+неправильного hash зі збереженням попередньої версії. Локальне середовище
+не дозволило запустити Chromium; успіх цього тесту потрібно підтвердити в CI.
+Safari та фізичний iPhone залишаються окремими перевірками.

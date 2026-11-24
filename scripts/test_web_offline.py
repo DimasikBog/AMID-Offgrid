@@ -132,7 +132,14 @@ const context={navigator,MessageChannel,WeakSet,Promise,Error,
  window:{isSecureContext:true,matchMedia:()=>({matches:false}),addEventListener:(name,fn)=>events[name]=fn}
 };
 vm.runInNewContext(SOURCE,context);
-const settle=()=>new Promise(resolve=>setTimeout(resolve,25));
+async function settle() {
+ const start=Date.now();
+ const expected=SCENARIO==='unsupported'?/недоступно/:SCENARIO==='missing'?/готую/:/файли збережені/;
+ while(!expected.test(element('offline-status').textContent)) {
+  if(Date.now()-start>3000)throw Error('Client did not settle: '+element('offline-status').textContent);
+  await new Promise(resolve=>setTimeout(resolve,5));
+ }
+}
 (async()=>{
  await settle();
  if(SCENARIO==='unsupported') {

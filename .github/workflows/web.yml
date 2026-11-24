@@ -1,0 +1,48 @@
+name: Web offline browser checks
+on:
+  pull_request:
+    branches: [main]
+    paths: ['web/**', 'scripts/build_web_cache.py', 'scripts/web_worker.js', 'scripts/test_web_offline.py', 'scripts/check_web_browser.py', 'scripts/requirements-web-checks.txt', '.github/workflows/web.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: web-check-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+env:
+  CI: true
+  FLUTTER_SUPPRESS_ANALYTICS: true
+jobs:
+  browser:
+    if: github.event.repository.private == false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2
+        with:
+          flutter-version: '3.47.6'
+          channel: stable
+          cache: true
+      - run: flutter pub get --enforce-lockfile
+      - run: python3 -m unittest discover -s scripts -p 'test_*.py'
+      - run: flutter build web --release --no-pub --no-web-resources-cdn --base-href /AMID-Offgrid/
+      - run: python3 scripts/build_web_cache.py build/web
+      - name: Install isolated browser test tooling
+        run: |
+          python3 -m venv "$RUNNER_TEMP/pwa-checks"
+          "$RUNNER_TEMP/pwa-checks/bin/python" -m pip install -r scripts/requirements-web-checks.txt
+          "$RUNNER_TEMP/pwa-checks/bin/python" -m playwright install --with-deps chromium --only-shell
+      - name: Verify offline and update behaviour in real Chromium
+        env:
+          AMID_BROWSER_EVIDENCE: build/web-browser-evidence
+        run: '"$RUNNER_TEMP/pwa-checks/bin/python" scripts/check_web_browser.py build/web'
+      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+        if: success()
+        with:
+          name: web-browser-evidence
+          path: build/web-browser-evidence/
+          if-no-files-found: error
+          retention-days: 7

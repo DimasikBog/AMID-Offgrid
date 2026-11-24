@@ -3,7 +3,7 @@ name: Publish web app
 on:
   push:
     branches: [main]
-    paths: ['lib/**', 'assets/**', 'web/**', 'pubspec.*', 'scripts/build_web_cache.py', 'scripts/web_worker.js', 'scripts/test_web_offline.py', '.github/workflows/pages.yml']
+    paths: ['lib/**', 'assets/**', 'web/**', 'pubspec.*', 'scripts/build_web_cache.py', 'scripts/web_worker.js', 'scripts/test_web_offline.py', 'scripts/check_web_browser.py', 'scripts/requirements-web-checks.txt', '.github/workflows/pages.yml']
   workflow_dispatch:
 
 permissions:
@@ -52,6 +52,12 @@ jobs:
           Path('build/web/source.json').write_text(json.dumps({'sourceCommit': os.environ['AMID_SOURCE_SHA'], 'physicalDeviceTested': False}))
           PY
           python3 scripts/build_web_cache.py build/web
+      - name: Verify real browser before deploying
+        run: |
+          python3 -m venv "$RUNNER_TEMP/pwa-checks"
+          "$RUNNER_TEMP/pwa-checks/bin/python" -m pip install -r scripts/requirements-web-checks.txt
+          "$RUNNER_TEMP/pwa-checks/bin/python" -m playwright install --with-deps chromium --only-shell
+          "$RUNNER_TEMP/pwa-checks/bin/python" scripts/check_web_browser.py build/web
       - uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa
         with:
           path: build/web
