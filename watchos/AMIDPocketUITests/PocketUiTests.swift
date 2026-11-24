@@ -5,8 +5,9 @@ final class PocketUiTests: XCTestCase {
         for _ in 0..<28 {
             if element.exists && element.isHittable { return }
             // Small drags avoid skipping lazily-created rows on a 40/42 mm watch.
-            let start = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.72))
-            let end = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.48))
+            let above = element.exists && element.frame.midY < app.frame.midY
+            let start = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: above ? 0.38 : 0.72))
+            let end = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: above ? 0.62 : 0.48))
             start.press(forDuration: 0.05, thenDragTo: end)
         }
         capture(app, "unreachable-row")
@@ -46,10 +47,8 @@ final class PocketUiTests: XCTestCase {
             app.terminate()
             app.launch()
             let id = try XCTUnwrap(card["id"])
-            let title = try XCTUnwrap(card["title"])
-            let link = app.descendants(matching: .any).matching(
-                NSPredicate(format: "identifier == %@ OR label == %@", "card-\(id)", title)
-            ).firstMatch
+            // Match the actionable Button, not the parent Cell with the same label.
+            let link = app.buttons["card-\(id)"]
             reveal(link, in: app)
             link.tap()
             let body = app.staticTexts["card-body"]
