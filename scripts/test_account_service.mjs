@@ -50,8 +50,9 @@ test('breached-password lookup sends only a padded hash prefix; padding does not
 });
 
 test('login requires action-bound work before any password or profile lookup',async()=>{
- let lookups=0;
+ let lookups=0;const requests=[];
  const handler=make(async url=>{
+   requests.push(url);
    if(url.endsWith('offgrid_auth_limit'))return new Response('true');
    if(url.endsWith('offgrid_auth_consume_proof'))return new Response('false');
    lookups++;throw Error('unexpected credential lookup');
@@ -63,6 +64,8 @@ test('login requires action-bound work before any password or profile lookup',as
  const work=proof(await makeChallenge(secret,body.username,'login'));
  assert.equal((await handler(req({...body,proof:work}))).status,409);
  assert.equal(lookups,0);
+ assert.equal(requests.length,1);
+ assert(requests[0].endsWith('offgrid_auth_consume_proof'),'invalid or replayed work cannot exhaust a user rate budget');
  const challenge=await handler(req({action:'challenge',username:body.username,purpose:'login'}));
  assert.equal(challenge.status,200);
  assert.equal((await handler(req({action:'info'}))).headers.get('Cache-Control'),'no-store');

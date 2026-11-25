@@ -25,7 +25,8 @@ def main():
         platform = ['--platform', 'chrome'] if args.platform == 'chrome' else []
         subprocess.run(['flutter', 'test', '--no-pub', *platform,
                         '--dart-define-from-file', str(defines),
-                        'test/catalog_metadata_test.dart'], cwd=ROOT, check=True)
+                        'test/catalog_metadata_test.dart',
+                        'test/offline_profile_codec_test.dart'], cwd=ROOT, check=True)
 
 
 if __name__ == '__main__':

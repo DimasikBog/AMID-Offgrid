@@ -130,11 +130,12 @@ export function createAccountHandler({url, serviceKey, publicKey, fetcher=fetch,
           await limit('challenge:'+subject,20,900);
           return reply(await makeChallenge(serviceKey,body.username,body.purpose,now()));
         }
-        await limit(action+':global',action==='login'?600:60,3600);
-        await limit(action+':'+subject,action==='login'?10:4,900);
         if (!validPassword(body.password)) throw new Failure(400,'invalid_credentials');
         if(!await verifyWork(serviceKey,body.username,action,body.proof,now())) throw new Failure(400,'invalid_proof');
         if(!await rpc('offgrid_auth_consume_proof',{p_hash:await hash(body.proof.token)}))throw new Failure(409,'proof_already_used');
+        // Invalid/replayed work must not exhaust a victim's sign-in budget.
+        await limit(action+':global',action==='login'?600:60,3600);
+        await limit(action+':'+subject,action==='login'?10:4,900);
         if(action!=='login' && await compromisedPassword(body.password,fetcher))throw new Failure(400,'password_compromised');
         if(action==='register') {
           if(await profile(body.username)) throw new Failure(409,'username_unavailable');
