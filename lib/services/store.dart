@@ -73,8 +73,9 @@ class AppStore extends ChangeNotifier {
     }
     final value = await build(personalization);
     checkActive?.call();
-    if (jsonEncode(value).length > 12000)
+    if (jsonEncode(value).length > 12000) {
       throw const FormatException('Профіль завеликий.');
+    }
     _offlineProfiles[id] = decodeObject(jsonEncode(value));
   }, checkActive: checkActive);
   Future<void> removeOfflineProfile(String id) => _mutate(() {

@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:math';
 import 'dart:typed_data';
 
-import 'package:crypto/crypto.dart';
+import 'package:crypto/crypto.dart' show sha256;
 import 'package:cryptography/cryptography.dart';
 import 'package:flutter/foundation.dart';
 
@@ -191,8 +191,9 @@ class OfflineProfileService {
           (payload['displayName'] as String).runes.length > 80 ||
           payload['verifiedAt'] is! String ||
           DateTime.tryParse(payload['verifiedAt'] as String) == null ||
-          payload['preferences'] is! Map)
+          payload['preferences'] is! Map) {
         throw const FormatException();
+      }
       final preferences = Json.from(payload['preferences'] as Map);
       await store.applyPersonalization(
         preferences,

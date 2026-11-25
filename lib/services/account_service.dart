@@ -108,10 +108,11 @@ class AccountService extends ChangeNotifier {
     bool authenticated = false,
   }) async {
     _checkActive();
-    if (authenticated && !verified)
+    if (authenticated && !verified) {
       throw StateError(
         'Для серверної дії потрібен вхід із 2FA через інтернет.',
       );
+    }
     final client = http.Client();
     _http = client;
     try {
@@ -321,8 +322,9 @@ class AccountService extends ChangeNotifier {
 
   Future<void> enableOffline(String passphrase) => _run(() async {
     final vault = offline, user = _client?.auth.currentUser;
-    if (!verified || user == null || vault == null)
+    if (!verified || user == null || vault == null) {
       throw StateError('Спочатку підтвердь онлайн-вхід через 2FA.');
+    }
     await vault.create(
       username: username,
       userId: user.id,
@@ -333,8 +335,9 @@ class AccountService extends ChangeNotifier {
   });
   Future<void> unlockOffline(String name, String passphrase) => _run(() async {
     if (signedIn) throw StateError('Спочатку заверши поточний онлайн-сеанс.');
-    if (!validAccountUsername(name) || offline == null)
+    if (!validAccountUsername(name) || offline == null) {
       throw const FormatException('Перевір логін та локальну копію профілю.');
+    }
     await offline!.unlock(name, passphrase);
     _checkActive();
     _touch();

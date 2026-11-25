@@ -63,14 +63,17 @@ class _OfflineProfilePanelState extends State<OfflineProfilePanel> {
                   ? null
                   : () => guarded(context, () async {
                       try {
-                        if (_phrase.text != _repeat.text)
+                        if (_phrase.text != _repeat.text) {
                           throw const FormatException(
                             'Локальні фрази не збігаються.',
                           );
+                        }
                         await account.enableOffline(_phrase.text);
                       } finally {
-                        _phrase.clear();
-                        _repeat.clear();
+                        if (mounted) {
+                          _phrase.clear();
+                          _repeat.clear();
+                        }
                       }
                     }),
               icon: const Icon(Icons.offline_pin_outlined),
@@ -118,7 +121,7 @@ class _OfflineProfilePanelState extends State<OfflineProfilePanel> {
                   ? null
                   : () => guarded(context, () async {
                       await account.renameOffline(_nickname.text);
-                      _nickname.clear();
+                      if (mounted) _nickname.clear();
                     }),
               child: const Text('Зберегти ім’я'),
             ),
