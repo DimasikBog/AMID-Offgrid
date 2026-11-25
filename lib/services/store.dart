@@ -217,7 +217,8 @@ class AppStore extends ChangeNotifier {
       final previous = snapshot();
       final previousPreferences = jsonEncode(personalization);
       try {
-        await change();
+        final pendingChange = change();
+        if (pendingChange is Future) await pendingChange;
         if (protect != null &&
             id != null &&
             jsonEncode(personalization) != previousPreferences) {
