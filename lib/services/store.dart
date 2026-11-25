@@ -440,8 +440,8 @@ class AppStore extends ChangeNotifier {
   }, reindex: true);
   Future<void> selectModel(String id) => _mutate(() => selectedModel = id);
   Future<void> selectMap(String id) => _mutate(() => selectedMap = id);
-  Future<void> saveMessage(Message message) =>
-      _mutate(() => _insertMessage(message));
+  Future<void> saveMessage(Message message, {void Function()? checkActive}) =>
+      _mutate(() => _insertMessage(message), checkActive: checkActive);
 
   void _insertMessage(Message message) {
     Message.parse(
@@ -481,7 +481,11 @@ class AppStore extends ChangeNotifier {
 
   Future<void> deleteMessage(String id) =>
       _mutate(() => messages.removeWhere((m) => m.id == id));
-  Future<void> messageStatus(String id, String status) => _mutate(
+  Future<void> messageStatus(
+    String id,
+    String status, {
+    void Function()? checkActive,
+  }) => _mutate(
     () => messages = messages
         .map(
           (m) =>
@@ -492,6 +496,7 @@ class AppStore extends ChangeNotifier {
               : m,
         )
         .toList(),
+    checkActive: checkActive,
   );
   Future<void> removePack(String id) => _mutate(() {
     if (id == 'amid-mobile-starter') {

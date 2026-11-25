@@ -1,0 +1,44 @@
+{
+  "format": "AMID_RADIO_DOCK_TECHNICAL",
+  "version": 1,
+  "board": "LILYGO T3-S3 V1.3 SX1262, 868 MHz RF variant",
+  "manufacturerCommit": "5f537f1783933eae79723478c80b69d8c1530b99",
+  "boardOutlineMm": [27.2542, 64.5922],
+  "outlineNote": "DXF BOARD_OUTLINE_00 bounds, including line width. Connector and component protrusions require physical measurement.",
+  "firmwareTag": "v2.7.26.54e0d8d",
+  "protobufCommit": "6b1ded439633cd03d4af85b44231b91d1d106278",
+  "region": "EU_868",
+  "referenceFrequencyMHz": 869.525,
+  "preset": "LONG_FAST",
+  "maxHops": 3,
+  "maxAppTextBytes": 200,
+  "maxBlePacketBytes": 512,
+  "antenna": {
+    "prototype": "Centre-fed, two folding arms; experimental, VNA tuning required",
+    "speedOfLightMps": 299792458,
+    "initialArmLengthMm": 84,
+    "armDiameterMm": 2,
+    "feedGapMm": 6,
+    "shorteningFactorEstimate": 0.95,
+    "armTuningRangeMm": [80, 86],
+    "feedImpedanceOhm": 50,
+    "coaxMaxLengthMm": 100,
+    "balun": "1:1 current balun specified for 850–900 MHz; prototype must be measured in its complete enclosure",
+    "baseline": "Use the factory tuned 868 MHz antenna for the first BLE/LoRa acceptance test"
+  },
+  "power": {
+    "prototype": "Commercial protected USB power bank with two independently specified 5 V outputs",
+    "radioOutputBudgetA": 1,
+    "phoneOutputBudgetA": 2,
+    "simultaneousTotalBudgetA": 3,
+    "note": "Supply sizing requirement, not a measured load. Phone charging uses a separate cable; no parallel batteries or DIY PD circuit."
+  },
+  "physicalTests": {
+    "boardFit": "not_run",
+    "blePairing": "not_run",
+    "rfTxRx": "not_run",
+    "antennaS11": "not_run",
+    "range": "not_run",
+    "powerThermal": "not_run"
+  }
+}

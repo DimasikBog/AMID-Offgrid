@@ -1,0 +1,13 @@
+Item,QuantityPerNode,Requirement,Status
+Radio board,1,LILYGO T3-S3 V1.3 SX1262 868 MHz with OLED and SMA,Not purchased
+Baseline antenna,1,Factory tuned 868 MHz antenna with matching SMA gender and 50 ohm feed,Not purchased
+Power bank,1,Commercial protected pack; simultaneous 5V outputs with 1A radio and 2A phone budgets,Not purchased
+USB cable to board,1,Short flexible USB cable with strain relief,Not purchased
+USB cable to phone,1,Short cable matched to the actual phone port; separate power bank output,Not purchased
+Carrier,1,PETG or ASA; dimensions adjusted to measured phone and power bank,Technical CAD only
+Retention straps,2,Hook-and-loop straps; foam insulator under PCB,Not purchased
+Experimental dipole rods,2,2mm conductor; initial 84mm each; final length set by measurement,Experimental alternative
+Current balun,1,1 to 1 current balun specified for 850 to 900 MHz with measured insertion loss,Experimental alternative
+Coax,1,50 ohm flexible pigtail no longer than 100mm; strain relieved,Experimental alternative
+Insulated antenna hinges,2,Mechanical bearing bypassed electrically with short flexible leads,Experimental alternative
+VNA access,1,Calibrated at antenna feed plane; needed for handmade antenna tuning,Not available/confirmed

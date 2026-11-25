@@ -9,6 +9,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../services/services.dart';
 import '../widgets/common.dart';
+import 'radio_dock_screen.dart';
 
 class MessagesScreen extends StatefulWidget {
   const MessagesScreen({super.key, required this.services});
@@ -136,6 +137,8 @@ class _MessagesScreenState extends State<MessagesScreen>
   }
 
   Future<void> _join({bool scan = false}) async {
+    await widget.services.radioDock.stop();
+    if (!mounted) return;
     String? code;
     if (scan) {
       code = await Navigator.of(context)
@@ -188,6 +191,25 @@ class _MessagesScreenState extends State<MessagesScreen>
       return ListView(
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 30),
         children: [
+          Align(
+            alignment: Alignment.centerLeft,
+            child: OutlinedButton.icon(
+              icon: const Icon(Icons.cell_tower),
+              label: const Text('Радіочохол LoRa'),
+              onPressed: () => guarded(context, () async {
+                await widget.services.nearby.stop();
+                if (!context.mounted) return;
+                await Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => RadioDockScreen(
+                      service: widget.services.radioDock,
+                      store: widget.services.store,
+                    ),
+                  ),
+                );
+              }),
+            ),
+          ),
           Text(
             'Поруч із тобою',
             style: Theme.of(context).textTheme.headlineMedium,
@@ -231,7 +253,10 @@ class _MessagesScreenState extends State<MessagesScreen>
                       FilledButton.icon(
                         onPressed: radio.busy
                             ? null
-                            : () => guarded(context, radio.startHost),
+                            : () => guarded(context, () async {
+                                await widget.services.radioDock.stop();
+                                await radio.startHost();
+                              }),
                         icon: const Icon(Icons.qr_code_rounded),
                         label: const Text('Створити сеанс'),
                       ),

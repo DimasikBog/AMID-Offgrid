@@ -40,6 +40,31 @@ class WebLink {
   final Uri uri;
 }
 
+/// Reads the bounded footer written by archiveText, including older backups.
+/// Imported text is untrusted: only explicit, validated HTTPS links are actions.
+List<WebLink> archivedWebLinks(String body) {
+  const marker = '\n\nПосилання:\n';
+  final start = body.lastIndexOf(marker);
+  if (start < 0 || body.length > 250000) return const [];
+  final lines = body.substring(start + marker.length).split('\n');
+  if (lines.length.isOdd || lines.length > maxWebLinks * 2) return const [];
+  final links = <WebLink>[];
+  final seen = <Uri>{};
+  for (var i = 0; i < lines.length; i += 2) {
+    try {
+      final uri = checkedWebUri(lines[i + 1]);
+      if (!lines[i + 1].startsWith('https://') || !seen.add(uri)) continue;
+      final title = lines[i].trim();
+      links.add(
+        WebLink(boundedText(title.isEmpty ? uri.host : title, 200), uri),
+      );
+    } on FormatException {
+      // Malformed links stay inert in the archived text.
+    }
+  }
+  return List.unmodifiable(links);
+}
+
 class ReaderPage {
   const ReaderPage({
     required this.uri,
