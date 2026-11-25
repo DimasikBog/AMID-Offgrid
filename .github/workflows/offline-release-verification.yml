@@ -1,0 +1,49 @@
+name: Verify published offline profile release
+on:
+  push:
+    branches: [codex/offline-release-verification]
+permissions:
+  contents: read
+jobs:
+  public-metadata:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Check deployed source and all published manifests
+        run: |
+          python3 - <<'PY'
+          import json,urllib.request,hashlib
+          root='https://dimasikbog.github.io/AMID-Offgrid/'
+          commit='92585cfd1eb8be893cf6318489a8e4bebd84157b'
+          def get(url):
+              with urllib.request.urlopen(url,timeout=30) as response:
+                  return response.read()
+          version=json.loads(get(root+'version.json'))
+          source=json.loads(get(root+'source.json'))
+          assert source['sourceCommit']==commit and source['physicalDeviceTested'] is False
+          print('PASS deployed source:',source['sourceCommit'])
+          print('Deployed version:',json.dumps(version,sort_keys=True))
+          release=json.loads(get('https://api.github.com/repos/DimasikBog/AMID-Offgrid/releases/tags/v0.7.2-beta.12'))
+          assets={a['name']:a for a in release['assets']}
+          assert not release['draft'] and release['prerelease'] and len(assets)==17
+          packages=set();platforms=set()
+          for name,asset in assets.items():
+              if not name.endswith('-manifest.json'):continue
+              raw=get(asset['browser_download_url'])
+              assert len(raw)==asset['size'] and asset['digest']=='sha256:'+hashlib.sha256(raw).hexdigest()
+              manifest=json.loads(raw)
+              assert (manifest['version'],manifest['build'],manifest['sourceCommit'],manifest['quality'])==('0.7.2',12,commit,'success')
+              assert manifest['deviceTesting']=='not_run'
+              platforms.add(manifest['platform'])
+              if manifest['platform'] in {'android','ios','windows','linux','macos'}:
+                  assert manifest['offlineStarter']['modelIncluded'] is True
+              for item in manifest['artifacts']:
+                  package=assets[item['file']]
+                  assert item['bytes']==package['size']
+                  assert package['digest']=='sha256:'+item['sha256']
+                  assert item['physicalDeviceTested'] is False
+                  packages.add(item['file'])
+          assert platforms=={'android','ios','windows','linux','macos','wearos','watchos','web'}
+          assert len(packages)==9
+          print('PASS public release: eight manifests, nine packages, exact source, sizes and GitHub SHA-256 digests')
+          PY
