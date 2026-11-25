@@ -45,7 +45,7 @@ SHA-256 моделі та контрольні суми карти/довідн�
 ```bash
 flutter pub get --enforce-lockfile
 python3 scripts/prepare_offline_payload.py
-flutter build apk --release --target-platform android-arm64 --no-pub
+flutter build apk --release --target-platform android-arm64
 python3 scripts/verify_offline_payload.py build/app/outputs/flutter-apk/app-release.apk
 ```
 
@@ -68,3 +68,14 @@ GitHub Actions готує модель перед Android, iOS і desktop builds
 прогін 0.5 не підтверджує 0.6. Фізичні iPhone/Android, BLE/GPS, терміка,
 батарея, оновлення встановленої версії, Apple signing і магазини залишаються
 окремим прийманням. Непідписаний IPA потребує підписування до інсталяції.
+
+## Надійність запуску iOS-тестів
+
+Для закріпленого Flutter 3.47.6 iOS-тест застосовує вузький backport офіційного
+[Flutter #193142](https://github.com/flutter/flutter/pull/193142): запуск очікує
+готовності потоку логів симулятора, щоб не пропустити адресу VM Service.
+Скрипт перевіряє повний SHA-256 джерела до й після зміни; незнайома версія SDK
+відхиляється. Quality перевіряє patch без зміни SDK. iOS використовує окремий
+SDK без кешу; рушій, Dart SDK та релізні збірки не змінюються. При оновленні
+Flutter цей backport потрібно переглянути або видалити. Результат визначається
+справжнім нативним інтеграційним тестом; невдалий запуск не зараховується як успіх.
