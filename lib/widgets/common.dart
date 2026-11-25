@@ -57,7 +57,7 @@ class Panel extends StatelessWidget {
             .withValues(alpha: .55),
       ),
     ),
-    child: child,
+    child: Material(type: MaterialType.transparency, child: child),
   );
 }
 

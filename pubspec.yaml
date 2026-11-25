@@ -1,7 +1,7 @@
 name: amid_offgrid
 description: Native offline knowledge, local AI, maps and nearby communication.
 publish_to: none
-version: 0.7.0+10
+version: 0.7.1+11
 environment:
   sdk: '>=3.13.0 <4.0.0'
 dependencies:
@@ -29,9 +29,12 @@ dependencies:
   sqflite: 2.4.6
   uuid: 4.6.0
   sqflite_common_ffi: 2.4.7
-  html: ^0.15.7
-  http: ^1.6.0
-  webview_flutter: ^4.14.1
+  http: 1.6.0
+  idb_shim: 2.11.3
+  url_launcher: 6.3.3
+  supabase: 2.16.5
+  html: 0.15.7
+  webview_flutter: 4.14.1
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -47,6 +50,7 @@ flutter:
   assets:
     - assets/starter.json
     - assets/world.geojson
+    - assets/catalog.json
     - assets/offline_model/
     - assets/fonts/OFL-Roboto.txt
 hooks:

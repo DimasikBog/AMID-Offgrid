@@ -7,6 +7,7 @@ from pathlib import Path
 import shutil
 import sys
 import tempfile
+import time
 from threading import Thread
 
 from playwright.sync_api import sync_playwright, expect
@@ -16,6 +17,21 @@ from build_web_cache import generate
 class QuietHandler(SimpleHTTPRequestHandler):
     def log_message(self, *_):
         pass
+
+
+def wait_until(page, predicate, timeout=45):
+    # wait_for_function evaluates its string with page-world eval, which our
+    # production CSP deliberately forbids. Poll via the automation protocol.
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        if page.evaluate(predicate):
+            return
+        page.wait_for_timeout(100)
+    detail = page.evaluate('''async () => ({url:location.href,
+      status:document.getElementById('offline-status')?.textContent,
+      detail:document.getElementById('offline-detail')?.outerHTML,
+      caches:await caches.keys()})''')
+    raise AssertionError('Browser condition did not become true: ' + str(detail))
 
 
 def check(build):
@@ -36,10 +52,11 @@ def check(build):
                 page = context.new_page()
                 page.set_default_timeout(45000)
                 errors = []
-                page.on('pageerror', lambda error: (errors.append(str(error)), print('Browser error:', error, flush=True)))
+                page.on('pageerror', lambda error: (errors.append(str(error)), print('Browser error:', error, getattr(error, 'stack', ''), flush=True)))
+                page.on('console', lambda message: print('Browser console:', message.text, flush=True) if message.type == 'error' else None)
                 page.goto(url)
                 expect(page.locator('#offline-status')).to_have_text('Офлайн: файли збережені', timeout=60000)
-                page.wait_for_function('document.getElementById("startup")?.hidden === true')
+                expect(page.locator('#startup')).to_have_js_property('hidden', True)
                 assert page.locator('#flutter-host flt-glass-pane').count() == 1
                 bounds = page.locator('#flutter-host').bounding_box()
                 assert bounds and bounds['y'] >= 44 and bounds['width'] == 390
@@ -47,10 +64,10 @@ def check(build):
                 page.evaluate('localStorage.setItem("amid-web-integration", "preserve-me")')
                 context.set_offline(True)
                 page.reload(wait_until='domcontentloaded')
-                page.wait_for_function('document.getElementById("startup")?.hidden === true')
+                expect(page.locator('#startup')).to_have_js_property('hidden', True)
                 expect(page.locator('#offline-status')).to_have_text('Офлайн: файли збережені')
                 page.goto(url + 'saved/deep/link', wait_until='domcontentloaded')
-                page.wait_for_function('document.getElementById("startup")?.hidden === true')
+                expect(page.locator('#startup')).to_have_js_property('hidden', True)
                 assert page.evaluate('localStorage.getItem("amid-web-integration")') == 'preserve-me'
                 if os.environ.get('AMID_BROWSER_EVIDENCE'):
                     evidence = Path(os.environ['AMID_BROWSER_EVIDENCE'])
@@ -61,16 +78,20 @@ def check(build):
                 page.goto(url)
                 expect(page.locator('#offline-status')).to_have_text('Офлайн: файли збережені')
                 # Simulate one evicted static asset, not personal storage.
-                page.evaluate('''async () => {
-                  const key = (await caches.keys()).find(k => k.startsWith('amid-offgrid:' + location.href + ':'));
-                  await (await caches.open(key)).delete(new URL('assets/starter.json', location.href).href);
+                removed = page.evaluate('''async () => {
+                  const registration = await navigator.serviceWorker.getRegistration();
+                  const key = (await caches.keys()).find(k => k.startsWith('amid-offgrid:' + registration.scope + ':'));
+                  if (!key) throw new Error('Expected active app cache');
+                  return await (await caches.open(key)).delete(new URL('assets/assets/starter.json', document.baseURI).href);
                 }''')
+                assert removed, 'Repair fixture must evict an actual bundled file'
                 page.locator('#offline-status').click()
                 page.locator('#prepare-offline').click()
                 expect(page.locator('#offline-status')).to_have_text('Офлайн: файли збережені')
-                page.wait_for_function('''async () => {
-                  const key = (await caches.keys()).find(k => k.startsWith('amid-offgrid:' + location.href + ':'));
-                  return !!await (await caches.open(key)).match(new URL('assets/starter.json', location.href).href);
+                wait_until(page, '''async () => {
+                  const registration = await navigator.serviceWorker.getRegistration();
+                  const key = (await caches.keys()).find(k => k.startsWith('amid-offgrid:' + registration.scope + ':'));
+                  return !!await (await caches.open(key)).match(new URL('assets/assets/starter.json', document.baseURI).href);
                 }''')
                 print('PASS actual Chromium: missing static file repaired', flush=True)
                 page.get_by_role('button', name='Закрити', exact=True).click()
@@ -91,7 +112,7 @@ def check(build):
                 other.close()
                 with page.expect_navigation(wait_until='domcontentloaded'):
                     page.locator('#confirm-update').click()
-                page.wait_for_function('document.getElementById("startup")?.hidden === true')
+                expect(page.locator('#startup')).to_have_js_property('hidden', True)
                 expect(page.locator('#offline-status')).to_have_text('Офлайн: файли збережені')
                 assert page.evaluate('localStorage.getItem("amid-web-integration")') == 'preserve-me'
                 print('PASS actual Chromium: other window blocks activation; explicit update preserves data', flush=True)
@@ -104,7 +125,7 @@ def check(build):
                 expect(page.locator('#offline-status')).to_have_text('Офлайн: підготовка не вдалася', timeout=60000)
                 context.set_offline(True)
                 page.reload(wait_until='domcontentloaded')
-                page.wait_for_function('document.getElementById("startup")?.hidden === true')
+                expect(page.locator('#startup')).to_have_js_property('hidden', True)
                 assert page.evaluate('localStorage.getItem("amid-web-integration")') == 'preserve-me'
                 assert not errors, errors
                 print('PASS actual Chromium: corrupt replacement rejected; previous build still boots offline', flush=True)

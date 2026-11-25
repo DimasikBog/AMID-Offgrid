@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.7.1+11
+
+- Каталог атласів, геошарів та локальних моделей з SHA-256 і ліцензіями.
+- Добровільні username-акаунти, TOTP, резервні коди, відкликання і видалення.
+- CSP і захист backend; збережено браузер/офлайн-сторінки з 0.7.0.
+- Межі безпеки, моделі й перевірки: docs/CATALOG_ACCOUNTS.md.
+
 ## 0.7.0 candidate — browser and offline reading
 
 - Direct bounded HTTPS text reader, validated redirects/links, cancellation and in-memory history.

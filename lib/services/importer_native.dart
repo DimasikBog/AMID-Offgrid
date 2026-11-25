@@ -11,6 +11,7 @@ import 'package:uuid/uuid.dart';
 
 import '../models/data.dart';
 import '../models/starter_content.dart';
+import '../models/catalog.dart';
 import 'backup_codec.dart';
 import 'cancellable_reader.dart';
 import 'document_codec.dart';
@@ -300,6 +301,72 @@ class ImportService extends ChangeNotifier {
   }
 
   Future<String> downloadStarter() => prepareStarter();
+
+  Future<String> installCatalogModel(CatalogEntry entry) {
+    if (entry.id == starterModelId) return prepareStarter();
+    return _run('Завантажую ${entry.title}', () async {
+      final allowed = await loadCatalog(bundle: _bundle);
+      final verified = allowed
+          .where(
+            (e) =>
+                e.id == entry.id &&
+                e.model &&
+                e.sha256 == entry.sha256 &&
+                e.url == entry.url &&
+                e.bytes == entry.bytes,
+          )
+          .firstOrNull;
+      if (verified == null) {
+        throw const FormatException('Модель відсутня в каталозі.');
+      }
+      final existing = store.packs
+          .where((p) => p['id'] == entry.id)
+          .firstOrNull;
+      if (existing != null) return 'Модель уже встановлена.';
+      final model = StarterModel(
+        bytes: entry.bytes,
+        sha256: entry.sha256,
+        url: entry.url!,
+        title: entry.title,
+        license: entry.license,
+        fileName: '${entry.id}.gguf',
+      );
+      final root = Directory(p.join(store.backend.directory, 'files'));
+      await root.create(recursive: true);
+      final partial = File(p.join(root.path, '${model.fileName}.partial'));
+      final target = File(p.join(root.path, model.fileName));
+      if (!await _modelMatches(target, model)) {
+        if (await partial.exists() && await partial.length() > model.bytes) {
+          await partial.delete();
+        }
+        await _downloadModel(model, partial);
+        if (!await _modelMatches(partial, model)) {
+          if (await partial.exists() && await partial.length() == model.bytes) {
+            await partial.delete();
+          }
+          throw const FormatException(
+            'Модель неповна або її контрольна сума не збігається. Повтори встановлення.',
+          );
+        }
+        _checkCancelled();
+        await _protect(partial.path);
+        await partial.rename(target.path);
+      }
+      await store.addAsset({
+        'id': entry.id,
+        'title': entry.title,
+        'kind': 'model',
+        'path': target.path,
+        'bytes': entry.bytes,
+        'sha256': entry.sha256,
+        'license': entry.license,
+        'source': entry.source,
+        'count': 1,
+      }, checkActive: _checkCancelled);
+      _report(1, 'Модель збережено');
+      return 'Модель встановлена. Вона запускається локально.';
+    });
+  }
 
   Future<String> prepareStarter({
     bool allowNetwork = true,

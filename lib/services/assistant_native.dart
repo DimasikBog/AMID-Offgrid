@@ -99,6 +99,7 @@ class AssistantService extends ChangeNotifier {
 
   Future<void> ask(String value) async {
     if (_disposed || busy || value.trim().isEmpty) return;
+    if (_engine != null && loadedId != store.selectedModel) await unload();
     if (_engine == null && store.selectedModel.isNotEmpty) {
       final selected = store.packs
           .where((p) => p['id'] == store.selectedModel && p['kind'] == 'model')

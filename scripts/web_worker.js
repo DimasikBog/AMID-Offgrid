@@ -84,7 +84,14 @@ self.addEventListener('fetch', event => {
     // Keep HTML and runtime from the same installed build, including root/deep links.
     if (request.mode === 'navigate') {
       const page = await cache.match(new URL('index.html', self.registration.scope).href);
-      if (page) return page;
+      if (page) {
+        const headers = new Headers(page.headers);
+        headers.set('Content-Security-Policy', "frame-ancestors 'none'");
+        headers.set('X-Frame-Options', 'DENY');
+        headers.set('X-Content-Type-Options', 'nosniff');
+        headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+        return new Response(page.body, {status: page.status, statusText: page.statusText, headers});
+      }
     }
     const saved = await cache.match(request, {ignoreSearch: true});
     return saved || fetch(request);

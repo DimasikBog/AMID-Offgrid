@@ -3,6 +3,8 @@ import 'assistant.dart';
 import 'importer.dart';
 import 'nearby.dart';
 import 'starter_setup.dart';
+import 'catalog_service.dart';
+import 'account_service.dart';
 
 class Services {
   Services(this.store) {
@@ -10,13 +12,19 @@ class Services {
     files = ImportService(store);
     setup = StarterSetup(store, files);
     nearby = NearbyService(store);
+    catalog = CatalogService(store, files);
+    account = AccountService();
   }
   final AppStore store;
+  late final CatalogService catalog;
+  late final AccountService account;
   late final AssistantService assistant;
   late final ImportService files;
   late final StarterSetup setup;
   late final NearbyService nearby;
   void dispose() {
+    account.dispose();
+    catalog.dispose();
     assistant.dispose();
     setup.dispose();
     files.cancel();

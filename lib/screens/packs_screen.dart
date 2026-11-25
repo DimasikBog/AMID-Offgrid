@@ -8,10 +8,13 @@ import '../widgets/password_dialog.dart';
 import '../version.dart';
 import '../widgets/starter_setup_panel.dart';
 import 'privacy_screen.dart';
+import 'catalog_screen.dart';
+import 'account_screen.dart';
 
 class PacksScreen extends StatelessWidget {
-  const PacksScreen({super.key, required this.services});
+  const PacksScreen({super.key, required this.services, this.openMap});
   final Services services;
+  final VoidCallback? openMap;
   @override
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: Listenable.merge([
@@ -29,6 +32,34 @@ class PacksScreen extends StatelessWidget {
         body: ListView(
           padding: const EdgeInsets.fromLTRB(20, 10, 20, 35),
           children: [
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                FilledButton.icon(
+                  onPressed: () => Navigator.push<void>(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          CatalogScreen(services: services, openMap: openMap),
+                    ),
+                  ),
+                  icon: const Icon(Icons.travel_explore),
+                  label: const Text('Каталог карт і ШІ'),
+                ),
+                OutlinedButton.icon(
+                  onPressed: () => Navigator.push<void>(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => AccountScreen(account: services.account),
+                    ),
+                  ),
+                  icon: const Icon(Icons.person_outline),
+                  label: const Text('Мій акаунт'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
             StarterSetupPanel(setup: services.setup),
             const SizedBox(height: 20),
             const Section('Додаткові файли й власні карти'),
@@ -64,118 +95,119 @@ class PacksScreen extends StatelessWidget {
             ],
             const Section('На цьому пристрої'),
             for (final p in store.packs)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: Panel(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Icon(switch (p['kind']) {
-                            'model' => Icons.memory_rounded,
-                            'map' => Icons.map_outlined,
-                            _ => Icons.menu_book_rounded,
-                          }, color: Theme.of(context).colorScheme.primary),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              p['title'] as String,
-                              style: Theme.of(context).textTheme.titleMedium,
-                            ),
-                          ),
-                          if (p['id'] != 'amid-mobile-starter')
-                            IconButton(
-                              tooltip: 'Видалити пакет',
-                              onPressed:
-                                  files.busy || ai.loading || ai.generating
-                                  ? null
-                                  : () => _remove(context, p),
-                              icon: const Icon(Icons.delete_outline_rounded),
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        p['routing'] is Map
-                            ? '${((p['routing'] as Map)['nodes'] as List).length} вузлів · ${((p['routing'] as Map)['edges'] as List).length} ділянок маршрутизації'
-                            : p['kind'] == 'knowledge'
-                            ? '${p['count']} статей'
-                            : '${prettyBytes(p['bytes'] as int? ?? 0)} · ${p['kind'] == 'model' ? 'Модель GGUF' : 'Карта MBTiles'}',
-                      ),
-                      if (p['license'] != null)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 7),
-                          child: Text(
-                            p['license'] as String,
-                            style: Theme.of(context).textTheme.bodySmall,
-                          ),
-                        ),
-                      if (p['sha256'] != null)
-                        ExpansionTile(
-                          tilePadding: EdgeInsets.zero,
-                          title: const Text(
-                            'Контрольна сума',
-                            style: TextStyle(fontSize: 12),
-                          ),
+              if (p['kind'] != 'atlas')
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Panel(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            SelectableText(
-                              p['sha256'] as String,
-                              style: const TextStyle(
-                                fontFamily: 'monospace',
-                                fontSize: 11,
+                            Icon(switch (p['kind']) {
+                              'model' => Icons.memory_rounded,
+                              'map' => Icons.map_outlined,
+                              _ => Icons.menu_book_rounded,
+                            }, color: Theme.of(context).colorScheme.primary),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                p['title'] as String,
+                                style: Theme.of(context).textTheme.titleMedium,
                               ),
                             ),
+                            if (p['id'] != 'amid-mobile-starter')
+                              IconButton(
+                                tooltip: 'Видалити пакет',
+                                onPressed:
+                                    files.busy || ai.loading || ai.generating
+                                    ? null
+                                    : () => _remove(context, p),
+                                icon: const Icon(Icons.delete_outline_rounded),
+                              ),
                           ],
                         ),
-                      if (p['kind'] == 'model')
-                        Padding(
-                          padding: const EdgeInsets.only(top: 12),
-                          child: FilledButton.tonalIcon(
-                            onPressed: ai.loading || ai.generating
-                                ? null
-                                : () => guarded(context, () async {
-                                    if (ai.loadedId == p['id']) {
-                                      await ai.unload();
-                                      return 'Модель вивантажена з пам’яті.';
-                                    }
-                                    await ai.load(p);
-                                    return 'Модель готова до запитів.';
-                                  }),
-                            icon: Icon(
-                              ai.loadedId == p['id']
-                                  ? Icons.stop_circle_outlined
-                                  : Icons.play_circle_outline_rounded,
-                            ),
-                            label: Text(
-                              ai.loading
-                                  ? 'Завантажую в пам’ять…'
-                                  : ai.loadedId == p['id']
-                                  ? 'Вивантажити з пам’яті'
-                                  : 'Запустити на телефоні',
-                            ),
-                          ),
+                        const SizedBox(height: 8),
+                        Text(
+                          p['routing'] is Map
+                              ? '${((p['routing'] as Map)['nodes'] as List).length} вузлів · ${((p['routing'] as Map)['edges'] as List).length} ділянок маршрутизації'
+                              : p['kind'] == 'knowledge'
+                              ? '${p['count']} статей'
+                              : '${prettyBytes(p['bytes'] as int? ?? 0)} · ${p['kind'] == 'model' ? 'Модель GGUF' : 'Карта MBTiles'}',
                         ),
-                      if (p['kind'] == 'map')
-                        Padding(
-                          padding: const EdgeInsets.only(top: 10),
-                          child: OutlinedButton(
-                            onPressed: () => guarded(
-                              context,
-                              () => store.selectMap(p['id'] as String),
-                            ),
+                        if (p['license'] != null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 7),
                             child: Text(
-                              store.selectedMap == p['id']
-                                  ? 'Активна карта'
-                                  : 'Відкрити цю карту',
+                              p['license'] as String,
+                              style: Theme.of(context).textTheme.bodySmall,
                             ),
                           ),
-                        ),
-                    ],
+                        if (p['sha256'] != null)
+                          ExpansionTile(
+                            tilePadding: EdgeInsets.zero,
+                            title: const Text(
+                              'Контрольна сума',
+                              style: TextStyle(fontSize: 12),
+                            ),
+                            children: [
+                              SelectableText(
+                                p['sha256'] as String,
+                                style: const TextStyle(
+                                  fontFamily: 'monospace',
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ],
+                          ),
+                        if (p['kind'] == 'model')
+                          Padding(
+                            padding: const EdgeInsets.only(top: 12),
+                            child: FilledButton.tonalIcon(
+                              onPressed: ai.loading || ai.generating
+                                  ? null
+                                  : () => guarded(context, () async {
+                                      if (ai.loadedId == p['id']) {
+                                        await ai.unload();
+                                        return 'Модель вивантажена з пам’яті.';
+                                      }
+                                      await ai.load(p);
+                                      return 'Модель готова до запитів.';
+                                    }),
+                              icon: Icon(
+                                ai.loadedId == p['id']
+                                    ? Icons.stop_circle_outlined
+                                    : Icons.play_circle_outline_rounded,
+                              ),
+                              label: Text(
+                                ai.loading
+                                    ? 'Завантажую в пам’ять…'
+                                    : ai.loadedId == p['id']
+                                    ? 'Вивантажити з пам’яті'
+                                    : 'Запустити на телефоні',
+                              ),
+                            ),
+                          ),
+                        if (p['kind'] == 'map')
+                          Padding(
+                            padding: const EdgeInsets.only(top: 10),
+                            child: OutlinedButton(
+                              onPressed: () => guarded(
+                                context,
+                                () => store.selectMap(p['id'] as String),
+                              ),
+                              child: Text(
+                                store.selectedMap == p['id']
+                                    ? 'Активна карта'
+                                    : 'Відкрити цю карту',
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
             const Section('Резервна копія'),
             Panel(
               child: Column(

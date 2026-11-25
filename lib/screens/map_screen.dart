@@ -14,6 +14,7 @@ import '../widgets/common.dart';
 import '../widgets/offline_tiles_native.dart'
     if (dart.library.js_interop) '../widgets/offline_tiles_web.dart';
 import 'route_planner.dart';
+import 'catalog_screen.dart';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key, required this.services, required this.navigate});
@@ -185,7 +186,8 @@ class _MapScreenState extends State<MapScreen> {
               width: 32,
               height: 36,
               child: Tooltip(
-                message: '${f['properties']?['name'] ?? 'Точка GeoJSON'}',
+                message:
+                    '${f['properties']?['name'] ?? f['properties']?['NAME'] ?? 'Точка GeoJSON'}',
                 child: const Icon(
                   Icons.location_on_rounded,
                   color: Color(0xffdfaa63),
@@ -478,6 +480,16 @@ class _MapScreenState extends State<MapScreen> {
                     ),
                   ],
                 ),
+              ),
+              IconButton(
+                tooltip: 'Каталог карт',
+                onPressed: () => Navigator.push<void>(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => CatalogScreen(services: widget.services),
+                  ),
+                ),
+                icon: const Icon(Icons.download_outlined),
               ),
               IconButton(
                 tooltip: 'Побудувати офлайн-маршрут',

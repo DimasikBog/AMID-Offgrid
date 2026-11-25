@@ -36,7 +36,7 @@ const storage = {
   async delete(name) { return stores.delete(name); }
 };
 const context = {
-  URL, Response, Uint8Array, crypto:webcrypto, caches:storage,
+  URL, Response, Headers, Uint8Array, crypto:webcrypto, caches:storage,
   fetch:async input=>{
     const url=typeof input==='string'?input:input.url;calls.push(url);
     if(offline) throw Error('offline');
@@ -81,6 +81,11 @@ async function get(path,mode='cors',method='GET') {
     if(SCENARIO==='offline') {
       offline=true;
       assert.equal(await get('','navigate'),'page');
+      let protectedPage;
+      handlers.fetch({request:{url:scope,mode:'navigate',method:'GET'},respondWith:p=>protectedPage=p});
+      const secured=await protectedPage;
+      assert.equal(secured.headers.get('X-Frame-Options'),'DENY');
+      assert.equal(secured.headers.get('Content-Security-Policy'),"frame-ancestors 'none'");
       assert.equal(await get('a/deep/link','navigate'),'page');
       assert.equal(await get('a%20b.txt?test=1'),'asset');
       assert.equal(await get('anything','cors','POST'),null);

@@ -1,6 +1,11 @@
 /* Browser-only controls. No personal data leaves this page. */
 (() => {
   'use strict';
+  // Accounts and recovery controls must never be embedded by another page.
+  if (window.self && window.top !== window.self) {
+    document.documentElement.style.display = 'none';
+    return;
+  }
   const el = id => document.getElementById(id);
   const say = text => { el('action-detail').textContent = text; };
   const help = () => el('offline-help').showModal();
@@ -20,6 +25,7 @@
       el('restart-app').hidden = false;
     }
   };
+  window.addEventListener('error', event => { if (event.target?.id === 'flutter-entry') window.amidPwa.startupError(); }, true);
   el('restart-app').onclick = () => location.reload();
   el('offline-status').onclick = help;
   function network() {

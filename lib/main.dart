@@ -15,6 +15,8 @@ import 'screens/map_screen.dart';
 import 'screens/messages_screen.dart';
 import 'screens/lite_screen.dart';
 import 'screens/note_editor.dart';
+import 'screens/catalog_screen.dart';
+import 'screens/account_screen.dart';
 import 'screens/browser_screen.dart';
 import 'widgets/common.dart';
 import 'widgets/app_theme.dart';
@@ -209,7 +211,23 @@ class _OffgridShellState extends State<OffgridShell>
   }
 
   void _packs() => Navigator.of(context).push<void>(
-    MaterialPageRoute(builder: (_) => PacksScreen(services: services)),
+    MaterialPageRoute(
+      builder: (_) => PacksScreen(services: services, openMap: _openMap),
+    ),
+  );
+
+  void _openMap() {
+    Navigator.of(context).popUntil((route) => route.isFirst);
+    _navigate(3);
+  }
+
+  void _catalog() => Navigator.of(context).push<void>(
+    MaterialPageRoute(
+      builder: (_) => CatalogScreen(services: services, openMap: _openMap),
+    ),
+  );
+  void _account() => Navigator.of(context).push<void>(
+    MaterialPageRoute(builder: (_) => AccountScreen(account: services.account)),
   );
 
   void _browser() => unawaited(
@@ -231,8 +249,16 @@ class _OffgridShellState extends State<OffgridShell>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.hidden && services.account.verified) {
+      services.account.lock();
+    }
     if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.detached) {
+      // Let the unfinished AAL1 flow survive an authenticator-app switch.
+      // No profile access is possible before TOTP; the idle timeout still applies.
+      if (services.account.verified || state == AppLifecycleState.detached) {
+        services.account.lock();
+      }
       unawaited(services.assistant.cancel());
       unawaited(services.nearby.stop());
     }
@@ -394,6 +420,10 @@ class _OffgridShellState extends State<OffgridShell>
                       tooltip: 'Швидкі дії',
                       onSelected: (value) {
                         switch (value) {
+                          case 'catalog':
+                            _catalog();
+                          case 'account':
+                            _account();
                           case 'browser':
                             _browser();
                           case 'note':
@@ -405,6 +435,14 @@ class _OffgridShellState extends State<OffgridShell>
                         }
                       },
                       itemBuilder: (_) => const [
+                        PopupMenuItem(
+                          value: 'catalog',
+                          child: Text('Карти та локальний ШІ'),
+                        ),
+                        PopupMenuItem(
+                          value: 'account',
+                          child: Text('Мій акаунт'),
+                        ),
                         PopupMenuItem(
                           value: 'browser',
                           child: Text('Браузер та збережені сторінки'),
