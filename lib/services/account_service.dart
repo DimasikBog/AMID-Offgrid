@@ -18,8 +18,9 @@ bool validAccountPassword(String value) =>
     utf8.encode(value).length <= 72;
 
 Future<Map<String, dynamic>> solveAccountWork(
-  Map<String, dynamic> challenge, {void Function()? checkActive}
-) async {
+  Map<String, dynamic> challenge, {
+  void Function()? checkActive,
+}) async {
   final token = challenge['token'];
   final bits = challenge['bits'];
   if (token is! String || token.length > 700 || bits != 18) {
@@ -46,7 +47,9 @@ Future<Map<String, dynamic>> solveAccountWork(
 
 class AccountService extends ChangeNotifier {
   AccountService({AppStore? store}) {
-    offline = store == null ? null : OfflineProfileService(store, onActivity: _touch);
+    offline = store == null
+        ? null
+        : OfflineProfileService(store, onActivity: _touch);
   }
   late final OfflineProfileService? offline;
   bool get offlineUnlocked => offline?.unlocked ?? false;
@@ -105,7 +108,10 @@ class AccountService extends ChangeNotifier {
     bool authenticated = false,
   }) async {
     _checkActive();
-    if (authenticated && !verified) throw StateError('Для серверної дії потрібен вхід із 2FA через інтернет.');
+    if (authenticated && !verified)
+      throw StateError(
+        'Для серверної дії потрібен вхід із 2FA через інтернет.',
+      );
     final client = http.Client();
     _http = client;
     try {
@@ -288,6 +294,7 @@ class AccountService extends ChangeNotifier {
     offline?.lock();
     lockOnline();
   }
+
   void lockOnline() {
     if (busy) offline?.lock();
     _epoch++;
@@ -314,14 +321,20 @@ class AccountService extends ChangeNotifier {
 
   Future<void> enableOffline(String passphrase) => _run(() async {
     final vault = offline, user = _client?.auth.currentUser;
-    if (!verified || user == null || vault == null) throw StateError('Спочатку підтвердь онлайн-вхід через 2FA.');
-    await vault.create(username: username, userId: user.id, passphrase: passphrase);
+    if (!verified || user == null || vault == null)
+      throw StateError('Спочатку підтвердь онлайн-вхід через 2FA.');
+    await vault.create(
+      username: username,
+      userId: user.id,
+      passphrase: passphrase,
+    );
     _checkActive();
     _touch();
   });
   Future<void> unlockOffline(String name, String passphrase) => _run(() async {
     if (signedIn) throw StateError('Спочатку заверши поточний онлайн-сеанс.');
-    if (!validAccountUsername(name) || offline == null) throw const FormatException('Перевір логін та локальну копію профілю.');
+    if (!validAccountUsername(name) || offline == null)
+      throw const FormatException('Перевір логін та локальну копію профілю.');
     await offline!.unlock(name, passphrase);
     _checkActive();
     _touch();

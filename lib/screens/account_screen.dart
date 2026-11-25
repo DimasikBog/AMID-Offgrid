@@ -98,8 +98,10 @@ class _AccountScreenState extends State<AccountScreen> {
                   const SizedBox(height: 16),
                   OfflineProfilePanel(account: account),
                   const SizedBox(height: 12),
-                  TextButton(onPressed: account.busy ? null : account.lock,
-                    child: const Text('Заблокувати профіль')),
+                  TextButton(
+                    onPressed: account.busy ? null : account.lock,
+                    child: const Text('Заблокувати профіль'),
+                  ),
                 ] else if (!account.signedIn) ...[
                   Wrap(
                     spacing: 8,
@@ -147,14 +149,22 @@ class _AccountScreenState extends State<AccountScreen> {
                           obscureText: !_showPassword,
                           autocorrect: false,
                           enableSuggestions: false,
-                          autofillHints: _mode == 3 ? null : [
-                            _mode == 0
-                                ? AutofillHints.password
-                                : AutofillHints.newPassword,
-                          ],
+                          autofillHints: _mode == 3
+                              ? null
+                              : [
+                                  _mode == 0
+                                      ? AutofillHints.password
+                                      : AutofillHints.newPassword,
+                                ],
                           decoration: InputDecoration(
-                            labelText: _mode == 3 ? 'Локальна парольна фраза' : _mode == 2 ? 'Новий пароль' : 'Пароль',
-                            helperText: _mode == 3 ? 'Окрема фраза для копії на цьому пристрої' : 'Від 16 символів; до 72 байтів UTF-8',
+                            labelText: _mode == 3
+                                ? 'Локальна парольна фраза'
+                                : _mode == 2
+                                ? 'Новий пароль'
+                                : 'Пароль',
+                            helperText: _mode == 3
+                                ? 'Окрема фраза для копії на цьому пристрої'
+                                : 'Від 16 символів; до 72 байтів UTF-8',
                             prefixIcon: const Icon(Icons.lock_outline),
                             suffixIcon: IconButton(
                               tooltip: _showPassword
@@ -200,7 +210,9 @@ class _AccountScreenState extends State<AccountScreen> {
                         ? null
                         : () => guarded(context, _submit),
                     icon: Icon(
-                      _mode == 3 ? Icons.cloud_off_outlined : _mode == 1
+                      _mode == 3
+                          ? Icons.cloud_off_outlined
+                          : _mode == 1
                           ? Icons.person_add_outlined
                           : _mode == 2
                           ? Icons.key_outlined
@@ -209,7 +221,9 @@ class _AccountScreenState extends State<AccountScreen> {
                     label: Text(
                       account.busy
                           ? 'Захисна перевірка…'
-                          : _mode == 3 ? 'Відкрити офлайн-профіль' : _mode == 1
+                          : _mode == 3
+                          ? 'Відкрити офлайн-профіль'
+                          : _mode == 1
                           ? 'Створити акаунт'
                           : _mode == 2
                           ? 'Відновити доступ'
@@ -217,25 +231,50 @@ class _AccountScreenState extends State<AccountScreen> {
                     ),
                   ),
                   TextButton.icon(
-                    onPressed: account.busy ? null : () => setState(() {
-                      _mode = _mode == 3 ? 0 : 3;
-                      _password.clear(); _recovery.clear(); _showPassword = false;
-                    }),
-                    icon: Icon(_mode == 3 ? Icons.wifi : Icons.cloud_off_outlined),
-                    label: Text(_mode == 3 ? 'Повернутися до онлайн-входу' : 'Увійти офлайн'),
+                    onPressed: account.busy
+                        ? null
+                        : () => setState(() {
+                            _mode = _mode == 3 ? 0 : 3;
+                            _password.clear();
+                            _recovery.clear();
+                            _showPassword = false;
+                          }),
+                    icon: Icon(
+                      _mode == 3 ? Icons.wifi : Icons.cloud_off_outlined,
+                    ),
+                    label: Text(
+                      _mode == 3
+                          ? 'Повернутися до онлайн-входу'
+                          : 'Увійти офлайн',
+                    ),
                   ),
                   if (_mode == 3) ...[
-                    const Text('Перший вхід і ввімкнення локальної копії потребують інтернету та 2FA. Потім логін і локальна фраза відкривають персоналізацію без мережі. Серверні дії потребують нового онлайн-входу.'),
-                    TextButton(onPressed: account.busy ? null : () => guarded(context, () async {
-                      if (await _confirm('Прибрати локальну копію?', 'Це видалить тільки офлайн-профіль для введеного логіна на цьому пристрої. Серверний акаунт і матеріали залишаться.')) {
-                        await account.forgetOffline(_name.text.trim().toLowerCase());
-                      }
-                    }), child: const Text('Забув локальну фразу — прибрати копію')),
+                    const Text(
+                      'Перший вхід і ввімкнення локальної копії потребують інтернету та 2FA. Потім логін і локальна фраза відкривають персоналізацію без мережі. Серверні дії потребують нового онлайн-входу.',
+                    ),
+                    TextButton(
+                      onPressed: account.busy
+                          ? null
+                          : () => guarded(context, () async {
+                              if (await _confirm(
+                                'Прибрати локальну копію?',
+                                'Це видалить тільки офлайн-профіль для введеного логіна на цьому пристрої. Серверний акаунт і матеріали залишаться.',
+                              )) {
+                                await account.forgetOffline(
+                                  _name.text.trim().toLowerCase(),
+                                );
+                              }
+                            }),
+                      child: const Text(
+                        'Забув локальну фразу — прибрати копію',
+                      ),
+                    ),
                   ],
                   const SizedBox(height: 16),
-                  if (_mode != 3) const Text(
-                    'Email і номер телефону не збираються. Для реєстрації потрібні логін, надійний пароль та застосунок-автентифікатор з TOTP. Збережи резервні коди після налаштування 2FA. Під час створення й відновлення пароля сервіс HIBP отримує лише перші 5 символів SHA-1, без пароля та логіна, для перевірки відомих витоків.',
-                  ),
+                  if (_mode != 3)
+                    const Text(
+                      'Email і номер телефону не збираються. Для реєстрації потрібні логін, надійний пароль та застосунок-автентифікатор з TOTP. Збережи резервні коди після налаштування 2FA. Під час створення й відновлення пароля сервіс HIBP отримує лише перші 5 символів SHA-1, без пароля та логіна, для перевірки відомих витоків.',
+                    ),
                 ] else ...[
                   Pill(account.username),
                   if (!account.verified) ...[
