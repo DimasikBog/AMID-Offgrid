@@ -1,7 +1,33 @@
+import 'dart:convert';
+
+import 'package:flutter/foundation.dart';
 import 'package:amid_offgrid/models/catalog.dart';
 import 'package:amid_offgrid/models/starter_content.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+class _MetadataBundle extends CachingAssetBundle {
+  @override
+  Future<ByteData> load(String key) async {
+    final text = switch (key) {
+      'assets/catalog.json' => const String.fromEnvironment(
+        'OFFGRID_CATALOG_JSON',
+      ),
+      'assets/offline_model/catalog.json' => const String.fromEnvironment(
+        'OFFGRID_STARTER_JSON',
+      ),
+      _ => '',
+    };
+    if (text.isEmpty) {
+      throw StateError(
+        'Run web metadata tests with scripts/check_catalog_browser.py',
+      );
+    }
+    return ByteData.sublistView(Uint8List.fromList(utf8.encode(text)));
+  }
+}
+
+AssetBundle get metadataBundle => kIsWeb ? _MetadataBundle() : rootBundle;
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -34,7 +60,7 @@ void main() {
     expect(CatalogEntry.fromJson(good).installable, isTrue);
   });
   test('bundled catalogue has verified map installs, sources and four pinned official models', () async {
-    final items = await loadCatalog();
+    final items = await loadCatalog(bundle: metadataBundle);
     expect(items.where((e) => e.model).length, 4);
     expect(items.where((e) => e.kind == 'image').length, 3);
     expect(items.where((e) => e.kind == 'geojson').length, 3);
@@ -50,9 +76,9 @@ void main() {
   test(
     'multi-GiB model bounds also work when compiled to JavaScript',
     () async {
-      final starter = await StarterCatalog.load(rootBundle);
+      final starter = await StarterCatalog.load(metadataBundle);
       expect(starter.model.bytes, greaterThan(600000000));
-      final items = await loadCatalog();
+      final items = await loadCatalog(bundle: metadataBundle);
       final model = items.firstWhere((e) => e.bytes > 4000000000);
       expect(model.bytes, 4280404704);
       final metadata = {
