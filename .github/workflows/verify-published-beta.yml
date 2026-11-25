@@ -1,0 +1,91 @@
+name: Verify published beta 8
+on:
+  push:
+    branches: [codex/release-audit-457543817]
+permissions:
+  contents: read
+concurrency:
+  group: release-audit-beta-8
+  cancel-in-progress: true
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - name: Verify published manifests and GitHub asset digests
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY'
+          import json, os, urllib.request
+          from pathlib import Path
+          from datetime import datetime, timezone
+          
+          repo = os.environ['GITHUB_REPOSITORY']
+          tag = 'v0.6.0-beta.8'
+          source = 'de38dca74e79ba1542c625b1fb19694d6de31f96'
+          model_sha = '9465e63a22add5354d9bb4b99e90117043c7124007664907259bd16d043bb031'
+          expected = {'android', 'ios', 'windows', 'linux', 'macos', 'wearos', 'watchos', 'web'}
+          native = {'android', 'ios', 'windows', 'linux', 'macos'}
+          catalog = json.loads(Path('assets/offline_model/catalog.json').read_text(encoding='utf-8'))
+          
+          def read_json(url, authenticated=False):
+              headers = {'User-Agent': 'AMID-release-audit', 'Accept': 'application/vnd.github+json' if authenticated else 'application/json'}
+              if authenticated:
+                  headers['Authorization'] = 'Bearer ' + os.environ['GH_TOKEN']
+              request = urllib.request.Request(url, headers=headers)
+              with urllib.request.urlopen(request, timeout=60) as response:
+                  data = response.read(1024 * 1024 + 1)
+              if len(data) > 1024 * 1024:
+                  raise ValueError('Metadata exceeds its bounded size')
+              return json.loads(data)
+          
+          release = read_json('https://api.github.com/repos/' + repo + '/releases/tags/' + tag, True)
+          assert release['tag_name'] == tag and release['draft'] is False and release['prerelease'] is True
+          assert release['target_commitish'] == source
+          assets = {asset['name']: asset for asset in release['assets']}
+          assert len(assets) == 17
+          records = []
+          checked_files = set()
+          for name, asset in assets.items():
+              if not name.endswith('-manifest.json'):
+                  continue
+              record = read_json(asset['browser_download_url'])
+              assert record['sourceCommit'] == source and record['version'] == '0.6.0'
+              assert str(record['build']) == '8' and record['quality'] == 'success'
+              assert record['deviceTesting'] == 'not_run' and record['storeSubmission'] == 'not_run'
+              for file in record['artifacts']:
+                  actual = assets[file['file']]
+                  assert actual['size'] == file['bytes']
+                  assert actual['digest'] == 'sha256:' + file['sha256']
+                  assert file['physicalDeviceTested'] is False
+                  assert file['file'] not in checked_files
+                  checked_files.add(file['file'])
+              if record['platform'] in native:
+                  payload = record['offlineStarter']
+                  assert payload['modelIncluded'] is True and payload['modelBytes'] == 639446688
+                  assert payload['modelSha256'] == model_sha == catalog['model']['sha256']
+                  assert payload['mapDetail'] == 'world overview'
+                  assert payload['mapSha256'] == catalog['map']['sha256']
+                  assert payload['knowledgeSha256'] == catalog['knowledge']['sha256']
+              else:
+                  assert record['offlineStarter'] is None
+              records.append(record)
+          assert {record['platform'] for record in records} == expected
+          assert len(records) == 8 and len(checked_files) == 9
+          report = {'release': release['html_url'], 'releaseId': release['id'], 'sourceCommit': source,
+                    'verifiedAt': datetime.now(timezone.utc).isoformat(), 'manifests': records,
+                    'binaryCount': 9, 'nativeStarterCount': 5, 'allGitHubAssetDigestsMatch': True,
+                    'physicalDevices': 'not_run', 'storeSubmission': 'not_run'}
+          Path('release-audit.json').write_text(json.dumps(report, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+          print('AMID_RELEASE_AUDIT_OK: 8 manifests, 9 binaries, 5 complete native starters; all GitHub asset sizes and SHA-256 digests match.')
+          PY
+      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+        with:
+          name: AMID-release-audit-beta-8
+          path: release-audit.json
+          if-no-files-found: error
+          retention-days: 90
