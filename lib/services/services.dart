@@ -13,7 +13,7 @@ class Services {
     setup = StarterSetup(store, files);
     nearby = NearbyService(store);
     catalog = CatalogService(store, files);
-    account = AccountService();
+    account = AccountService(store: store);
   }
   final AppStore store;
   late final CatalogService catalog;

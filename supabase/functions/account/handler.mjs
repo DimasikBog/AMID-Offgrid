@@ -47,7 +47,31 @@ export async function compromisedPassword(password, fetcher = fetch) {
   return text.split('\n').some(line=>{const [suffix,count]=line.trim().split(':');return suffix===digest.slice(5)&&Number(count)>0;});
 }
 class Failure extends Error { constructor(status,code){super(code);this.status=status;this.code=code;} }
-export function createAccountHandler({url, serviceKey, publicKey, fetcher=fetch, now=Date.now}) {
+export async function readBoundedBody(request, timeoutMs=8000) {
+  const reader=request.body?.getReader();
+  if (!reader) throw new Failure(400,'invalid_request');
+  let timer,bytes=0;const chunks=[];
+  const deadline=new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Failure(408,'request_timeout')),timeoutMs);});
+  try {
+    for (;;) {
+      const {value,done}=await Promise.race([reader.read(),deadline]);
+      if(done)break;
+      bytes+=value.length;
+      if(bytes>16384)throw new Failure(413,'request_too_large');
+      chunks.push(value);
+    }
+    const raw=new Uint8Array(bytes);let offset=0;
+    for(const chunk of chunks){raw.set(chunk,offset);offset+=chunk.length;}
+    return raw;
+  } catch(error) {
+    void reader.cancel().catch(()=>{});
+    throw error;
+  } finally {clearTimeout(timer);reader.releaseLock();}
+}
+const fields={info:[],challenge:['username','purpose'],register:['username','password','proof'],
+  login:['username','password','proof'],recover:['username','password','proof','recoveryCode'],
+  codes:[],export:[],logout_all:[],delete:['confirmUsername']};
+export function createAccountHandler({url, serviceKey, publicKey, fetcher=fetch, now=Date.now, bodyTimeoutMs=8000}) {
   if (!url?.startsWith('https://') || !serviceKey || !publicKey) throw new Error('Account service configuration missing');
   const serviceHeaders = {apikey:serviceKey,Authorization:'Bearer '+serviceKey,'Content-Type':'application/json'};
   async function api(path,body,method='POST',headers=serviceHeaders) {
@@ -79,7 +103,7 @@ export function createAccountHandler({url, serviceKey, publicKey, fetcher=fetch,
   }
   return async request => {
     const origin=request.headers.get('origin');
-    const headers = {'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Vary':'Origin'};
+    const headers = {'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer','Vary':'Origin'};
     if (origin===allowedOrigin) Object.assign(headers,{'Access-Control-Allow-Origin':origin,'Access-Control-Allow-Headers':'authorization, apikey, content-type, x-client-info','Access-Control-Allow-Methods':'POST, OPTIONS','Access-Control-Max-Age':'600'});
     const reply=(data,status=200)=>new Response(JSON.stringify(data),{status,headers});
     if (origin && origin!==allowedOrigin) return reply({error:'origin_not_allowed'},403);
@@ -87,22 +111,21 @@ export function createAccountHandler({url, serviceKey, publicKey, fetcher=fetch,
     if (request.method!=='POST') return reply({error:'method_not_allowed'},405);
     try {
       const type=request.headers.get('content-type')??'';
-      if (!type.startsWith('application/json')) throw new Failure(415,'json_required');
+      if (!/^application\/json(?:\s*;.*)?$/i.test(type)) throw new Failure(415,'json_required');
       if (Number(request.headers.get('content-length')??0)>16384) throw new Failure(413,'request_too_large');
       // Stream bound also covers absent or forged Content-Length.
-      const reader=request.body?.getReader(); let bytes=0; const chunks=[];
-      if (!reader) throw new Failure(400,'invalid_request');
-      for (;;) {const {value,done}=await reader.read();if(done)break;bytes+=value.length;if(bytes>16384){await reader.cancel();throw new Failure(413,'request_too_large');}chunks.push(value);}
-      const raw=new Uint8Array(bytes);let offset=0;for(const chunk of chunks){raw.set(chunk,offset);offset+=chunk.length;}
+      const raw=await readBoundedBody(request,bodyTimeoutMs);
       let body;try {body=JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(raw));}catch{throw new Failure(400,'invalid_request');}
       if (!body || typeof body!=='object' || Array.isArray(body)) throw new Failure(400,'invalid_request');
       const action=body.action;
-      if (action==='info') return reply({version:1,registration:true,mandatoryMfa:true,proofBits:18,sessionStorage:'memory',contactEmailCollected:false});
+      if (typeof action!=='string' || !Object.hasOwn(fields,action)) throw new Failure(404,'unknown_action');
+      if(Object.keys(body).some(key=>key!=='action'&&!fields[action].includes(key)))throw new Failure(400,'invalid_request');
+      if (action==='info') return reply({version:2,registration:true,mandatoryMfa:true,proofBits:18,loginProofRequired:true,sessionStorage:'memory',contactEmailCollected:false});
       if (['challenge','register','login','recover'].includes(action)) {
         if (!validUsername(body.username)) throw new Failure(400,'invalid_username');
         const subject=await hash(body.username);
         if(action==='challenge') {
-          if(!['register','recover'].includes(body.purpose)) throw new Failure(400,'invalid_request');
+          if(!['register','recover','login'].includes(body.purpose)) throw new Failure(400,'invalid_request');
           await limit('challenge:global',1200,3600);
           await limit('challenge:'+subject,20,900);
           return reply(await makeChallenge(serviceKey,body.username,body.purpose,now()));
@@ -110,10 +133,8 @@ export function createAccountHandler({url, serviceKey, publicKey, fetcher=fetch,
         await limit(action+':global',action==='login'?600:60,3600);
         await limit(action+':'+subject,action==='login'?10:4,900);
         if (!validPassword(body.password)) throw new Failure(400,'invalid_credentials');
-        if (action!=='login') {
-          if(!await verifyWork(serviceKey,body.username,action==='register'?'register':'recover',body.proof,now())) throw new Failure(400,'invalid_proof');
-          if(!await rpc('offgrid_auth_consume_proof',{p_hash:await hash(body.proof.token)}))throw new Failure(409,'proof_already_used');
-        }
+        if(!await verifyWork(serviceKey,body.username,action,body.proof,now())) throw new Failure(400,'invalid_proof');
+        if(!await rpc('offgrid_auth_consume_proof',{p_hash:await hash(body.proof.token)}))throw new Failure(409,'proof_already_used');
         if(action!=='login' && await compromisedPassword(body.password,fetcher))throw new Failure(400,'password_compromised');
         if(action==='register') {
           if(await profile(body.username)) throw new Failure(409,'username_unavailable');

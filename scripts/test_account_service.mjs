@@ -48,3 +48,33 @@ test('breached-password lookup sends only a padded hash prefix; padding does not
  assert(!await compromisedPassword(password,async()=>new Response(digest.slice(5)+':0\r\n')));
  await assert.rejects(compromisedPassword(password,async()=>new Response('',{status:503})));
 });
+
+test('login requires action-bound work before any password or profile lookup',async()=>{
+ let lookups=0;
+ const handler=make(async url=>{
+   if(url.endsWith('offgrid_auth_limit'))return new Response('true');
+   if(url.endsWith('offgrid_auth_consume_proof'))return new Response('false');
+   lookups++;throw Error('unexpected credential lookup');
+ });
+ const body={action:'login',username:'alice_123',password:'a unique long passphrase'};
+ assert.equal((await handler(req(body))).status,400);
+ const wrong=proof(await makeChallenge(secret,body.username,'register'));
+ assert.equal((await handler(req({...body,proof:wrong}))).status,400);
+ const work=proof(await makeChallenge(secret,body.username,'login'));
+ assert.equal((await handler(req({...body,proof:work}))).status,409);
+ assert.equal(lookups,0);
+ const challenge=await handler(req({action:'challenge',username:body.username,purpose:'login'}));
+ assert.equal(challenge.status,200);
+ assert.equal((await handler(req({action:'info'}))).headers.get('Cache-Control'),'no-store');
+});
+
+test('slow request bodies time out and are cancelled; unknown fields and media types are rejected',async()=>{
+ let cancelled=false;
+ const handler=createAccountHandler({url:'https://example.supabase.co',serviceKey:secret,
+   publicKey:'fixture-public',bodyTimeoutMs:20,fetcher:()=>{throw Error('must not contact upstream');}});
+ const body=new ReadableStream({start(controller){controller.enqueue(new TextEncoder().encode('{'));},cancel(){cancelled=true;}});
+ const response=await handler(new Request('https://example.test',{method:'POST',headers:{'Content-Type':'application/json'},body,duplex:'half'}));
+ assert.equal(response.status,408);assert(cancelled);
+ assert.equal((await handler(req({action:'info',unexpected:true}))).status,400);
+ assert.equal((await handler(req({action:'info'},{'Content-Type':'application/json-evil'}))).status,415);
+});

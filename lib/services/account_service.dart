@@ -7,6 +7,8 @@ import 'package:http/http.dart' as http;
 import 'package:supabase/supabase.dart';
 
 import 'account_config.dart';
+import 'offline_profile.dart';
+import 'store.dart';
 
 bool validAccountUsername(String value) =>
     RegExp(r'^[a-z0-9_]{3,32}$').hasMatch(value);
@@ -16,7 +18,7 @@ bool validAccountPassword(String value) =>
     utf8.encode(value).length <= 72;
 
 Future<Map<String, dynamic>> solveAccountWork(
-  Map<String, dynamic> challenge,
+  Map<String, dynamic> challenge, {void Function()? checkActive}
 ) async {
   final token = challenge['token'];
   final bits = challenge['bits'];
@@ -30,6 +32,7 @@ Future<Map<String, dynamic>> solveAccountWork(
       return {'token': token, 'counter': counter};
     }
     if (counter % 2048 == 0) {
+      checkActive?.call();
       if (watch.elapsed > const Duration(seconds: 45)) {
         throw const FormatException(
           'Захисна перевірка триває задовго. Спробуй ще.',
@@ -42,6 +45,12 @@ Future<Map<String, dynamic>> solveAccountWork(
 }
 
 class AccountService extends ChangeNotifier {
+  AccountService({AppStore? store}) {
+    offline = store == null ? null : OfflineProfileService(store, onActivity: _touch);
+  }
+  late final OfflineProfileService? offline;
+  bool get offlineUnlocked => offline?.unlocked ?? false;
+  bool get locallyAccessible => verified || offlineUnlocked;
   SupabaseClient? _client;
   http.Client? _http;
   Timer? _idle;
@@ -96,6 +105,7 @@ class AccountService extends ChangeNotifier {
     bool authenticated = false,
   }) async {
     _checkActive();
+    if (authenticated && !verified) throw StateError('Для серверної дії потрібен вхід із 2FA через інтернет.');
     final client = http.Client();
     _http = client;
     try {
@@ -158,7 +168,7 @@ class AccountService extends ChangeNotifier {
       'username': name,
       'purpose': purpose,
     });
-    return solveAccountWork(challenge);
+    return solveAccountWork(challenge, checkActive: _checkActive);
   }
 
   Future<void> register(String name, String password) => _run(() async {
@@ -176,10 +186,13 @@ class AccountService extends ChangeNotifier {
       _run(() => _login(name, password));
   Future<void> _login(String name, String password) async {
     _validate(name, password);
+    offline?.lock();
+    final proof = await _proof(name, 'login');
     final data = await _call({
       'action': 'login',
       'username': name,
       'password': password,
+      'proof': proof,
     });
     await _supabase.auth.setSession(data['refresh_token'] as String);
     _checkActive();
@@ -259,17 +272,24 @@ class AccountService extends ChangeNotifier {
         await _login(name, password);
       });
   Future<void> delete() => _run(() async {
+    final name = username;
     await _call({
       'action': 'delete',
       'confirmUsername': username,
     }, authenticated: true);
     lock();
+    await offline?.forget(name);
   });
   Future<void> logoutAll() => _run(() async {
     await _call({'action': 'logout_all'}, authenticated: true);
     lock();
   });
   void lock() {
+    offline?.lock();
+    lockOnline();
+  }
+  void lockOnline() {
+    if (busy) offline?.lock();
     _epoch++;
     _http?.close();
     _idle?.cancel();
@@ -280,6 +300,7 @@ class AccountService extends ChangeNotifier {
     factorId = '';
     totpSecret = '';
     totpUri = '';
+    if (offlineUnlocked && !_disposed) _touch();
     if (client != null) {
       unawaited(
         client.auth
@@ -290,6 +311,28 @@ class AccountService extends ChangeNotifier {
     }
     _changed();
   }
+
+  Future<void> enableOffline(String passphrase) => _run(() async {
+    final vault = offline, user = _client?.auth.currentUser;
+    if (!verified || user == null || vault == null) throw StateError('Спочатку підтвердь онлайн-вхід через 2FA.');
+    await vault.create(username: username, userId: user.id, passphrase: passphrase);
+    _checkActive();
+    _touch();
+  });
+  Future<void> unlockOffline(String name, String passphrase) => _run(() async {
+    if (signedIn) throw StateError('Спочатку заверши поточний онлайн-сеанс.');
+    if (!validAccountUsername(name) || offline == null) throw const FormatException('Перевір логін та локальну копію профілю.');
+    await offline!.unlock(name, passphrase);
+    _checkActive();
+    _touch();
+  });
+  Future<void> renameOffline(String value) => _run(() async {
+    await offline?.rename(value);
+    _touch();
+  });
+  Future<void> forgetOffline(String name) => _run(() async {
+    await offline?.forget(name);
+  });
 
   @override
   void dispose() {
