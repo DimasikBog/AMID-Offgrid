@@ -1,0 +1,28 @@
+{
+  "reference": {
+    "protobuf": {
+      "version": "7.36.2",
+      "wheel": "protobuf-7.36.2-py3-none-any.whl",
+      "sha256": "bdb3a345d48db958e6ce1f18e508beb0cc981d64f24088427549c866cd039f1e"
+    },
+    "meshtastic": {
+      "version": "2.7.11",
+      "wheel": "meshtastic-2.7.11-py3-none-any.whl",
+      "sha256": "adb020f2cd7ace53896c6bf487f2d2136498dd88052c41a2aa6fb7a4634971b5"
+    }
+  },
+  "note": "Deterministic public test key; never configure devices with it.",
+  "vectors": {
+    "config_request": "18b960",
+    "text_request": "0a2815cdab34121801221608011212d09fd180d0b8d0b2d196d1822c20414d4944354030201048035001",
+    "my_info": "1a0608c4e6888901",
+    "metadata": "6a100a0e322e372e32362e35346530643864",
+    "lora": "2a06320438034801",
+    "channel_test_key_only": "52330801122d1220000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f1a09414d49442d546573741802",
+    "node": "222908cdd7d291011211120fd092d183d0b7d0bed0bb20414d49441a0a0d0065cd1d1580d1f00832020849",
+    "complete": "38b960",
+    "queued": "5a0a100f181020c0e0808101",
+    "recipient_ack": "121a0dcdab34121544332211180122070805354030201035db030000",
+    "incoming_text": "12430dcdab34121544332211180122200801121cd09ed182d180d0b8d0bcd0b0d0bdd0be20d0b720d0bbd196d181d1833577889900450000e840609fffffffffffffffff01"
+  }
+}

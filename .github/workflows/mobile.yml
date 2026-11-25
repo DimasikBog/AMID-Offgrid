@@ -41,11 +41,23 @@ jobs:
       - run: flutter pub get --enforce-lockfile
       - run: python3 scripts/patch_flutter_simulator.py --verify-only
       - run: python3 scripts/check_project.py
+      - run: python3 scripts/check_radio_hardware.py
       - run: node --test scripts/test_account_service.mjs
       - run: python3 -m unittest discover -s scripts -p 'test_*.py'
-      - run: dart format --output=none --set-exit-if-changed lib test
+      - name: Check Dart formatting with a reviewable diff
+        run: |
+          dart format lib test
+          git diff --exit-code -- lib test
       - run: flutter analyze --no-pub
       - run: flutter test --no-pub --concurrency 2 --reporter expanded
+      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+        if: failure()
+        with:
+          name: quality-review-evidence
+          path: |
+            test/failures/
+          if-no-files-found: ignore
+          retention-days: 7
 
   android:
     if: github.event.repository.private == false

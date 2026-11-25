@@ -67,7 +67,7 @@
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 	<key>NSBluetoothAlwaysUsageDescription</key>
-	<string>Захищений прямий обмін повідомленнями з іншим телефоном AMID поблизу.</string>
+	<string>Обмін повідомленнями з іншим телефоном AMID і підключення власного LoRa-модуля через Bluetooth.</string>
 	<key>NSBluetoothPeripheralUsageDescription</key>
 	<string>Обмін повідомленнями AMID поблизу без інтернету.</string>
 	<key>NSCameraUsageDescription</key>

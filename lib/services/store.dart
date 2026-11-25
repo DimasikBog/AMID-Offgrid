@@ -32,6 +32,71 @@ class AppStore extends ChangeNotifier {
   String draft = '', selectedModel = '', selectedMap = '';
   Future<void> _writes = Future.value();
   bool _closed = false;
+  Map<String, Json> _offlineProfiles = {};
+  String? _activeProfile;
+  Future<Json> Function(Json)? _protectPersonalization;
+  Json get personalization => {
+    'themePreference': themePreference,
+    'readerScale': readerScale,
+    'preparation': preparation.toList()..sort(),
+  };
+  Json? offlineProfile(String id) {
+    final value = _offlineProfiles[id];
+    return value == null ? null : decodeObject(jsonEncode(value));
+  }
+
+  void bindOfflineProfile(String id, Future<Json> Function(Json) protect) {
+    _activeProfile = id;
+    _protectPersonalization = protect;
+  }
+
+  void unbindOfflineProfile() {
+    _activeProfile = null;
+    _protectPersonalization = null;
+  }
+
+  Future<void> saveOfflineProfile(
+    String id,
+    Json value, {
+    void Function()? checkActive,
+  }) => updateOfflineProfile(id, (_) async => value, checkActive: checkActive);
+  Future<void> updateOfflineProfile(
+    String id,
+    Future<Json> Function(Json) build, {
+    void Function()? checkActive,
+  }) => _mutate(() async {
+    if (!RegExp(r'^[a-f0-9]{64}$').hasMatch(id) ||
+        (!_offlineProfiles.containsKey(id) && _offlineProfiles.length >= 5)) {
+      throw const FormatException(
+        'На пристрої можна зберегти до 5 офлайн-профілів.',
+      );
+    }
+    final value = await build(personalization);
+    checkActive?.call();
+    if (jsonEncode(value).length > 12000) {
+      throw const FormatException('Профіль завеликий.');
+    }
+    _offlineProfiles[id] = decodeObject(jsonEncode(value));
+  }, checkActive: checkActive);
+  Future<void> removeOfflineProfile(String id) => _mutate(() {
+    _offlineProfiles.remove(id);
+  });
+  Future<void> applyPersonalization(
+    Json value, {
+    void Function()? checkActive,
+  }) {
+    if (!{'system', 'light', 'dark'}.contains(value['themePreference'])) {
+      throw const FormatException('Невідома тема профілю.');
+    }
+    final scale = checkedReaderScale(value['readerScale']);
+    final prepared = checkedPreparation(value['preparation']);
+    return _mutate(() {
+      themePreference = value['themePreference'] as String;
+      readerScale = scale;
+      preparation = prepared;
+    }, checkActive: checkActive);
+  }
+
   Future<void>? _closing;
   static Future<AppStore> open({
     String? seedText,
@@ -107,6 +172,18 @@ class AppStore extends ChangeNotifier {
     starterAutoSetup = data['starterAutoSetup'] is bool
         ? data['starterAutoSetup'] as bool
         : true;
+    _offlineProfiles = {};
+    final profiles = data['offlineProfiles'];
+    if (profiles is Map && profiles.length <= 5) {
+      for (final entry in profiles.entries) {
+        if (entry.key is String &&
+            RegExp(r'^[a-f0-9]{64}$').hasMatch(entry.key as String) &&
+            entry.value is Map &&
+            jsonEncode(entry.value).length <= 12000) {
+          _offlineProfiles[entry.key as String] = Json.from(entry.value as Map);
+        }
+      }
+    }
   }
 
   Json snapshot() => {
@@ -122,19 +199,31 @@ class AppStore extends ChangeNotifier {
     'readerScale': readerScale,
     'preparation': preparation.toList(),
     'starterAutoSetup': starterAutoSetup,
+    'offlineProfiles': {
+      for (final id in _offlineProfiles.keys) id: offlineProfile(id),
+    },
   };
   Future<void> _mutate(
-    void Function() change, {
+    FutureOr<void> Function() change, {
     bool reindex = false,
     bool libraryChanged = false,
     void Function()? checkActive,
   }) {
     if (_closed) return Future.error(StateError('Сховище вже закрите.'));
+    // Bind queued settings to the profile that requested the write.
+    final protect = _protectPersonalization, id = _activeProfile;
     final job = _writes.then((_) async {
       checkActive?.call();
       final previous = snapshot();
+      final previousPreferences = jsonEncode(personalization);
       try {
-        change();
+        final pendingChange = change();
+        if (pendingChange is Future) await pendingChange;
+        if (protect != null &&
+            id != null &&
+            jsonEncode(personalization) != previousPreferences) {
+          _offlineProfiles[id] = await protect(personalization);
+        }
         _checkLimits();
         await backend.save(snapshot(), reindex: reindex);
       } catch (_) {
@@ -351,8 +440,8 @@ class AppStore extends ChangeNotifier {
   }, reindex: true);
   Future<void> selectModel(String id) => _mutate(() => selectedModel = id);
   Future<void> selectMap(String id) => _mutate(() => selectedMap = id);
-  Future<void> saveMessage(Message message) =>
-      _mutate(() => _insertMessage(message));
+  Future<void> saveMessage(Message message, {void Function()? checkActive}) =>
+      _mutate(() => _insertMessage(message), checkActive: checkActive);
 
   void _insertMessage(Message message) {
     Message.parse(
@@ -392,7 +481,11 @@ class AppStore extends ChangeNotifier {
 
   Future<void> deleteMessage(String id) =>
       _mutate(() => messages.removeWhere((m) => m.id == id));
-  Future<void> messageStatus(String id, String status) => _mutate(
+  Future<void> messageStatus(
+    String id,
+    String status, {
+    void Function()? checkActive,
+  }) => _mutate(
     () => messages = messages
         .map(
           (m) =>
@@ -403,6 +496,7 @@ class AppStore extends ChangeNotifier {
               : m,
         )
         .toList(),
+    checkActive: checkActive,
   );
   Future<void> removePack(String id) => _mutate(() {
     if (id == 'amid-mobile-starter') {

@@ -1,0 +1,32 @@
+name: Radio dock technical checks
+on:
+  pull_request:
+    paths: ['hardware/**', 'scripts/check_radio_hardware.py', '.github/workflows/radio-hardware.yml']
+  push:
+    branches: [main]
+    paths: ['hardware/**', 'scripts/check_radio_hardware.py', '.github/workflows/radio-hardware.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  carrier:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - name: Install CAD exporter
+        run: sudo apt-get update && sudo apt-get install --no-install-recommends -y openscad
+      - name: Validate declared RF dimensions and export closed carrier mesh
+        run: python3 scripts/check_radio_hardware.py --export-stl build/radio-dock/carrier.stl > build-radio-report.json
+      - name: Retain reproducible CAD evidence
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+        with:
+          name: AMID-Radio-Dock-Technical
+          path: |
+            hardware/radio_dock_v0_1/
+            build/radio-dock/carrier.stl
+            build-radio-report.json
+          if-no-files-found: error
+          retention-days: 14

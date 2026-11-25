@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="840" viewBox="0 0 1280 840">
+<defs><pattern id="grid" width="24" height="24" patternUnits="userSpaceOnUse"><path d="M24 0H0V24" fill="none" stroke="#24343d" stroke-width=".5"/></pattern><marker id="arrow" markerWidth="9" markerHeight="9" refX="5" refY="4" orient="auto-start-reverse"><path d="M0 0L8 4L0 8" fill="none" stroke="#a2bcc7"/></marker></defs>
+<rect width="1280" height="840" fill="#101a23"/><rect width="1280" height="840" fill="url(#grid)"/>
+<g font-family="DejaVu Sans,sans-serif" fill="#e3edf0"><text x="48" y="55" font-size="27" font-weight="bold">AMID RADIO DOCK · EU868 · АНТЕННИЙ ВУЗОЛ 0.1</text>
+<text x="48" y="90" font-size="17" fill="#f8c36b">Експериментальна геометрія. Остаточні довжини визначаються VNA та TX/RX тестом.</text>
+<text x="54" y="150" font-size="22" fill="#63dec4">РОЗКЛАДЕНО · диполь, два плеча</text>
+<path d="M65 199H846" stroke="#a2bcc7" marker-start="url(#arrow)" marker-end="url(#arrow)"/><text x="370" y="187" font-size="20">174 mm із зазором</text>
+<path d="M65 250H442" stroke="#ef9c56" stroke-width="8" stroke-linecap="round"/><path d="M469 250H846" stroke="#63dec4" stroke-width="8" stroke-linecap="round"/>
+<circle cx="442" cy="250" r="9" fill="#ef9c56"/><circle cx="469" cy="250" r="9" fill="#63dec4"/>
+<text x="185" y="285" font-size="19">84 mm · Ø 2 mm</text><text x="565" y="285" font-size="19">84 mm · Ø 2 mm</text>
+<path d="M442 264V334H458M469 264V334H466" stroke="#c6d7df" stroke-width="2" fill="none"/><text x="390" y="309" font-size="16">зазор 6 mm</text>
+<rect x="351" y="334" width="210" height="62" rx="8" fill="#273b45" stroke="#63dec4"/>
+<text x="365" y="362" font-size="16">Струмовий балун 1:1</text><text x="390" y="385" font-size="15">850–900 MHz</text>
+<path d="M456 396V439" stroke="#a6bdc7" stroke-width="6"/><text x="487" y="427" font-size="16">50 Ω · коаксіал ≤100 mm</text>
+<rect x="349" y="440" width="215" height="65" rx="8" fill="#193d37" stroke="#63dec4"/>
+<text x="374" y="467" font-size="18">SMA → SX1262</text><text x="365" y="490" font-size="15">готова плата T3-S3</text>
+<rect x="54" y="545" width="794" height="212" rx="15" fill="#172833" stroke="#37515e"/>
+<text x="79" y="580" font-size="20">869.525 MHz: λ ≈ 344.78 mm; λ/4 ≈ 86.19 mm</text>
+<text x="79" y="615" font-size="17">• 84 mm — довжина заготовки, не підтверджена настройка.</text>
+<text x="79" y="647" font-size="17">• Гнучкі провідники обходять механічні шарніри.</text>
+<text x="79" y="679" font-size="17">• Вимірювати з телефоном, корпусом і рукою.</text>
+<text x="79" y="711" font-size="17">• Перший тест зв’язку — із заводською 868 MHz антеною.</text>
+<text x="935" y="150" font-size="22" fill="#63dec4">СКЛАДЕНО</text>
+<rect x="930" y="335" width="240" height="393" rx="28" fill="#22343f" stroke="#718b98" stroke-width="2"/>
+<rect x="945" y="350" width="210" height="363" rx="20" fill="#12232b"/>
+<path d="M1050 270V335" stroke="#9aabb5" stroke-width="11"/>
+<rect x="1018" y="252" width="65" height="35" rx="7" fill="#234b41" stroke="#63dec4"/>
+<path d="M1037 272V530" stroke="#ef9c56" stroke-width="7" stroke-linecap="round"/><path d="M1064 272V530" stroke="#63dec4" stroke-width="7" stroke-linecap="round"/>
+<path d="M994 300h42M1066 300h44" stroke="#8ba0ad" stroke-dasharray="4 4"/><text x="969" y="322" font-size="15">винос кріплення 30 mm</text>
+<text x="966" y="585" font-size="19">Транспортне</text><text x="966" y="611" font-size="19">положення</text>
+<text x="942" y="758" font-size="16" fill="#f8c36b">RF-характеристики не перевірені</text>
+<text x="48" y="807" font-size="15" fill="#9cb1bb">BLE телефона використовує окрему 2.4 GHz антену плати. Цей вузол не є підсилювачем стільникового сигналу.</text>
+</g></svg>

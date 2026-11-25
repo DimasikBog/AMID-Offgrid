@@ -5,6 +5,8 @@ import 'nearby.dart';
 import 'starter_setup.dart';
 import 'catalog_service.dart';
 import 'account_service.dart';
+import 'radio_dock.dart';
+import 'radio_transport_factory.dart';
 
 class Services {
   Services(this.store) {
@@ -13,16 +15,19 @@ class Services {
     setup = StarterSetup(store, files);
     nearby = NearbyService(store);
     catalog = CatalogService(store, files);
-    account = AccountService();
+    account = AccountService(store: store);
+    radioDock = RadioDockService(store, createRadioTransport());
   }
   final AppStore store;
   late final CatalogService catalog;
   late final AccountService account;
+  late final RadioDockService radioDock;
   late final AssistantService assistant;
   late final ImportService files;
   late final StarterSetup setup;
   late final NearbyService nearby;
   void dispose() {
+    radioDock.dispose();
     account.dispose();
     catalog.dispose();
     assistant.dispose();
