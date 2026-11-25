@@ -249,14 +249,16 @@ class _OffgridShellState extends State<OffgridShell>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.hidden && services.account.verified) {
+    if (state == AppLifecycleState.hidden &&
+        services.account.locallyAccessible) {
       services.account.lock();
     }
     if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.detached) {
       // Let the unfinished AAL1 flow survive an authenticator-app switch.
       // No profile access is possible before TOTP; the idle timeout still applies.
-      if (services.account.verified || state == AppLifecycleState.detached) {
+      if (services.account.locallyAccessible ||
+          state == AppLifecycleState.detached) {
         services.account.lock();
       }
       unawaited(services.assistant.cancel());

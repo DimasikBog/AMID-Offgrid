@@ -31,7 +31,7 @@ def work(username,purpose):
   if digest[0]==0 and digest[1]==0 and digest[2]<64:return {'token':c['token'],'counter':counter}
  raise RuntimeError('Proof budget exhausted')
 def token_for(username,password):
- result=account({'action':'login','username':username,'password':password})
+ result=account({'action':'login','username':username,'password':password,'proof':work(username,'login')})
  session=call('/auth/v1/token?grant_type=refresh_token',{'refresh_token':result['refresh_token']})
  return session['access_token']
 def totp(secret):
