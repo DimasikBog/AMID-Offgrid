@@ -40,6 +40,9 @@ void main() {
     expect(store.articles, isNotEmpty);
     final catalog = await StarterCatalog.load(rootBundle);
     final full = await BundledModel.load(rootBundle, catalog.model) != null;
+    if (const bool.fromEnvironment('AMID_REQUIRE_FULL_STARTER')) {
+      expect(full, true, reason: 'A full install must never skip local AI');
+    }
     if (full) {
       for (
         var i = 0;

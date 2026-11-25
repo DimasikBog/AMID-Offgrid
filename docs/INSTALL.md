@@ -1,5 +1,10 @@
 # Встановлення AMID Offgrid 0.6
 
+Кандидат 0.7.0 додає `AMID_Offgrid_android_arm64.aab` з install-time AI pack.
+Для особистого встановлення використовуй повний APK. AAB призначений для
+bundletool/майбутньої доставки Google Play; development-підпис не є магазинним.
+[Процедура й поточні результати](PLAY_DELIVERY.md).
+
 [Завантажити перевірений тестовий реліз beta.8](https://github.com/DimasikBog/AMID-Offgrid/releases/tag/v0.6.0-beta.8).
 
 ## Повний набір 0.6
