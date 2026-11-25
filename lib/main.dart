@@ -242,6 +242,9 @@ class _OffgridShellState extends State<OffgridShell>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.hidden && services.account.verified) {
+      services.account.lock();
+    }
     if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.detached) {
       // Let the unfinished AAL1 flow survive an authenticator-app switch.
