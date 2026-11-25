@@ -115,138 +115,142 @@ class _SavedPagesScreenState extends State<SavedPagesScreen> {
         ),
       ),
       body: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-              child: TextField(
-                key: const ValueKey('saved-pages-search'),
-                controller: _query,
-                onChanged: (_) => _scheduleSearch(),
-                decoration: InputDecoration(
-                  labelText: 'Пошук у збережених текстах',
-                  prefixIcon: const Icon(Icons.search),
-                  suffixIcon: _query.text.isEmpty
-                      ? null
-                      : IconButton(
-                          tooltip: 'Очистити пошук',
-                          onPressed: () {
-                            _query.clear();
-                            _scheduleSearch();
-                          },
-                          icon: const Icon(Icons.close),
-                        ),
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              child: Wrap(
-                spacing: 8,
-                crossAxisAlignment: WrapCrossAlignment.center,
+        child: CustomScrollView(
+          slivers: [
+            SliverToBoxAdapter(
+              child: Column(
                 children: [
-                  FilterChip(
-                    label: const Text('Лише обране'),
-                    selected: _favoritesOnly,
-                    onSelected: (value) =>
-                        setState(() => _favoritesOnly = value),
-                  ),
-                  PopupMenuButton<bool>(
-                    tooltip: 'Порядок сторінок',
-                    initialValue: _alphabetical,
-                    onSelected: (value) =>
-                        setState(() => _alphabetical = value),
-                    icon: const Icon(Icons.sort_by_alpha),
-                    itemBuilder: (_) => [
-                      CheckedPopupMenuItem(
-                        checked: !_alphabetical,
-                        value: false,
-                        child: const Text('Останні збережені'),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                    child: TextField(
+                      key: const ValueKey('saved-pages-search'),
+                      controller: _query,
+                      onChanged: (_) => _scheduleSearch(),
+                      decoration: InputDecoration(
+                        labelText: 'Пошук у збережених текстах',
+                        prefixIcon: const Icon(Icons.search),
+                        suffixIcon: _query.text.isEmpty
+                            ? null
+                            : IconButton(
+                                tooltip: 'Очистити пошук',
+                                onPressed: () {
+                                  _query.clear();
+                                  _scheduleSearch();
+                                },
+                                icon: const Icon(Icons.close),
+                              ),
                       ),
-                      CheckedPopupMenuItem(
-                        checked: _alphabetical,
-                        value: true,
-                        child: const Text('За назвою'),
-                      ),
-                    ],
+                    ),
                   ),
-                  Text('${pages.length} / ${all.length}'),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 4,
+                    ),
+                    child: Wrap(
+                      spacing: 8,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        FilterChip(
+                          label: const Text('Лише обране'),
+                          selected: _favoritesOnly,
+                          onSelected: (value) =>
+                              setState(() => _favoritesOnly = value),
+                        ),
+                        PopupMenuButton<bool>(
+                          tooltip: 'Порядок сторінок',
+                          initialValue: _alphabetical,
+                          onSelected: (value) =>
+                              setState(() => _alphabetical = value),
+                          icon: const Icon(Icons.sort_by_alpha),
+                          itemBuilder: (_) => [
+                            CheckedPopupMenuItem(
+                              checked: !_alphabetical,
+                              value: false,
+                              child: const Text('Останні збережені'),
+                            ),
+                            CheckedPopupMenuItem(
+                              checked: _alphabetical,
+                              value: true,
+                              child: const Text('За назвою'),
+                            ),
+                          ],
+                        ),
+                        Text('${pages.length} / ${all.length}'),
+                      ],
+                    ),
+                  ),
+                  if (_searching) const LinearProgressIndicator(),
                 ],
               ),
             ),
-            if (_searching) const LinearProgressIndicator(),
-            Expanded(
-              child: _error != null
-                  ? SingleChildScrollView(
-                      child: EmptyState(
-                        'Помилка пошуку',
-                        _error!,
-                        action: TextButton(
-                          onPressed: _scheduleSearch,
-                          child: const Text('Повторити'),
-                        ),
-                      ),
-                    )
-                  : pages.isEmpty
-                  ? SingleChildScrollView(
-                      child: EmptyState(
-                        _searching
-                            ? 'Шукаю на пристрої…'
-                            : all.isEmpty
-                            ? 'Поки немає збережених сторінок'
-                            : 'Нічого не знайдено',
-                        all.isEmpty
-                            ? 'Відкрий сайт у режимі читання й натисни «Зберегти офлайн».'
-                            : 'Зміни запит або вимкни фільтр обраного. Пошук працює без інтернету.',
-                      ),
-                    )
-                  : ListView.builder(
-                      itemCount: pages.length,
-                      itemBuilder: (context, i) {
-                        final page = pages[i];
-                        final favorite = widget.store.favoriteKeys.contains(
-                          page.key,
-                        );
-                        return ListTile(
-                          key: ValueKey(page.key),
-                          title: Text(page.title),
-                          subtitle: Text(
-                            page.source,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          onTap: () => Navigator.pop(context, page),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              IconButton(
-                                tooltip: favorite
-                                    ? 'Прибрати сторінку з обраного'
-                                    : 'Додати сторінку в обране',
-                                onPressed: () => guarded(
-                                  context,
-                                  () => widget.store.toggleFavorite(page.key),
-                                ),
-                                icon: Icon(
-                                  favorite
-                                      ? Icons.bookmark
-                                      : Icons.bookmark_border,
-                                ),
-                              ),
-                              IconButton(
-                                tooltip: 'Видалити збережену сторінку',
-                                onPressed: () => guarded(
-                                  context,
-                                  () => widget.store.deleteWebPage(page.key),
-                                ),
-                                icon: const Icon(Icons.delete_outline),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
+            if (_error != null)
+              SliverToBoxAdapter(
+                child: EmptyState(
+                  'Помилка пошуку',
+                  _error!,
+                  action: TextButton(
+                    onPressed: _scheduleSearch,
+                    child: const Text('Повторити'),
+                  ),
+                ),
+              )
+            else if (pages.isEmpty)
+              SliverToBoxAdapter(
+                child: EmptyState(
+                  _searching
+                      ? 'Шукаю на пристрої…'
+                      : all.isEmpty
+                      ? 'Поки немає збережених сторінок'
+                      : 'Нічого не знайдено',
+                  all.isEmpty
+                      ? 'Відкрий сайт у режимі читання й натисни «Зберегти офлайн».'
+                      : 'Зміни запит або вимкни фільтр обраного. Пошук працює без інтернету.',
+                ),
+              )
+            else
+              SliverList.builder(
+                itemCount: pages.length,
+                itemBuilder: (context, i) {
+                  final page = pages[i];
+                  final favorite = widget.store.favoriteKeys.contains(page.key);
+                  return ListTile(
+                    key: ValueKey(page.key),
+                    title: Text(page.title),
+                    subtitle: Text(
+                      page.source,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
-            ),
+                    onTap: () => Navigator.pop(context, page),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          tooltip: favorite
+                              ? 'Прибрати сторінку з обраного'
+                              : 'Додати сторінку в обране',
+                          onPressed: () => guarded(
+                            context,
+                            () => widget.store.toggleFavorite(page.key),
+                          ),
+                          icon: Icon(
+                            favorite ? Icons.bookmark : Icons.bookmark_border,
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: 'Видалити збережену сторінку',
+                          onPressed: () => guarded(
+                            context,
+                            () => widget.store.deleteWebPage(page.key),
+                          ),
+                          icon: const Icon(Icons.delete_outline),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
           ],
         ),
       ),

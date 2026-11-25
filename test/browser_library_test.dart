@@ -208,6 +208,7 @@ void main() {
         tester.view.devicePixelRatio = 1;
         addTearDown(tester.view.resetPhysicalSize);
         addTearDown(tester.view.resetDevicePixelRatio);
+        addTearDown(tester.view.resetViewInsets);
         final f = (await tester.runAsync(openTestStore))!;
         try {
           await tester.runAsync(() async {
@@ -232,6 +233,11 @@ void main() {
               home: SavedPagesScreen(store: f.store),
             ),
           );
+          await tester.pumpAndSettle();
+          tester.view.viewInsets = const FakeViewPadding(bottom: 260);
+          await tester.pumpAndSettle();
+          expect(tester.takeException(), isNull);
+          tester.view.resetViewInsets();
           await tester.pumpAndSettle();
           await tester.enterText(
             find.byKey(const ValueKey('saved-pages-search')),
