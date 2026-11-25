@@ -2,7 +2,7 @@ name: Web offline browser checks
 on:
   pull_request:
     branches: [main]
-    paths: ['web/**', 'scripts/build_web_cache.py', 'scripts/web_worker.js', 'scripts/test_web_offline.py', 'scripts/check_web_browser.py', 'scripts/requirements-web-checks.txt', '.github/workflows/web.yml']
+    paths: ['lib/**', 'pubspec.*', 'web/**', 'scripts/build_web_cache.py', 'scripts/web_worker.js', 'scripts/test_web_offline.py', 'scripts/check_web_browser.py', 'scripts/requirements-web-checks.txt', '.github/workflows/web.yml']
   workflow_dispatch:
 permissions:
   contents: read
