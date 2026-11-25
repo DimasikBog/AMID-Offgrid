@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 
 import '../models/data.dart';
 import '../models/starter_content.dart';
+import '../models/catalog.dart';
 
 import 'package:flutter/services.dart';
 
@@ -114,6 +115,7 @@ class ImportService extends ChangeNotifier {
   Future<String> downloadStarter() async => throw UnsupportedError(
     'Завантаження моделі та локальний запуск доступні в Android / iPhone.',
   );
+  Future<String> installCatalogModel(CatalogEntry entry) => downloadStarter();
   Future<void> deleteAsset(Json asset) async {}
   void cancel() {
     _cancelled = true;

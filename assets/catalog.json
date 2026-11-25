@@ -1,0 +1,172 @@
+{
+  "format": "AMID_CATALOG",
+  "version": 1,
+  "checked": "2026-11-25",
+  "entries": [
+    {
+      "id": "schagen-1689",
+      "url": "https://upload.wikimedia.org/wikipedia/commons/e/e0/World_Map_1689-smaller.jpg",
+      "bytes": 1060409,
+      "sha256": "9bc57f124180e6f2405014ece09370d7533831bc2b031f717b98d9fdd840d578",
+      "kind": "image",
+      "title": "Карта світу ван Схагена · 1689",
+      "description": "Історичний скан двох півкуль. Масштабування зображення; без прив’язки GPS.",
+      "source": "https://commons.wikimedia.org/wiki/File:World_Map_1689-smaller.jpg",
+      "license": "Public domain · Gerard van Schagen · Wikimedia Commons",
+      "year": 1689
+    },
+    {
+      "id": "rogeriana",
+      "url": "https://upload.wikimedia.org/wikipedia/commons/d/d3/TabulaRogeriana.jpg",
+      "bytes": 3538365,
+      "sha256": "dd144eb0a7cca5410ab7e32e941993bb3d835dc94f3376b1179a2d8ffbae6cae",
+      "kind": "image",
+      "title": "Tabula Rogeriana · 1154 / 1929",
+      "description": "Реконструкція середньовічної карти аль-Ідрісі, укладена Конрадом Міллером 1929 року. Архівне зображення, без прив’язки GPS.",
+      "source": "https://commons.wikimedia.org/wiki/File:TabulaRogeriana.jpg",
+      "license": "Public domain · al-Idrisi / Konrad Miller · Wikimedia Commons",
+      "year": 1154
+    },
+    {
+      "id": "world-projection",
+      "url": "https://upload.wikimedia.org/wikipedia/commons/8/83/Equirectangular_projection_SW.jpg",
+      "bytes": 614562,
+      "sha256": "af353c31288ff0f088907d2d5c9259ac504173b48216204f96cc494c98048be9",
+      "kind": "image",
+      "title": "Фізична карта світу · проєкція",
+      "description": "Світове картографічне зображення Strebe. Окремий атлас для перегляду офлайн, без автоматичної геоприв’язки.",
+      "source": "https://commons.wikimedia.org/wiki/File:Equirectangular_projection_SW.jpg",
+      "license": "CC BY-SA 3.0 · Strebe · https://creativecommons.org/licenses/by-sa/3.0/",
+      "year": null
+    },
+    {
+      "id": "ne-110m-rivers-lake-centerlines",
+      "url": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/ca96624a56bd078437bca8184e78163e5039ad19/geojson/ne_110m_rivers_lake_centerlines.geojson",
+      "bytes": 38087,
+      "sha256": "55aa4497405afc07cdc931b7fbe062c4d6693ba2a550c0d24899953f5d507c8d",
+      "kind": "geojson",
+      "title": "Річки світу · Natural Earth",
+      "description": "Оглядовий світовий шар основних річок масштабу 1:110 млн.",
+      "source": "https://www.naturalearthdata.com/downloads/110m-physical-vectors/",
+      "license": "Natural Earth · Public domain"
+    },
+    {
+      "id": "ne-110m-lakes",
+      "url": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/ca96624a56bd078437bca8184e78163e5039ad19/geojson/ne_110m_lakes.geojson",
+      "bytes": 36648,
+      "sha256": "eb02ecc86c82004fccbf979058bfabbbd6c2d07968c7844d38eb1c9152d2ffc9",
+      "kind": "geojson",
+      "title": "Озера світу · Natural Earth",
+      "description": "Оглядовий світовий шар озер масштабу 1:110 млн.",
+      "source": "https://www.naturalearthdata.com/downloads/110m-physical-vectors/",
+      "license": "Natural Earth · Public domain"
+    },
+    {
+      "id": "ne-110m-populated-places",
+      "url": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/ca96624a56bd078437bca8184e78163e5039ad19/geojson/ne_110m_populated_places.geojson",
+      "bytes": 654324,
+      "sha256": "a86028b083182b68c7620fc6e1a8a47ee547cb9cd2fb62ccbb78bea786440899",
+      "kind": "geojson",
+      "title": "Міста світу · Natural Earth",
+      "description": "Вибрані населені пункти масштабу 1:110 млн. Не повний адресний довідник.",
+      "source": "https://www.naturalearthdata.com/downloads/110m-physical-vectors/",
+      "license": "Natural Earth · Public domain"
+    },
+    {
+      "id": "qwen3-06b-q8",
+      "kind": "model",
+      "title": "Qwen3 0.6B · Q8",
+      "description": "Легкий початковий помічник. Менша модель потребує менше пам’яті, але частіше помиляється.",
+      "url": "https://huggingface.co/Qwen/Qwen3-0.6B-GGUF/resolve/23749fefcc72300e3a2ad315e1317431b06b590a/Qwen3-0.6B-Q8_0.gguf",
+      "source": "https://huggingface.co/Qwen/Qwen3-0.6B-GGUF",
+      "bytes": 639446688,
+      "sha256": "9465e63a22add5354d9bb4b99e90117043c7124007664907259bd16d043bb031",
+      "ramGiB": 2,
+      "license": "Qwen Team · Apache-2.0"
+    },
+    {
+      "id": "qwen3-17b-q8",
+      "kind": "model",
+      "title": "Qwen3 1.7B · Q8",
+      "description": "Більша мультимовна модель. Орієнтир для пристрою з достатньою вільною RAM.",
+      "url": "https://huggingface.co/Qwen/Qwen3-1.7B-GGUF/resolve/90862c4b9d2787eaed51d12237eafdfe7c5f6077/Qwen3-1.7B-Q8_0.gguf",
+      "source": "https://huggingface.co/Qwen/Qwen3-1.7B-GGUF",
+      "bytes": 1834426016,
+      "sha256": "061b54daade076b5d3362dac252678d17da8c68f07560be70818cace6590cb1a",
+      "ramGiB": 4,
+      "license": "Qwen Team · Apache-2.0"
+    },
+    {
+      "id": "qwen3-4b-q4",
+      "kind": "model",
+      "title": "Qwen3 4B · Q4_K_M",
+      "description": "Стиснена модель на 4 млрд параметрів. Робота на конкретному пристрої залежить від пам’яті та процесора.",
+      "url": "https://huggingface.co/Qwen/Qwen3-4B-GGUF/resolve/bc640142c66e1fdd12af0bd68f40445458f3869b/Qwen3-4B-Q4_K_M.gguf",
+      "source": "https://huggingface.co/Qwen/Qwen3-4B-GGUF",
+      "bytes": 2497280256,
+      "sha256": "7485fe6f11af29433bc51cab58009521f205840f5b4ae3a32fa7f92e8534fdf5",
+      "ramGiB": 6,
+      "license": "Qwen Team · Apache-2.0"
+    },
+    {
+      "id": "qwen3-4b-q8",
+      "kind": "model",
+      "title": "Qwen3 4B · Q8",
+      "description": "Та сама архітектура з більшою точністю ваг і більшим споживанням місця та RAM.",
+      "url": "https://huggingface.co/Qwen/Qwen3-4B-GGUF/resolve/bc640142c66e1fdd12af0bd68f40445458f3869b/Qwen3-4B-Q8_0.gguf",
+      "source": "https://huggingface.co/Qwen/Qwen3-4B-GGUF",
+      "bytes": 4280404704,
+      "sha256": "8c2f07f26af9747e41988551106f149b03eb9b5cb6df636027b6bf6278473300",
+      "ramGiB": 8,
+      "license": "Qwen Team · Apache-2.0"
+    },
+    {
+      "id": "world-built-in",
+      "kind": "source",
+      "title": "Оглядова карта світу · вже в додатку",
+      "source": "https://www.naturalearthdata.com/",
+      "license": "Public domain",
+      "description": "Усі країни та світові контури вже входять у застосунок. Без вулиць."
+    },
+    {
+      "id": "openfreemap",
+      "kind": "source",
+      "title": "OpenFreeMap · світові вулиці",
+      "source": "https://openfreemap.org/",
+      "license": "OpenStreetMap ODbL · OpenMapTiles",
+      "description": "Безкоштовні світові векторні дані та планетні архіви. Ця версія імпортує растрові MBTiles; векторні PMTiles/MBTiles потребують іншого рендерера. Це посилання на джерело, не кнопка встановлення."
+    },
+    {
+      "id": "loc-maps",
+      "kind": "source",
+      "title": "Library of Congress · історичні карти",
+      "source": "https://www.loc.gov/maps/",
+      "license": "Перевіряй Rights Advisory кожної карти",
+      "description": "Архіви багатьох країн та епох. Вільні для повторного використання, якщо окрема карта не має іншого обмеження. Скан потребує перевірки прав і, для GPS, геоприв’язки."
+    },
+    {
+      "id": "usgs-historical",
+      "kind": "source",
+      "title": "USGS · історична топографія США",
+      "source": "https://ngmdb.usgs.gov/topoview/",
+      "license": "USGS Public domain; перевір кредитну легенду",
+      "description": "Колекція 1884–2006. Безкоштовні GeoTIFF, JPEG, GeoPDF; GeoTIFF/GeoPDF потрібно перетворювати на растрові MBTiles для шару GPS."
+    },
+    {
+      "id": "rumsey",
+      "kind": "source",
+      "title": "David Rumsey · історичний атлас",
+      "source": "https://www.davidrumsey.com/",
+      "license": "Умови конкретної карти та колекції",
+      "description": "Архів світових карт. Права та наявність завантаження перевіряються окремо; не всі зображення дозволено завантажувати."
+    },
+    {
+      "id": "openhistoricalmap",
+      "kind": "source",
+      "title": "OpenHistoricalMap · світ у різні роки",
+      "source": "https://www.openhistoricalmap.org/",
+      "license": "Public domain / атрибуція за даними джерела",
+      "description": "Відкритий історичний картографічний проєкт. Для автоматичного офлайн-встановлення потрібний сумісний пакет і перевірка політики сервера."
+    }
+  ]
+}

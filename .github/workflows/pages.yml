@@ -36,6 +36,7 @@ jobs:
           cache: true
       - uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b
         id: pages
+      - run: node --test scripts/test_account_service.mjs
       - run: python3 -m unittest discover -s scripts -p 'test_*.py'
       - run: flutter pub get --enforce-lockfile
       - name: Build for the configured Pages path

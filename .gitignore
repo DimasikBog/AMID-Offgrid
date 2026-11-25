@@ -75,3 +75,6 @@ __pycache__/
 
 # Generated visual comparison output
 /test/failures/
+
+# Supabase CLI workspace metadata
+/supabase/.temp/

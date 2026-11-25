@@ -14,11 +14,12 @@ class StarterModel {
     required this.url,
     required this.title,
     required this.license,
+    this.fileName = 'qwen3-06b-q8.gguf',
   });
   final int bytes;
   final String sha256, title, license;
   final Uri url;
-  String get fileName => 'qwen3-06b-q8.gguf';
+  final String fileName;
 }
 
 class StarterAsset {

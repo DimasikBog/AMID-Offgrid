@@ -1,0 +1,5 @@
+project_id = "AMID-Offgrid"
+[functions.account]
+# Pre-auth registration has its own signed work proof and database limiter.
+# Protected actions validate the user token, live session, and mandatory AAL2.
+verify_jwt = false

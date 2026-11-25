@@ -3,6 +3,8 @@
 <head>
   <base href="$FLUTTER_BASE_HREF">
   <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://awnwmhygwfkelrxwpasx.supabase.co https://upload.wikimedia.org https://raw.githubusercontent.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'none'; upgrade-insecure-requests">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="description" content="AMID Offgrid — локальні знання, нотатки та карти.">
   <meta name="theme-color" content="#193e30">
@@ -48,6 +50,6 @@
   </dialog>
   <noscript>Для AMID Offgrid увімкни JavaScript у браузері.</noscript>
   <script src="pwa.js"></script>
-  <script src="flutter_bootstrap.js" async onerror="window.amidPwa.startupError()"></script>
+  <script id="flutter-entry" src="flutter_bootstrap.js" async></script>
 </body>
 </html>
