@@ -1,4 +1,4 @@
-# AMID Offgrid 0.6.0-beta.8
+# AMID Offgrid 0.7.0 candidate
 
 One Flutter app for Android and iPhone, developed through DimasikBog/AMID-Offgrid.
 An owned Mac is not required: iOS compilation runs on macOS CI. Personal iPhone
@@ -68,3 +68,12 @@ All eight platform builds and four native emulator suites passed. Published file
 match their manifests and GitHub SHA-256 digests. Physical-device, signing and
 store acceptance remain open; the large model needs separate install-time AI-pack
 integration before Google Play publication.
+
+
+Version 0.7 adds the HTTPS text reader and an offline page collection using the
+existing version-1 knowledge pack/storage/backup format. Native system WebView
+is available only on Android/iOS/macOS with its platform implementation present.
+Read BROWSER.md for direct-reader limits, web CORS and native validation bounds.
+PRODUCT_ROADMAP.md reconciles the browser/maps/local-AI/radio-dock direction.
+The OS, account server, Obscura gateway and physical LoRa transport are not
+implemented by this candidate. Previous beta.8 build evidence does not certify it.

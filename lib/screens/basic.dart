@@ -21,12 +21,14 @@ class HomeScreen extends StatelessWidget {
     required this.openPacks,
     this.openSearch,
     this.openFavorites,
+    this.openBrowser,
   });
   final Services services;
   final void Function(int) navigate;
   final VoidCallback openPacks;
   final VoidCallback? openSearch;
   final VoidCallback? openFavorites;
+  final VoidCallback? openBrowser;
   @override
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: Listenable.merge([
@@ -116,6 +118,12 @@ class HomeScreen extends StatelessWidget {
             spacing: 10,
             runSpacing: 10,
             children: [
+              if (openBrowser != null)
+                FilledButton.tonalIcon(
+                  onPressed: openBrowser,
+                  icon: const Icon(Icons.travel_explore),
+                  label: const Text('Браузер'),
+                ),
               FilledButton.tonalIcon(
                 onPressed: () => editNote(context, data),
                 icon: const Icon(Icons.note_add_outlined),

@@ -95,3 +95,17 @@ The web cache is generated from final build bytes, scoped to one deployment
 URL, and includes the local renderer. It does not cache other origins or force
 a worker change over open tabs. Packaging verifies artifacts by source/version
 and digest before publishing an all-platform prerelease. PR runs cannot publish.
+
+
+The 0.7 reader owns a per-request HTTP client and cancellable stream, limits the
+response body, applies the same HTTPS policy to entry/redirects/links, and turns
+HTML into inert text. Request generations discard stale UI results. It has no
+server proxy. System WebView is a separate optional platform surface; JavaScript
+is opt-in and there is no bridge to AppStore. See BROWSER.md.
+
+Saved pages are the reserved knowledge pack amid-saved-web. A SHA-256 of the
+normalized source URL provides an update-stable article ID; source and fetch time
+remain in the archive. Restore adds missing page IDs while preserving local
+versions, using the existing atomic mutation/reindex queue. No SQL schema or
+backup version migration is required. The radio adapter/gateway remains future
+work, with truthful transport/delivery states described in PRODUCT_ROADMAP.md.

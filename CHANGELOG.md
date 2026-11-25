@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.7.0 candidate — browser and offline reading
+
+- Direct bounded HTTPS text reader, validated redirects/links, cancellation and in-memory history.
+- Native system WebView on Android/iOS/macOS, explicit JavaScript toggle, no bridge to AMID data.
+- Offline page collection integrated with SQLite search, favorites and portable version-1 backups.
+- Stable URL-derived identities, update/delete and non-destructive restore merge.
+- Shared roadmap for regional/historical maps, platform capabilities and the separate physical radio dock/gateway.
+- Native WebView device acceptance, full Windows/Linux WebView, account backend and LoRa integration remain open.
+
+
 ## 0.6.0-beta.8 — повний офлайн-набір
 
 [Опубліковані пакети](https://github.com/DimasikBog/AMID-Offgrid/releases/tag/v0.6.0-beta.8). Перевірено 126 Flutter-тестів, 19 Python-тестів,
