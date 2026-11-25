@@ -10,6 +10,7 @@ import '../services/services.dart';
 import '../services/store.dart';
 import '../widgets/common.dart';
 import '../widgets/home_hero.dart';
+import '../widgets/dashboard.dart';
 import 'note_editor.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -18,10 +19,14 @@ class HomeScreen extends StatelessWidget {
     required this.services,
     required this.navigate,
     required this.openPacks,
+    this.openSearch,
+    this.openFavorites,
   });
   final Services services;
   final void Function(int) navigate;
   final VoidCallback openPacks;
+  final VoidCallback? openSearch;
+  final VoidCallback? openFavorites;
   @override
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: Listenable.merge([
@@ -33,8 +38,21 @@ class HomeScreen extends StatelessWidget {
     builder: (context, _) {
       final data = services.store;
       return ListView(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 30),
+        padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
         children: [
+          Text(
+            'Твій простір',
+            style: Theme.of(context).textTheme.headlineMedium
+                ?.copyWith(fontWeight: FontWeight.w700, letterSpacing: -.7),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Усе важливе — завжди під рукою.',
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 24),
           HomeHero(
             store: data,
             openPacks: openPacks,
@@ -44,6 +62,55 @@ class HomeScreen extends StatelessWidget {
                 ? services.files.progress
                 : null,
           ),
+          const SizedBox(height: 18),
+          DashboardSearch(onTap: openSearch ?? () => navigate(1)),
+          const Section('Все потрібне поруч'),
+          DashboardGrid(
+            children: [
+              ModuleCard(
+                title: 'Довідник',
+                subtitle: '${data.articles.length} матеріалів офлайн',
+                icon: Icons.menu_book_outlined,
+                onTap: () => navigate(1),
+                index: 0,
+              ),
+              ModuleCard(
+                title: 'Помічник',
+                subtitle: services.assistant.ready
+                    ? 'Модель завантажена'
+                    : 'Запитай про свої матеріали',
+                icon: Icons.auto_awesome_outlined,
+                onTap: () => navigate(2),
+                index: 1,
+              ),
+              ModuleCard(
+                title: 'Карта',
+                subtitle: '${data.pins.length} власних точок',
+                icon: Icons.map_outlined,
+                onTap: () => navigate(3),
+                index: 2,
+              ),
+              ModuleCard(
+                title: 'Зв’язок',
+                subtitle: services.nearby.connected
+                    ? 'Телефони з’єднані'
+                    : 'Спілкування з пристроями поруч',
+                icon: Icons.forum_outlined,
+                onTap: () => navigate(4),
+                index: 3,
+              ),
+            ],
+          ),
+          if (MediaQuery.sizeOf(context).width < 1000) ...[
+            const SizedBox(height: 14),
+            CollectionSummary(
+              articles: data.articles.length,
+              favorites: data.favoriteKeys.length,
+              pins: data.pins.length,
+              navigate: navigate,
+              openFavorites: openFavorites ?? () => navigate(1),
+            ),
+          ],
           const Section('Швидкий старт'),
           Wrap(
             spacing: 10,
@@ -83,52 +150,6 @@ class HomeScreen extends StatelessWidget {
                 onTap: () => openArticle(context, a, services, navigate),
               ),
           ],
-          const Section('Все потрібне поруч'),
-          LayoutBuilder(
-            builder: (context, c) => GridView.count(
-              crossAxisCount: c.maxWidth > 650 ? 4 : 2,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              mainAxisSpacing: 12,
-              crossAxisSpacing: 12,
-              childAspectRatio:
-                  (c.maxWidth > 650 ? 1.15 : 1.03) /
-                  (MediaQuery.textScalerOf(context).scale(14) / 14).clamp(
-                    1,
-                    2.5,
-                  ),
-              children: [
-                _Module(
-                  'Довідник',
-                  '${data.articles.length} статей',
-                  Icons.menu_book_rounded,
-                  () => navigate(1),
-                ),
-                _Module(
-                  'Помічник',
-                  services.assistant.ready
-                      ? 'Модель завантажена'
-                      : 'Запитай про свої матеріали',
-                  Icons.auto_awesome_rounded,
-                  () => navigate(2),
-                ),
-                _Module(
-                  'Карта',
-                  '${data.pins.length} власних точок',
-                  Icons.map_outlined,
-                  () => navigate(3),
-                ),
-                _Module(
-                  'Зв’язок',
-                  services.nearby.connected
-                      ? 'Телефони з’єднані'
-                      : 'Поруч, навіть без мережі',
-                  Icons.forum_outlined,
-                  () => navigate(4),
-                ),
-              ],
-            ),
-          ),
           Section(
             'Підготуйся заздалегідь',
             action: IconButton(
@@ -174,44 +195,6 @@ class HomeScreen extends StatelessWidget {
   );
 }
 
-class _Module extends StatelessWidget {
-  const _Module(this.title, this.subtitle, this.icon, this.onTap);
-  final String title, subtitle;
-  final IconData icon;
-  final VoidCallback onTap;
-  @override
-  Widget build(BuildContext context) => Material(
-    color: Theme.of(context).colorScheme.surfaceContainerLow,
-    borderRadius: BorderRadius.circular(20),
-    child: InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(icon, size: 28, color: Theme.of(context).colorScheme.primary),
-            const Spacer(),
-            Text(
-              title,
-              style: Theme.of(context).textTheme.titleMedium
-                  ?.copyWith(fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 7),
-            Text(
-              subtitle,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-          ],
-        ),
-      ),
-    ),
-  );
-}
-
 class _ReadyRow extends StatelessWidget {
   const _ReadyRow(this.title, this.body, this.ready);
   final String title, body;
@@ -238,10 +221,14 @@ class LibraryScreen extends StatefulWidget {
     required this.services,
     required this.navigate,
     this.searchFocusNode,
+    this.favoritesOnly = false,
+    this.filterRequest = 0,
   });
   final Services services;
   final void Function(int) navigate;
   final FocusNode? searchFocusNode;
+  final bool favoritesOnly;
+  final int filterRequest;
   @override
   State<LibraryScreen> createState() => _LibraryScreenState();
 }
@@ -256,6 +243,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
   @override
   void initState() {
     super.initState();
+    _favorites = widget.favoritesOnly;
     _revision = widget.services.store.contentRevision;
     _search();
   }
@@ -281,6 +269,18 @@ class _LibraryScreenState extends State<LibraryScreen> {
   void didUpdateWidget(covariant LibraryScreen old) {
     super.didUpdateWidget(old);
     final store = widget.services.store;
+    if (old.favoritesOnly != widget.favoritesOnly ||
+        old.filterRequest != widget.filterRequest) {
+      _favorites = widget.favoritesOnly;
+      if (_favorites) {
+        _debounce?.cancel();
+        _term = '';
+        _category = '';
+        _query.clear();
+      }
+      _limit = 40;
+      _search();
+    }
     if (_revision != store.contentRevision) {
       _revision = store.contentRevision;
       if (!store.articles.any((a) => a.category == _category)) _category = '';
@@ -300,170 +300,199 @@ class _LibraryScreenState extends State<LibraryScreen> {
     final store = widget.services.store;
     final categories = store.articles.map((a) => a.category).toSet().toList()
       ..sort();
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 12, 12, 8),
-          child: Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  focusNode: widget.searchFocusNode,
-                  controller: _query,
-                  decoration: InputDecoration(
-                    hintText: 'Пошук у твоїх матеріалах',
-                    prefixIcon: const Icon(Icons.search_rounded),
-                    suffixIcon: IconButton(
-                      tooltip: 'Знайти',
-                      onPressed: _refresh,
-                      icon: const Icon(Icons.search_rounded),
-                    ),
+    return LayoutBuilder(
+      builder: (context, size) => Column(
+        children: [
+          if (size.maxHeight >= 420)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Бібліотека знань',
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -.5,
                   ),
-                  onChanged: (value) {
-                    _term = value;
-                    _debounce?.cancel();
-                    _debounce = Timer(const Duration(milliseconds: 300), () {
-                      if (mounted) _refresh();
-                    });
-                  },
-                  onSubmitted: (_) => _refresh(),
                 ),
               ),
-              IconButton(
-                tooltip: 'Створити нотатку',
-                icon: const Icon(Icons.note_add_outlined),
-                onPressed: () => editNote(context, store),
-              ),
-            ],
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-          child: Row(
-            children: [
-              Expanded(
-                child: DropdownButton<String>(
-                  value: _category,
-                  isExpanded: true,
-                  hint: const Text('Категорія'),
-                  items: [
-                    const DropdownMenuItem(
-                      value: '',
-                      child: Text('Усі категорії'),
-                    ),
-                    for (final category in categories)
-                      DropdownMenuItem(
-                        value: category,
-                        child: Text(category, overflow: TextOverflow.ellipsis),
+            ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 12, 8),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    focusNode: widget.searchFocusNode,
+                    controller: _query,
+                    decoration: InputDecoration(
+                      hintText: 'Пошук у твоїх матеріалах',
+                      prefixIcon: const Icon(Icons.search_rounded),
+                      suffixIcon: IconButton(
+                        tooltip: 'Знайти',
+                        onPressed: _refresh,
+                        icon: const Icon(Icons.search_rounded),
                       ),
-                  ],
-                  onChanged: (value) {
-                    _category = value ?? '';
+                    ),
+                    onChanged: (value) {
+                      _term = value;
+                      _debounce?.cancel();
+                      _debounce = Timer(const Duration(milliseconds: 300), () {
+                        if (mounted) _refresh();
+                      });
+                    },
+                    onSubmitted: (_) => _refresh(),
+                  ),
+                ),
+                IconButton(
+                  tooltip: 'Створити нотатку',
+                  icon: const Icon(Icons.note_add_outlined),
+                  onPressed: () => editNote(context, store),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+            child: Row(
+              children: [
+                Expanded(
+                  child: DropdownButton<String>(
+                    value: _category,
+                    isExpanded: true,
+                    hint: const Text('Категорія'),
+                    items: [
+                      const DropdownMenuItem(
+                        value: '',
+                        child: Text('Усі категорії'),
+                      ),
+                      for (final category in categories)
+                        DropdownMenuItem(
+                          value: category,
+                          child: Text(
+                            category,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                    ],
+                    onChanged: (value) {
+                      _category = value ?? '';
+                      _refresh();
+                    },
+                  ),
+                ),
+                const SizedBox(width: 12),
+                FilterChip(
+                  label: const Text('Обране'),
+                  selected: _favorites,
+                  onSelected: (value) {
+                    _favorites = value;
                     _refresh();
                   },
                 ),
-              ),
-              const SizedBox(width: 12),
-              FilterChip(
-                label: const Text('Обране'),
-                selected: _favorites,
-                onSelected: (value) {
-                  _favorites = value;
-                  _refresh();
-                },
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-        Expanded(
-          child: FutureBuilder<List<Article>>(
-            future: _results,
-            builder: (context, snapshot) {
-              if (snapshot.hasError) {
-                return EmptyState('Пошук недоступний', '${snapshot.error}');
-              }
-              if (!snapshot.hasData) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              final articles = snapshot.data!;
-              if (articles.isEmpty) {
-                return EmptyState(
-                  _favorites
-                      ? 'В обраному поки порожньо'
-                      : 'Нічого не знайдено',
-                  _favorites
-                      ? 'Натисни зірочку біля потрібної статті.'
-                      : 'Спробуй інше слово або додай власні матеріали.',
-                  icon: _favorites
-                      ? Icons.star_outline_rounded
-                      : Icons.search_off_rounded,
-                );
-              }
-              final more = articles.length > _limit;
-              return ListView.separated(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 25),
-                itemCount: more ? _limit + 1 : articles.length,
-                separatorBuilder: (_, _) => const SizedBox(height: 10),
-                itemBuilder: (context, i) {
-                  if (more && i == _limit) {
-                    return OutlinedButton(
-                      onPressed: () => setState(() {
-                        _limit += 40;
-                        _search();
-                      }),
-                      child: const Text('Показати ще'),
-                    );
-                  }
-                  final a = articles[i],
-                      favorite = store.favoriteKeys.contains(articles[i].key);
-                  return Material(
-                    color: Theme.of(context).colorScheme.surfaceContainerLow,
-                    borderRadius: BorderRadius.circular(16),
-                    child: ListTile(
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 8,
-                      ),
-                      leading: Icon(
-                        a.packId == AppStore.notesId
-                            ? Icons.edit_note_rounded
-                            : Icons.article_outlined,
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                      title: Text(
-                        a.title,
-                        style: const TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                      subtitle: Padding(
-                        padding: const EdgeInsets.only(top: 6),
-                        child: Text(a.category),
-                      ),
-                      trailing: IconButton(
-                        tooltip: favorite
-                            ? 'Прибрати з обраного'
-                            : 'Додати до обраного',
-                        onPressed: () =>
-                            guarded(context, () => store.toggleFavorite(a.key)),
-                        icon: Icon(
-                          favorite
-                              ? Icons.star_rounded
-                              : Icons.star_outline_rounded,
+          Expanded(
+            child: FutureBuilder<List<Article>>(
+              future: _results,
+              builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  return EmptyState('Пошук недоступний', '${snapshot.error}');
+                }
+                if (!snapshot.hasData) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                final articles = snapshot.data!;
+                if (articles.isEmpty) {
+                  return EmptyState(
+                    _favorites
+                        ? 'В обраному поки порожньо'
+                        : 'Нічого не знайдено',
+                    _favorites
+                        ? 'Натисни зірочку біля потрібної статті.'
+                        : 'Спробуй інше слово або додай власні матеріали.',
+                    icon: _favorites
+                        ? Icons.star_outline_rounded
+                        : Icons.search_off_rounded,
+                  );
+                }
+                final more = articles.length > _limit;
+                return ListView.separated(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 25),
+                  itemCount: more ? _limit + 1 : articles.length,
+                  separatorBuilder: (_, _) => const SizedBox(height: 10),
+                  itemBuilder: (context, i) {
+                    if (more && i == _limit) {
+                      return OutlinedButton(
+                        onPressed: () => setState(() {
+                          _limit += 40;
+                          _search();
+                        }),
+                        child: const Text('Показати ще'),
+                      );
+                    }
+                    final a = articles[i],
+                        favorite = store.favoriteKeys.contains(articles[i].key);
+                    return Material(
+                      color: Theme.of(context).colorScheme.surfaceContainerLow,
+                      borderRadius: BorderRadius.circular(16),
+                      child: ListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                        leading: Icon(
+                          a.packId == AppStore.notesId
+                              ? Icons.edit_note_rounded
+                              : Icons.article_outlined,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                        title: Text(
+                          a.title,
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                        subtitle: Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: Text(
+                            a.category,
+                            style: TextStyle(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                        trailing: IconButton(
+                          tooltip: favorite
+                              ? 'Прибрати з обраного'
+                              : 'Додати до обраного',
+                          onPressed: () => guarded(
+                            context,
+                            () => store.toggleFavorite(a.key),
+                          ),
+                          icon: Icon(
+                            favorite
+                                ? Icons.star_rounded
+                                : Icons.star_outline_rounded,
+                          ),
+                        ),
+                        onTap: () => openArticle(
+                          context,
+                          a,
+                          widget.services,
+                          widget.navigate,
                         ),
                       ),
-                      onTap: () => openArticle(
-                        context,
-                        a,
-                        widget.services,
-                        widget.navigate,
-                      ),
-                    ),
-                  );
-                },
-              );
-            },
+                    );
+                  },
+                );
+              },
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

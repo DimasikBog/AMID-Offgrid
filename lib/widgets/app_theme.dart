@@ -6,15 +6,23 @@ ThemeData offgridTheme(Brightness brightness) {
   final dark = brightness == Brightness.dark;
   final colors =
       ColorScheme.fromSeed(
-        seedColor: const Color(0xff456f52),
+        seedColor: const Color(0xff326550),
         brightness: brightness,
       ).copyWith(
-        primary: dark ? mint : const Color(0xff315e40),
+        primary: dark ? mint : const Color(0xff265b45),
         onPrimary: dark ? ink : Colors.white,
-        surface: dark ? const Color(0xff101b19) : const Color(0xfff7f8f2),
-        surfaceContainerLow: dark
-            ? const Color(0xff192622)
-            : const Color(0xffeef1e8),
+        surface: dark ? const Color(0xff101b19) : const Color(0xfff7f8f4),
+        surfaceContainerLow: dark ? const Color(0xff192622) : Colors.white,
+        surfaceContainerHighest: dark
+            ? const Color(0xff263b32)
+            : const Color(0xffeaf0e9),
+        outlineVariant: dark
+            ? const Color(0xff34473e)
+            : const Color(0xffdfe6dd),
+        onSurface: dark ? const Color(0xffe2ece4) : ink,
+        onSurfaceVariant: dark
+            ? const Color(0xffafc0b5)
+            : const Color(0xff596b60),
       );
   return ThemeData(
     useMaterial3: true,
@@ -30,6 +38,9 @@ ThemeData offgridTheme(Brightness brightness) {
       backgroundColor: colors.surface,
       surfaceTintColor: Colors.transparent,
       centerTitle: false,
+      titleSpacing: 24,
+      toolbarHeight: 72,
+      elevation: 0,
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
@@ -41,10 +52,44 @@ ThemeData offgridTheme(Brightness brightness) {
       contentPadding: const EdgeInsets.all(17),
     ),
     navigationBarTheme: NavigationBarThemeData(
+      backgroundColor: colors.surfaceContainerLow,
+      indicatorColor: colors.primaryContainer,
+      height: 78,
+      labelTextStyle: WidgetStateProperty.resolveWith(
+        (states) => TextStyle(
+          fontSize: 11,
+          fontWeight: states.contains(WidgetState.selected)
+              ? FontWeight.w700
+              : FontWeight.w500,
+          color: states.contains(WidgetState.selected)
+              ? colors.primary
+              : colors.onSurfaceVariant,
+        ),
+      ),
+    ),
+    navigationRailTheme: NavigationRailThemeData(
       backgroundColor: colors.surface,
       indicatorColor: colors.primaryContainer,
-      height: 76,
-      labelTextStyle: WidgetStateProperty.all(const TextStyle(fontSize: 11)),
+      selectedIconTheme: IconThemeData(color: colors.primary),
+      unselectedIconTheme: IconThemeData(color: colors.onSurfaceVariant),
+      selectedLabelTextStyle: TextStyle(
+        fontFamily: 'Roboto',
+        color: colors.primary,
+        fontWeight: FontWeight.w700,
+      ),
+      unselectedLabelTextStyle: TextStyle(
+        fontFamily: 'Roboto',
+        color: colors.onSurfaceVariant,
+      ),
+    ),
+    dividerTheme: DividerThemeData(color: colors.outlineVariant, thickness: 1),
+    chipTheme: ChipThemeData(
+      side: BorderSide(color: colors.outlineVariant),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    ),
+    listTileTheme: ListTileThemeData(
+      iconColor: colors.onSurfaceVariant,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
     ),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
