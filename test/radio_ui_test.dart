@@ -36,6 +36,12 @@ void main() {
           );
           await tester.pumpAndSettle();
           final scroll = find.byType(Scrollable).first;
+          final start = find.byKey(const ValueKey('radio-field-start'));
+          await tester.scrollUntilVisible(start, 150, scrollable: scroll);
+          await tester.pumpAndSettle();
+          await tester.tap(start);
+          await tester.pumpAndSettle();
+          expect(radio.fieldTest, isNotNull);
           final antenna = find.widgetWithText(
             CheckboxListTile,
             'Антена підключена й розкладена',
@@ -76,6 +82,23 @@ void main() {
           await tester.pumpAndSettle();
           expect(radio.transmissions.single.text, 'Короткий тест');
           expect(radio.transmissions.single.state, RadioDelivery.bluetooth);
+          final finish = find.byKey(const ValueKey('radio-field-finish'));
+          await tester.scrollUntilVisible(finish, -150, scrollable: scroll);
+          await tester.pumpAndSettle();
+          await tester.runAsync(() async {
+            await tester.tap(finish);
+            await radio.finishFieldTest();
+          });
+          await tester.pumpAndSettle();
+          expect(f.store.radioReports.single.attempts, 1);
+          final saved = find.byKey(
+            ValueKey('radio-report-${f.store.radioReports.single.id}'),
+          );
+          await tester.scrollUntilVisible(saved, -100, scrollable: scroll);
+          await tester.pumpAndSettle();
+          await tester.tap(saved);
+          await tester.pumpAndSettle();
+          expect(find.text('Польовий звіт LoRa'), findsOneWidget);
           expect(tester.takeException(), isNull);
         } finally {
           await tester.pumpWidget(const SizedBox.shrink());

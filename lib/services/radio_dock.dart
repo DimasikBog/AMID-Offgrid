@@ -6,6 +6,8 @@ import 'package:uuid/uuid.dart';
 
 import '../models/data.dart';
 import '../models/mesh_wire.dart';
+import '../models/radio_field_test.dart';
+import '../version.dart';
 import 'radio_transport.dart';
 import 'store.dart';
 
@@ -60,6 +62,76 @@ class RadioDockService extends ChangeNotifier {
   DateTime? _lastSend;
   int? lastRadioRssi;
   double? lastRadioSnr;
+  RadioFieldSession? fieldTest;
+  RadioFieldReport? lastFieldReport;
+  Timer? _fieldTimer;
+  Future<void> _fieldSave = Future.value();
+  bool fieldSaving = false;
+  String? fieldSaveError;
+  bool get fieldReportSaved =>
+      lastFieldReport != null &&
+      store.radioReports.any((r) => r.id == lastFieldReport!.id);
+
+  void startFieldTest() {
+    if (!ready || fieldTest != null || fieldSaving || fieldSaveError != null) {
+      throw StateError('Підключи радіомодуль і заверши попередній тест.');
+    }
+    if (region < 0 || region > 255) {
+      throw const FormatException(
+        'Невідомий регіон. Спочатку перевір налаштування радіо.',
+      );
+    }
+    final watch = Stopwatch()..start();
+    fieldTest = RadioFieldSession(
+      id: const Uuid().v4(),
+      createdAt: DateTime.now().toUtc().toIso8601String(),
+      appVersion: appVersion,
+      firmware: firmware,
+      region: region,
+      elapsedMs: () => watch.elapsedMilliseconds,
+    );
+    lastFieldReport = null;
+    fieldSaveError = null;
+    _fieldTimer = Timer(
+      const Duration(milliseconds: radioFieldMaxMs),
+      () => _finishFieldTest('timeLimit'),
+    );
+    _changed();
+  }
+
+  void _finishFieldTest(String reason) {
+    final test = fieldTest;
+    if (test == null) return;
+    fieldTest = null;
+    _fieldTimer?.cancel();
+    lastFieldReport = test.finish(reason);
+    unawaited(saveFieldReport());
+    _changed();
+  }
+
+  Future<void> finishFieldTest() async {
+    _finishFieldTest('manual');
+    await _fieldSave;
+  }
+
+  Future<void> saveFieldReport() {
+    final report = lastFieldReport;
+    if (report == null || fieldSaving) return _fieldSave;
+    fieldSaving = true;
+    fieldSaveError = null;
+    _fieldSave = store
+        .saveRadioReport(report)
+        .catchError((Object _) {
+          fieldSaveError = 'Не вдалося зберегти звіт. Повтори збереження.';
+        })
+        .whenComplete(() {
+          fieldSaving = false;
+          _changed();
+        });
+    _changed();
+    return _fieldSave;
+  }
+
   bool get supported => transport.supported;
   bool get canSend =>
       ready &&
@@ -151,6 +223,7 @@ class RadioDockService extends ChangeNotifier {
     if (!channels.containsKey(index)) {
       throw const FormatException('Невідомий канал.');
     }
+    if (index != selectedChannel) _finishFieldTest('configurationChanged');
     selectedChannel = index;
     _changed();
   }
@@ -170,6 +243,7 @@ class RadioDockService extends ChangeNotifier {
         })
         .catchError((Object _) {
           if (!_disposed && epoch == _epoch) {
+            fieldTest?.processingError();
             status = 'Пошкоджений пакет відкинуто.';
             _changed();
           }
@@ -181,6 +255,10 @@ class RadioDockService extends ChangeNotifier {
     if (event.rebooted) {
       await stop();
       return;
+    }
+    if (ready &&
+        (event.lora != null || event.variant == 10 || event.firmware != null)) {
+      _finishFieldTest('configurationChanged');
     }
     if (event.myNode != null) localNode = event.myNode!;
     if (event.firmware != null) firmware = boundedText(event.firmware!, 80);
@@ -217,6 +295,7 @@ class RadioDockService extends ChangeNotifier {
         receipt.state = queue.result == 0
             ? RadioDelivery.queued
             : RadioDelivery.failed;
+        fieldTest?.outcome(receipt.id, receipt.state.name);
         if (queue.result == 0) {
           await store.messageStatus(
             receipt.messageId,
@@ -243,6 +322,7 @@ class RadioDockService extends ChangeNotifier {
     }
     final receipt = _pending[packet.requestId];
     if (packet.port == 5 &&
+        !packet.viaMqtt &&
         receipt != null &&
         receipt.to != meshBroadcast &&
         packet.from == receipt.to &&
@@ -251,6 +331,9 @@ class RadioDockService extends ChangeNotifier {
       receipt.state = packet.routingError == 0
           ? RadioDelivery.acknowledged
           : RadioDelivery.failed;
+      if (fieldTest?.outcome(receipt.id, receipt.state.name) ?? false) {
+        fieldTest?.signal(rssi: packet.rssi, snr: packet.snr);
+      }
       receipt.timer?.cancel();
       _pending.remove(receipt.id);
       if (receipt.state == RadioDelivery.acknowledged) {
@@ -287,6 +370,10 @@ class RadioDockService extends ChangeNotifier {
       _check(epoch);
     }
     _seen.add(id);
+    if (!packet.viaMqtt) {
+      fieldTest?.received();
+      fieldTest?.signal(rssi: packet.rssi, snr: packet.snr);
+    }
     if (_seen.length > 1000) _seen.remove(_seen.first);
     status =
         'Отримано LoRa-текст від ${meshNodeId(packet.from)}. Авторство визначає радіопротокол.';
@@ -341,6 +428,8 @@ class RadioDockService extends ChangeNotifier {
       );
       _check(epoch);
       _pending[id] = receipt;
+      if (fieldTest?.full ?? false) _finishFieldTest('capacity');
+      fieldTest?.attempt(id, broadcast: to == meshBroadcast);
       transmissions.insert(0, receipt);
       if (transmissions.length > 30) transmissions.removeLast();
       await transport.write(bytes);
@@ -350,6 +439,7 @@ class RadioDockService extends ChangeNotifier {
         receipt.timer = Timer(ackTimeout, () {
           if (_epoch == epoch && _pending.remove(id) != null) {
             receipt.state = RadioDelivery.unconfirmed;
+            fieldTest?.outcome(receipt.id, receipt.state.name);
             _changed();
           }
         });
@@ -360,6 +450,7 @@ class RadioDockService extends ChangeNotifier {
       receipt.timer?.cancel();
       _pending.remove(id);
       receipt.state = RadioDelivery.failed;
+      fieldTest?.outcome(receipt.id, receipt.state.name);
       rethrow;
     } finally {
       if (_epoch == epoch) {
@@ -370,6 +461,7 @@ class RadioDockService extends ChangeNotifier {
   }
 
   void _invalidate() {
+    _finishFieldTest('disconnected');
     _epoch++;
     ready = false;
     busy = false;

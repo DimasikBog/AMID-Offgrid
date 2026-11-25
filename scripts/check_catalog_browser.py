@@ -28,7 +28,8 @@ def main():
                         '--dart-define-from-file', str(defines),
                         'test/catalog_metadata_test.dart',
                         'test/offline_profile_codec_test.dart',
-                        'test/mesh_wire_test.dart'], cwd=ROOT, check=True)
+                        'test/mesh_wire_test.dart',
+                        'test/radio_field_test.dart'], cwd=ROOT, check=True)
 
 
 if __name__ == '__main__':
