@@ -8,6 +8,7 @@ import 'package:uuid/uuid.dart';
 
 import '../models/data.dart';
 import '../models/preferences.dart';
+import '../models/radio_field_test.dart';
 import '../models/starter_content.dart';
 import '../models/web_page.dart';
 import 'backend_native.dart' if (dart.library.js_interop) 'backend_web.dart';
@@ -19,6 +20,8 @@ class AppStore extends ChangeNotifier {
   List<Json> packs = [];
   List<Pin> pins = [];
   List<Message> messages = [];
+  List<RadioFieldReport> _radioReports = [];
+  List<RadioFieldReport> get radioReports => List.unmodifiable(_radioReports);
   Set<String> favoriteKeys = {};
   String themePreference = 'system';
   double readerScale = 1;
@@ -155,6 +158,7 @@ class AppStore extends ChangeNotifier {
     messages = (data['messages'] as List)
         .map((m) => Message.fromJson(Json.from(m as Map)))
         .toList();
+    _radioReports = _parseRadioReports(data['radioReports']);
     draft = data['draft'] as String? ?? '';
     selectedModel = data['selectedModel'] as String? ?? '';
     selectedMap = data['selectedMap'] as String? ?? '';
@@ -191,6 +195,7 @@ class AppStore extends ChangeNotifier {
     'packs': packs.map((p) => Json.from(p)).toList(),
     'pins': pins.map((p) => p.toJson()).toList(),
     'messages': messages.map((m) => m.toJson()).toList(),
+    'radioReports': _radioReports.map((r) => r.toJson()).toList(),
     'draft': draft,
     'selectedModel': selectedModel,
     'selectedMap': selectedMap,
@@ -203,6 +208,36 @@ class AppStore extends ChangeNotifier {
       for (final id in _offlineProfiles.keys) id: offlineProfile(id),
     },
   };
+  static List<RadioFieldReport> _parseRadioReports(Object? value) {
+    if (value == null) return [];
+    if (value is! List || value.length > radioFieldReportLimit) {
+      throw const FormatException('Некоректний список радіозвітів.');
+    }
+    final reports = value.map(RadioFieldReport.parse).toList();
+    if (reports.map((r) => r.id).toSet().length != reports.length) {
+      throw const FormatException('Повторювані ID радіозвітів.');
+    }
+    return reports;
+  }
+
+  void _insertRadioReport(RadioFieldReport report) {
+    final existing = _radioReports.where((r) => r.id == report.id).firstOrNull;
+    if (existing != null) {
+      if (jsonEncode(existing.toJson()) != jsonEncode(report.toJson())) {
+        throw const FormatException('Конфлікт ID радіозвіту.');
+      }
+      return;
+    }
+    _radioReports.insert(0, report);
+    if (_radioReports.length > radioFieldReportLimit) {
+      _radioReports.removeLast();
+    }
+  }
+
+  Future<void> saveRadioReport(RadioFieldReport report) =>
+      _mutate(() => _insertRadioReport(report));
+  Future<void> deleteRadioReport(String id) =>
+      _mutate(() => _radioReports.removeWhere((r) => r.id == id));
   Future<void> _mutate(
     FutureOr<void> Function() change, {
     bool reindex = false,
@@ -552,6 +587,7 @@ class AppStore extends ChangeNotifier {
   Json backup() => {
     'format': 'AMID_OFFGRID_BACKUP',
     'version': 1,
+    'radioReports': _radioReports.map((r) => r.toJson()).toList(),
     'packs': packs
         .where(
           (p) => p['kind'] == 'knowledge' && p['id'] != 'amid-mobile-starter',
@@ -596,6 +632,7 @@ class AppStore extends ChangeNotifier {
         value['messages'] is! List) {
       throw const FormatException('Некоректна резервна копія.');
     }
+    final incomingReports = _parseRadioReports(value['radioReports']);
     final incomingPacks = (value['packs'] as List)
             .map((p) => parsePack(checkedObject(p, 'пакет')))
             .toList(),
@@ -653,6 +690,19 @@ class AppStore extends ChangeNotifier {
     unique(incomingMessages.map((m) => m.id));
     await _mutate(
       () {
+        // Validate every existing identity before bounded inserts can evict it.
+        for (final report in incomingReports) {
+          final existing = _radioReports
+              .where((r) => r.id == report.id)
+              .firstOrNull;
+          if (existing != null &&
+              jsonEncode(existing.toJson()) != jsonEncode(report.toJson())) {
+            throw const FormatException('Конфлікт ID радіозвіту.');
+          }
+        }
+        for (final report in incomingReports.reversed) {
+          _insertRadioReport(report);
+        }
         for (final p in incomingPacks) {
           if (!packs.any((a) => a['id'] == p['id'])) {
             _insertPack(p);

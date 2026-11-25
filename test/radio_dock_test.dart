@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:amid_offgrid/models/mesh_wire.dart';
@@ -9,6 +10,126 @@ import 'radio_support.dart';
 import 'support.dart';
 
 void main() {
+  test('field report excludes MQTT ACK, duplicate texts and all payload identifiers', () async {
+    final f = await openTestStore(), transport = FixtureRadio();
+    final radio = RadioDockService(f.store, transport);
+    try {
+      await radio.connect('one');
+      radio.chooseChannel(1);
+      radio.startFieldTest();
+      expect(
+        transport.writes,
+        hasLength(1),
+      ); // Starting a test never transmits.
+      await radio.sendText(
+        'Private payload 50.12345, 15.12345',
+        to: 0x1234abcd,
+      );
+      final id = transport.lastId;
+      transport.queued(id);
+      transport.ack(id, viaMqtt: true);
+      transport.text('MQTT only', id: 5, viaMqtt: true);
+      await radio.flushIncoming();
+      expect(radio.transmissions.single.state, RadioDelivery.queued);
+      expect(radio.fieldTest!.acknowledged, 0);
+      expect(radio.fieldTest!.receivedTexts, 0);
+      transport.ack(id);
+      transport.ack(id);
+      transport.text('Private incoming 51.23456, 16.23456');
+      transport.text('Private incoming 51.23456, 16.23456');
+      transport.emit(Uint8List.fromList([18, 250]));
+      await radio.flushIncoming();
+      await radio.finishFieldTest();
+      expect(radio.fieldTest, isNull);
+      expect(radio.fieldReportSaved, isTrue);
+      final report = f.store.radioReports.single;
+      expect(report.attempts, 1);
+      expect(report.acknowledged, 1);
+      expect(report.received, 1);
+      expect(report.toJson()['processingErrors'], 1);
+      expect((report.toJson()['rssiDbm'] as Map)['count'], 2);
+      final encoded = jsonEncode(report.toJson());
+      for (final private in [
+        'Private',
+        '50.12345',
+        '51.23456',
+        '!1234abcd',
+        '1234abcd',
+        'MQTT only',
+      ]) {
+        expect(encoded, isNot(contains(private)));
+      }
+      transport.text('After finish', id: 999);
+      await radio.flushIncoming();
+      expect(f.store.radioReports.single.received, 1);
+    } finally {
+      radio.dispose();
+      await f.store.close();
+      await f.root.delete(recursive: true);
+    }
+  });
+  test('disconnect finalizes once, preserves pending as interrupted and a new test starts fresh', () async {
+    final f = await openTestStore(), transport = FixtureRadio();
+    final radio = RadioDockService(f.store, transport);
+    try {
+      await radio.connect('one');
+      radio.chooseChannel(1);
+      radio.startFieldTest();
+      await radio.sendText('Pending', to: 0x1234abcd);
+      await radio.stop();
+      await radio.finishFieldTest();
+      expect(f.store.radioReports, hasLength(1));
+      final report = f.store.radioReports.single.toJson();
+      expect(report['reason'], 'disconnected');
+      expect((report['unicast'] as Map)['interrupted'], 1);
+      expect((report['unicast'] as Map)['unconfirmed'], 0);
+      await radio.stop();
+      expect(f.store.radioReports, hasLength(1));
+      await radio.connect('one');
+      radio.chooseChannel(1);
+      radio.startFieldTest();
+      expect(radio.fieldTest!.attempts, 0);
+      radio.channels[2] = const MeshChannel(2, 'Other', true, false);
+      radio.chooseChannel(2);
+      await radio.finishFieldTest();
+      expect(
+        f.store.radioReports.first.toJson()['reason'],
+        'configurationChanged',
+      );
+    } finally {
+      radio.dispose();
+      await f.store.close();
+      await f.root.delete(recursive: true);
+    }
+  });
+  test(
+    'failed report save stays visible and blocks replacing the unsaved report',
+    () async {
+      final f = await openTestStore(), transport = FixtureRadio();
+      final radio = RadioDockService(f.store, transport);
+      try {
+        await radio.connect('one');
+        radio.startFieldTest();
+        await f.store.backend.db.execute(
+          "CREATE TRIGGER field_report_fail BEFORE INSERT ON state BEGIN SELECT RAISE(ABORT, 'fixture save failure'); END",
+        );
+        await radio.finishFieldTest();
+        expect(radio.fieldSaveError, isNotNull);
+        expect(radio.fieldReportSaved, isFalse);
+        expect(radio.lastFieldReport, isNotNull);
+        expect(radio.startFieldTest, throwsStateError);
+        await f.store.backend.db.execute('DROP TRIGGER field_report_fail');
+        await radio.saveFieldReport();
+        expect(radio.fieldSaveError, isNull);
+        expect(radio.fieldReportSaved, isTrue);
+        expect(f.store.radioReports, hasLength(1));
+      } finally {
+        radio.dispose();
+        await f.store.close();
+        await f.root.delete(recursive: true);
+      }
+    },
+  );
   test(
     'a cancelled scan finishing late cannot overwrite a new ready connection',
     () async {

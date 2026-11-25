@@ -82,6 +82,7 @@ class FixtureRadio extends RadioTransport {
     int to = 0x11223344,
     int channel = 1,
     int error = 0,
+    bool viaMqtt = false,
   }) {
     final routing = meshUint(3, error);
     final data =
@@ -98,13 +99,15 @@ class FixtureRadio extends RadioTransport {
               ..fixed(2, to)
               ..uint(3, channel)
               ..bytes(4, data)
-              ..fixed(6, 900))
+              ..fixed(6, 900)
+              ..uint(12, (-75) & 0xffffffff)
+              ..uint(14, viaMqtt ? 1 : 0))
             .take(),
       ),
     );
   }
 
-  void text(String value, {int id = 777}) {
+  void text(String value, {int id = 777, bool viaMqtt = false}) {
     final data =
         (MeshWriter()
               ..uint(1, 1)
@@ -118,7 +121,9 @@ class FixtureRadio extends RadioTransport {
               ..fixed(2, 0x11223344)
               ..uint(3, 1)
               ..bytes(4, data)
-              ..fixed(6, id))
+              ..fixed(6, id)
+              ..uint(12, (-82) & 0xffffffff)
+              ..uint(14, viaMqtt ? 1 : 0))
             .take(),
       ),
     );

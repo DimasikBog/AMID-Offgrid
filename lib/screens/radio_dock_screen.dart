@@ -8,6 +8,7 @@ import '../models/mesh_wire.dart';
 import '../services/radio_dock.dart';
 import '../services/store.dart';
 import '../widgets/common.dart';
+import '../widgets/radio_field_panel.dart';
 
 class RadioDockScreen extends StatefulWidget {
   const RadioDockScreen({
@@ -254,6 +255,7 @@ class _RadioDockScreenState extends State<RadioDockScreen>
                     ),
                   ),
               ],
+              RadioFieldPanel(radio: radio),
               const Section('Коротке повідомлення'),
               CheckboxListTile(
                 contentPadding: EdgeInsets.zero,
