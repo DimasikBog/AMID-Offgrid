@@ -21,6 +21,7 @@ All boxes concern the final candidate, not an earlier build.
 
 ## Google Play
 
+- [ ] Final AAB has a validated install-time AI pack and passes offline split-install tests ([procedure](PLAY_DELIVERY.md)).
 - [ ] Verified Play Console account and any applicable registration/device requirements.
 - [ ] Upload-key-signed AAB, Play App Signing and target API requirements met (currently API 36 for new apps/updates).
 - [ ] 64-bit/16 KiB library compatibility and real-device acceptance.

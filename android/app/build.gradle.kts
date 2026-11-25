@@ -25,6 +25,9 @@ fun amidSigningValue(environment: String, property: String): String =
         ?: error("Distribution signing requires $environment or android/key.properties:$property")
 
 android {
+    if (providers.gradleProperty("amidPlayBundle").orNull == "true") {
+        assetPacks += listOf(":offline_model")
+    }
     namespace = "com.amid.offgrid"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion

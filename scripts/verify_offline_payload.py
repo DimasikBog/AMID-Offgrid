@@ -24,7 +24,31 @@ def verify(path, data):
             raise ValueError('Expected exactly one native Flutter payload in archive')
         prefix = candidates[0][:-len('bundle.json')]
         assets = candidates[0][:-len('assets/offline_model/bundle.json')]
-        return verify_content(lambda name: archive.open(prefix + name),
+        if path.suffix == '.aab':
+            expected_base = 'base/assets/flutter_assets/assets/offline_model/'
+            pack = 'offline_model/assets/flutter_assets/assets/offline_model/'
+            if prefix != expected_base:
+                raise ValueError('Unexpected Play base payload location')
+            names = archive.namelist()
+            if len(names) != len(set(names)):
+                raise ValueError('Duplicate bundle entries')
+            with archive.open(prefix + 'bundle.json') as source:
+                record = json.load(source)
+            if not isinstance(record.get('parts'), int) or not 0 < record['parts'] <= 4096:
+                raise ValueError('Invalid Play part count')
+            expected_parts = {pack + f'model-{i:03d}.part' for i in range(record['parts'])}
+            actual_parts = {name for name in names if name.startswith('offline_model/assets/') and not name.endswith('/')}
+            if actual_parts != expected_parts:
+                raise ValueError('AI pack must contain exactly the declared model parts')
+            if any(name.startswith('base/') and (name.endswith('.part') or name.endswith('.gguf')) for name in names):
+                raise ValueError('Model bytes must not be duplicated in base')
+            if any(name.startswith('offline_model/') and not name.endswith('/') and
+                   not (name in expected_parts or name == 'offline_model/manifest/AndroidManifest.xml') for name in names):
+                raise ValueError('Unexpected code or metadata in AI pack')
+            read_model = lambda name: archive.open((pack if name.endswith('.part') else prefix) + name)
+        else:
+            read_model = lambda name: archive.open(prefix + name)
+        return verify_content(read_model,
                               lambda name: archive.open(assets + name), data)
 
 

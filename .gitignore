@@ -58,6 +58,7 @@ app.*.map.json
 *.ipa
 *.gguf
 assets/offline_model/model-*.part
+android/offline_model/src/
 *.mbtiles
 *.jks
 *.keystore

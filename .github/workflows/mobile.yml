@@ -76,7 +76,13 @@ jobs:
           cp docs/OFFLINE_ROUTES.md docs/OFFLINE_MAPS.md dist/docs/
           cp examples/route_network.json dist/examples/
           python3 scripts/verify_apk.py dist/AMID_Offgrid_android_arm64.apk
-          python3 scripts/create_manifest.py --artifact dist/AMID_Offgrid_android_arm64.apk --platform android --signing development --commit "$GITHUB_SHA" --run-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" --quality success --bundled-starter
+      - name: Build install-time AI App Bundle
+        run: |
+          python3 scripts/build_play_bundle.py
+          cp build/app/outputs/bundle/release/app-release.aab dist/AMID_Offgrid_android_arm64.aab
+          python3 scripts/verify_play_bundle.py dist/AMID_Offgrid_android_arm64.aab
+          cp -r build/play-evidence dist/play-evidence
+          python3 scripts/create_manifest.py --artifact dist/AMID_Offgrid_android_arm64.apk --artifact dist/AMID_Offgrid_android_arm64.aab --platform android --signing development --commit "$GITHUB_SHA" --run-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" --quality success --bundled-starter
       - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
         with:
           name: AMID-Offgrid-Android-${{ github.run_number }}
@@ -84,6 +90,35 @@ jobs:
           if-no-files-found: error
           retention-days: 7
           compression-level: 0
+
+  play-delivery:
+    if: github.event.repository.private == false
+    needs: quality
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      AMID_TEST_ABI: x86_64
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with: {persist-credentials: false}
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961
+        with: {distribution: temurin, java-version: '17'}
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2
+        with: {flutter-version: '${{ env.FLUTTER_VERSION }}', channel: stable, cache: true}
+      - run: flutter pub get --enforce-lockfile
+      - run: python3 scripts/prepare_offline_payload.py
+      - run: python3 scripts/build_play_bundle.py --debug
+      - run: bash scripts/boot_android_emulator.sh android
+      - name: Install AAB splits and test offline model, maps and persistence
+        run: python3 scripts/test_play_install.py build/app/outputs/bundle/debug/app-debug.aab
+      - name: Retain actual split-install evidence
+        if: always()
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+        with:
+          name: Play-split-emulator-${{ github.run_number }}
+          path: build/emulator-evidence/
+          if-no-files-found: warn
+          retention-days: 14
 
   ios:
     if: github.event.repository.private == false || (github.event_name == 'workflow_dispatch' && inputs.build_ios)
@@ -289,7 +324,7 @@ jobs:
           compression-level: 0
 
   publish:
-    needs: [quality, android, ios, desktop, wear, watchos, web]
+    needs: [quality, android, play-delivery, ios, desktop, wear, watchos, web]
     if: github.event.repository.private == false && ((github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && github.actor == github.repository_owner))
     runs-on: ubuntu-24.04
     timeout-minutes: 15
