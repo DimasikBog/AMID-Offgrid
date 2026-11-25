@@ -150,3 +150,26 @@ OSV querybatch для 158 зафіксованих hosted Pub-залежност
 Читач не отримує заголовки або токени сервісу акаунтів. CORS залишається
 обмеженням вебчитання. Нативний WebView має окреме браузерне сховище;
 детальні межі описані в BROWSER.md та PRIVACY.md.
+
+
+## Опублікований результат 0.7.1-beta.11
+
+[Реліз](https://github.com/DimasikBog/AMID-Offgrid/releases/tag/v0.7.1-beta.11)
+не є draft; має 17 файлів: 8 маніфестів та 9 пакетів. Незалежне читання
+опублікованих маніфестів підтвердило версію 0.7.1, build 11, quality success,
+source commit `cdf7f35236c39b0dd7014af1aa37c5908affe9eb`, розміри й SHA-256
+усіх дев’яти пакетів за digest GitHub. П’ять повних нативних платформ мають
+перевірений стартовий GGUF. Apple-пакети потребують підписування; фізичні
+пристрої не позначені як перевірені.
+
+[CI та публікація](https://github.com/DimasikBog/AMID-Offgrid/actions/runs/45563290293)
+успішні для всіх восьми платформ. Wear OS повторено після тимчасового HTTP
+429 Maven без зміни коду. [Перевірки спільного коду й емуляторів](https://github.com/DimasikBog/AMID-Offgrid/pull/11)
+прив’язані до відповідних SHA: 152 Flutter, 19 Python, 7 Node, 3 Chrome-тести,
+4 реальні Chromium/PWA сценарії та Android/iOS/Wear OS/watchOS.
+
+[Публікація Pages](https://github.com/DimasikBog/AMID-Offgrid/actions/runs/45563290359)
+успішна. Пряме читання version.json/source.json підтвердило 0.7.1+11 і той
+самий source commit; опублікований каталог має 3 image, 3 geojson, 4 model
+та 6 source. Цей протокол не означає фізичне приймання, тест великих моделей
+або гарантію відсутності всіх вразливостей.
