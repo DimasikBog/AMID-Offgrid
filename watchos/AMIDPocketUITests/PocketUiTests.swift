@@ -30,7 +30,7 @@ final class PocketUiTests: XCTestCase {
         let app = XCUIApplication()
         app.launch()
         let check = app.buttons["check-water"]
-        XCTAssertTrue(check.waitForExistence(timeout: 30))
+        XCTAssertTrue(check.waitForExistence(timeout: 30), app.debugDescription)
         reveal(check, in: app)
         XCTAssertTrue(["Виконано", "Не виконано"].contains(check.value as? String ?? ""),
                       "Checklist state must be exposed to accessibility")
@@ -46,7 +46,7 @@ final class PocketUiTests: XCTestCase {
         capture(app, "01-checklist")
         app.terminate()
         app.launch()
-        XCTAssertTrue(check.waitForExistence(timeout: 30))
+        XCTAssertTrue(check.waitForExistence(timeout: 30), app.debugDescription)
         XCTAssertEqual(String(describing: check.value), changed)
 
         let url = try XCTUnwrap(Bundle(for: Self.self).url(forResource: "cards", withExtension: "json"))

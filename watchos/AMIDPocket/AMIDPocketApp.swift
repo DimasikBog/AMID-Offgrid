@@ -42,10 +42,10 @@ struct PocketView: View {
                                 .contentShape(Rectangle())
                             }
                             .buttonStyle(.plain)
-                            .accessibilityElement(children: .ignore)
                             .accessibilityIdentifier("check-\(item.id)")
                             .accessibilityLabel(item.title)
                             .accessibilityValue(checked.contains(item.id) ? "Виконано" : "Не виконано")
+                            .accessibilityAddTraits(.isButton)
                         }
                     }
                     Section("Короткі картки") {

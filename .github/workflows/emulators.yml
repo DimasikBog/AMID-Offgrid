@@ -19,7 +19,7 @@ permissions:
 
 concurrency:
   group: emulators-log-ready-${{ github.ref }}-${{ inputs.platform || 'all' }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 env:
   CI: true
