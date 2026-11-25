@@ -147,6 +147,14 @@ class RadioFieldReport {
               (summary['mean'] as num) > (summary['max'] as num))) {
         throw const FormatException('Неузгоджені вимірювання радіозвіту.');
       }
+      // JavaScript JSON can encode integral doubles as integers (and -0 as 0).
+      // Normalize before identity comparisons when merging portable backups.
+      if (n > 0) {
+        for (final key in ['min', 'max', 'mean']) {
+          final number = (summary[key] as num).toDouble();
+          summary[key] = number == 0 ? 0.0 : number;
+        }
+      }
       v[entry.key] = summary;
     }
     if ((v['ackMs'] as Map)['count'] != (v['unicast'] as Map)['acknowledged']) {

@@ -36,6 +36,18 @@ void main() {
     expect((data['unicast'] as Map)['unconfirmed'], 1);
     expect((data['rssiDbm'] as Map)['mean'], -80);
     expect((data['snrDb'] as Map)['mean'], -1);
+    final javascriptJson = jsonDecode(jsonEncode(data)) as Map<String, dynamic>;
+    for (final key in ['ackMs', 'rssiDbm', 'snrDb']) {
+      final values = javascriptJson[key] as Map<String, dynamic>;
+      for (final name in ['min', 'max', 'mean']) {
+        final value = values[name] as num;
+        if (value == value.toInt()) values[name] = value.toInt();
+      }
+    }
+    expect(
+      jsonEncode(RadioFieldReport.parse(javascriptJson).toJson()),
+      jsonEncode(data),
+    );
     test.received();
     test.outcome(11, 'failed');
     expect(test.finish('disconnected').toJson(), data);
