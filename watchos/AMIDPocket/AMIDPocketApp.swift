@@ -23,13 +23,29 @@ struct PocketView: View {
                 if let guide {
                     Section("Мій список") {
                         ForEach(guide.checklist) { item in
-                            Toggle(item.title, isOn: Binding(
-                                get: { checked.contains(item.id) },
-                                set: { value in
-                                    if value { checked.insert(item.id) } else { checked.remove(item.id) }
-                                    UserDefaults.standard.set(Array(checked), forKey: "preparation")
-                                }))
-                                .accessibilityIdentifier("check-\(item.id)")
+                            Button {
+                                if checked.contains(item.id) {
+                                    checked.remove(item.id)
+                                } else {
+                                    checked.insert(item.id)
+                                }
+                                UserDefaults.standard.set(Array(checked), forKey: "preparation")
+                            } label: {
+                                HStack(spacing: 8) {
+                                    Image(systemName: checked.contains(item.id) ? "checkmark.circle.fill" : "circle")
+                                        .foregroundStyle(checked.contains(item.id) ? Color.mint : Color.secondary)
+                                        .accessibilityHidden(true)
+                                    Text(item.title)
+                                    Spacer(minLength: 0)
+                                }
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityElement(children: .ignore)
+                            .accessibilityIdentifier("check-\(item.id)")
+                            .accessibilityLabel(item.title)
+                            .accessibilityValue(checked.contains(item.id) ? "Виконано" : "Не виконано")
                         }
                     }
                     Section("Короткі картки") {

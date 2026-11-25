@@ -29,9 +29,11 @@ final class PocketUiTests: XCTestCase {
         continueAfterFailure = false
         let app = XCUIApplication()
         app.launch()
-        let check = app.descendants(matching: .any).matching(identifier: "check-water").firstMatch
+        let check = app.buttons["check-water"]
         XCTAssertTrue(check.waitForExistence(timeout: 30))
         reveal(check, in: app)
+        XCTAssertTrue(["Виконано", "Не виконано"].contains(check.value as? String ?? ""),
+                      "Checklist state must be exposed to accessibility")
         let before = String(describing: check.value)
         check.tap()
         let changedValue = XCTNSPredicateExpectation(
