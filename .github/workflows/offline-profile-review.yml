@@ -18,6 +18,7 @@ jobs:
           channel: stable
           cache: true
       - run: flutter pub get --enforce-lockfile
+      - run: timeout 90s flutter test --no-pub --reporter expanded test/completion_ui_test.dart
       - run: flutter test --no-pub --update-goldens --reporter expanded test/account_ui_test.dart
       - name: Export rendered account screen for review
         run: |

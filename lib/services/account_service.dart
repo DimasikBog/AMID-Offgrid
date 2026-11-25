@@ -325,6 +325,11 @@ class AccountService extends ChangeNotifier {
     if (!verified || user == null || vault == null) {
       throw StateError('Спочатку підтвердь онлайн-вхід через 2FA.');
     }
+    final current = await _call({'action': 'export'}, authenticated: true);
+    if (current['profile'] is! Map ||
+        current['profile']['username'] != username) {
+      throw StateError('Серверний профіль не підтверджено. Увійди повторно.');
+    }
     await vault.create(
       username: username,
       userId: user.id,
