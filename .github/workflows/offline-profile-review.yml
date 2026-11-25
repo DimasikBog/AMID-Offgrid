@@ -1,0 +1,33 @@
+name: Offline profile review
+on:
+  push:
+    branches: [codex/offline-profile-review]
+permissions:
+  contents: read
+jobs:
+  review:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2
+        with:
+          flutter-version: '3.47.6'
+          channel: stable
+          cache: true
+      - run: flutter pub get --enforce-lockfile
+      - run: flutter test --no-pub --update-goldens --reporter expanded test/account_ui_test.dart
+      - name: Export rendered account screen for review
+        run: |
+          python3 - <<'PY'
+          import base64,hashlib
+          from pathlib import Path
+          data=Path('test/goldens/account_phone.png').read_bytes()
+          text=base64.b64encode(data).decode()
+          print('AMID_GOLDEN_SHA256:'+hashlib.sha256(data).hexdigest())
+          for i in range(0,len(text),4096):
+              print('AMID_GOLDEN_B64:'+text[i:i+4096])
+          PY
+      - run: flutter test --no-pub --reporter expanded test/offline_profile_codec_test.dart test/offline_profile_test.dart
