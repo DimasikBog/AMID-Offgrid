@@ -4,17 +4,25 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../models/data.dart';
 import '../models/web_page.dart';
 import '../services/store.dart';
 import '../services/web_reader.dart';
 import '../widgets/common.dart';
+import 'saved_pages_screen.dart';
 
 class BrowserScreen extends StatefulWidget {
-  const BrowserScreen({super.key, required this.store, this.reader});
+  const BrowserScreen({
+    super.key,
+    required this.store,
+    this.reader,
+    this.launchExternal,
+  });
   final AppStore store;
   final WebReader? reader;
+  final Future<bool> Function(Uri)? launchExternal;
   @override
   State<BrowserScreen> createState() => _BrowserScreenState();
 }
@@ -22,7 +30,7 @@ class BrowserScreen extends StatefulWidget {
 class _BrowserScreenState extends State<BrowserScreen>
     with WidgetsBindingObserver {
   final _address = TextEditingController();
-  final _history = <ReaderPage>[];
+  final _history = <({ReaderPage? page, Article? saved})>[];
   late final WebReader _reader = widget.reader ?? WebReader();
   WebViewController? _site;
   ReaderPage? _page;
@@ -92,12 +100,7 @@ class _BrowserScreenState extends State<BrowserScreen>
       final page = await _reader.fetch(address);
       if (!mounted || generation != _generation) return;
       setState(() {
-        if (_position + 1 < _history.length) {
-          _history.removeRange(_position + 1, _history.length);
-        }
-        _history.add(page);
-        if (_history.length > 12) _history.removeAt(0);
-        _position = _history.length - 1;
+        _remember(page: page);
         _page = page;
         _address.text = page.uri.toString();
       });
@@ -118,8 +121,8 @@ class _BrowserScreenState extends State<BrowserScreen>
       return 'Сайт не відповів вчасно. Спробуй ще раз.';
     }
     return kIsWeb
-        ? 'Не вдалося отримати сторінку. Сайт може забороняти читання з вебдодатка (CORS). Збережені матеріали доступні офлайн.'
-        : 'Не вдалося отримати сторінку. Перевір з’єднання або спробуй режим «Сайт».';
+        ? 'Не вдалося отримати сторінку. Сайт може забороняти читання з вебдодатка (CORS). Скористайся кнопкою відкриття у системному браузері. Збережені матеріали доступні офлайн.'
+        : 'Не вдалося отримати сторінку. Перевір з’єднання, спробуй режим «Сайт» або відкрий адресу у системному браузері.';
   }
 
   Future<void> _openSite() async {
@@ -196,14 +199,128 @@ class _BrowserScreenState extends State<BrowserScreen>
     });
   }
 
+  void _remember({ReaderPage? page, Article? saved}) {
+    if (_position + 1 < _history.length) {
+      _history.removeRange(_position + 1, _history.length);
+    }
+    _history.add((page: page, saved: saved));
+    if (_history.length > 12) _history.removeAt(0);
+    _position = _history.length - 1;
+  }
+
+  Article? _localCopy(Uri uri) {
+    for (final article in widget.store.articles.reversed) {
+      if (article.packId != AppStore.webPagesId) continue;
+      try {
+        if (checkedWebUri(article.source) == uri) return article;
+      } on FormatException {
+        // Old imported sources may not meet the browser's HTTPS policy.
+      }
+    }
+    return null;
+  }
+
+  void _showSaved(Article article, {bool remember = true}) {
+    _cancel();
+    _retireSite();
+    setState(() {
+      if (remember) _remember(saved: article);
+      _saved = article;
+      _page = null;
+      _siteMode = false;
+      _error = null;
+      _address.text = article.source;
+    });
+  }
+
+  Future<void> _openAddress(String address) => guarded(context, () async {
+    _cancel();
+    final uri = checkedWebUri(address);
+    final local = _localCopy(uri);
+    if (local != null) {
+      _showSaved(local);
+    } else {
+      await _load(uri.toString());
+    }
+  });
+
+  Future<void> _followLink(WebLink link) async {
+    final local = _localCopy(link.uri);
+    if (local != null) {
+      _showSaved(local);
+      return;
+    }
+    if (_saved != null) {
+      final generation = _generation;
+      final download = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Сторінку не збережено'),
+          content: Text('Для цього переходу потрібен інтернет.\n\n${link.uri}'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Залишитися офлайн'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Завантажити через інтернет'),
+            ),
+          ],
+        ),
+      );
+      if (!mounted || download != true || generation != _generation) return;
+    }
+    await _load(link.uri.toString());
+  }
+
+  Future<void> _openExternal() => guarded(context, () async {
+    final uri = checkedWebUri(_address.text);
+    _cancel();
+    // No async availability check before launch: web needs a direct user gesture.
+    final opened =
+        await (widget.launchExternal?.call(uri) ??
+            launchUrl(
+              uri,
+              mode: LaunchMode.externalApplication,
+              webOnlyWindowName: '_blank',
+            ));
+    if (!opened) {
+      throw const FormatException(
+        'Не вдалося передати адресу браузеру. Скопіюй її та відкрий вручну.',
+      );
+    }
+  });
+
+  int? _historyTarget(int delta) {
+    for (var i = _position + delta; i >= 0 && i < _history.length; i += delta) {
+      final visit = _history[i];
+      if (visit.saved == null ||
+          widget.store.articles.any((a) => a.key == visit.saved!.key)) {
+        return i;
+      }
+    }
+    return null;
+  }
+
   void _move(int delta) {
-    final target = _position + delta;
-    if (target < 0 || target >= _history.length) return;
+    final target = _historyTarget(delta);
+    if (target == null) return;
+    final visit = _history[target];
+    final saved = visit.saved;
+    if (saved != null) {
+      _showSaved(
+        widget.store.articles.firstWhere((a) => a.key == saved.key),
+        remember: false,
+      );
+      setState(() => _position = target);
+      return;
+    }
     _cancel();
     _retireSite();
     setState(() {
       _position = target;
-      _page = _history[target];
+      _page = visit.page;
       _saved = null;
       _siteMode = false;
       _error = null;
@@ -225,17 +342,10 @@ class _BrowserScreenState extends State<BrowserScreen>
 
   Future<void> _savedPages() async {
     final selected = await Navigator.of(context).push<Article>(
-      MaterialPageRoute(builder: (_) => _SavedPages(store: widget.store)),
+      MaterialPageRoute(builder: (_) => SavedPagesScreen(store: widget.store)),
     );
     if (!mounted || selected == null) return;
-    _cancel();
-    _retireSite();
-    setState(() {
-      _saved = selected;
-      _siteMode = false;
-      _error = null;
-      _address.text = selected.source;
-    });
+    _showSaved(selected);
   }
 
   Future<void> _clearSession() => guarded(context, () async {
@@ -270,8 +380,17 @@ class _BrowserScreenState extends State<BrowserScreen>
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(
-      title: const Text('Браузер'),
+      title: const Text(
+        'Браузер',
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
       actions: [
+        IconButton(
+          tooltip: 'Відкрити у системному браузері',
+          onPressed: _openExternal,
+          icon: const Icon(Icons.open_in_new),
+        ),
         IconButton(
           tooltip: 'Збережені сторінки',
           onPressed: _savedPages,
@@ -310,14 +429,14 @@ class _BrowserScreenState extends State<BrowserScreen>
                       prefixIcon: Icon(Icons.lock_outline),
                     ),
                     onSubmitted: (_) =>
-                        _siteMode ? _openSite() : _load(_address.text),
+                        _siteMode ? _openSite() : _openAddress(_address.text),
                   ),
                 ),
                 const SizedBox(width: 8),
                 IconButton.filled(
                   tooltip: 'Відкрити адресу',
                   onPressed: () =>
-                      _siteMode ? _openSite() : _load(_address.text),
+                      _siteMode ? _openSite() : _openAddress(_address.text),
                   icon: const Icon(Icons.arrow_forward),
                 ),
               ],
@@ -334,7 +453,7 @@ class _BrowserScreenState extends State<BrowserScreen>
                   label: const Text('Читання'),
                   selected: !_siteMode,
                   onSelected: (_) {
-                    if (_siteMode) unawaited(_load(_address.text));
+                    if (_siteMode) unawaited(_openAddress(_address.text));
                   },
                 ),
                 if (_supportsSite)
@@ -346,12 +465,14 @@ class _BrowserScreenState extends State<BrowserScreen>
                 if (!_siteMode) ...[
                   IconButton(
                     tooltip: 'Попередня сторінка',
-                    onPressed: _position > 0 ? () => _move(-1) : null,
+                    onPressed: _historyTarget(-1) != null
+                        ? () => _move(-1)
+                        : null,
                     icon: const Icon(Icons.chevron_left),
                   ),
                   IconButton(
                     tooltip: 'Наступна сторінка',
-                    onPressed: _position + 1 < _history.length
+                    onPressed: _historyTarget(1) != null
                         ? () => _move(1)
                         : null,
                     icon: const Icon(Icons.chevron_right),
@@ -363,6 +484,12 @@ class _BrowserScreenState extends State<BrowserScreen>
                         : null,
                     icon: const Icon(Icons.download_for_offline_outlined),
                   ),
+                  if (_saved != null)
+                    IconButton(
+                      tooltip: 'Завантажити свіжу сторінку',
+                      onPressed: _busy ? null : () => _load(_address.text),
+                      icon: const Icon(Icons.refresh),
+                    ),
                   if (_busy)
                     IconButton(
                       tooltip: 'Скасувати завантаження',
@@ -452,7 +579,7 @@ class _BrowserScreenState extends State<BrowserScreen>
             const Padding(
               padding: EdgeInsets.all(24),
               child: Text(
-                'У вебверсії сайт має дозволяти читання через CORS. Відкриття сайту всередині доступне на Android, iOS і macOS.',
+                'У вебверсії читання залежить від CORS. Кнопка ↗ у верхній панелі відкриває адресу у системному браузері або новій вкладці. Вбудований режим «Сайт» доступний на Android, iOS і macOS.',
               ),
             ),
         ],
@@ -460,7 +587,10 @@ class _BrowserScreenState extends State<BrowserScreen>
     }
     final title = saved?.title ?? page!.title;
     final text = saved?.body ?? page!.text;
+    final links = saved != null ? archivedWebLinks(saved.body) : page!.links;
     return ListView(
+      key: ValueKey('reader:${saved?.key ?? page!.uri}'),
+      primary: false,
       padding: const EdgeInsets.all(20),
       children: [
         Wrap(
@@ -514,9 +644,9 @@ class _BrowserScreenState extends State<BrowserScreen>
           textScaler: TextScaler.linear(widget.store.readerScale),
           style: const TextStyle(height: 1.65, fontSize: 16),
         ),
-        if (saved == null && page!.links.isNotEmpty) ...[
+        if (links.isNotEmpty) ...[
           const Section('Посилання на сторінці'),
-          for (final link in page.links)
+          for (final link in links)
             ListTile(
               contentPadding: EdgeInsets.zero,
               title: Text(link.title),
@@ -525,60 +655,15 @@ class _BrowserScreenState extends State<BrowserScreen>
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
-              trailing: const Icon(Icons.north_east),
-              onTap: () => _load(link.uri.toString()),
+              trailing: Icon(
+                _localCopy(link.uri) != null
+                    ? Icons.offline_pin_outlined
+                    : Icons.north_east,
+              ),
+              onTap: () => _followLink(link),
             ),
         ],
       ],
     );
   }
-}
-
-class _SavedPages extends StatelessWidget {
-  const _SavedPages({required this.store});
-  final AppStore store;
-  @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Збережені сторінки')),
-    body: ListenableBuilder(
-      listenable: store,
-      builder: (context, _) {
-        final pages = store.articles
-            .where((a) => a.packId == AppStore.webPagesId)
-            .toList()
-            .reversed
-            .toList();
-        if (pages.isEmpty) {
-          return const SingleChildScrollView(
-            child: EmptyState(
-              'Поки немає збережених сторінок',
-              'Відкрий сайт у режимі читання й натисни «Зберегти офлайн».',
-            ),
-          );
-        }
-        return ListView.builder(
-          itemCount: pages.length,
-          itemBuilder: (context, i) {
-            final page = pages[i];
-            return ListTile(
-              title: Text(page.title),
-              subtitle: Text(
-                page.source,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-              leading: const Icon(Icons.offline_pin_outlined),
-              onTap: () => Navigator.of(context).pop(page),
-              trailing: IconButton(
-                tooltip: 'Видалити збережену сторінку',
-                onPressed: () =>
-                    guarded(context, () => store.deleteWebPage(page.key)),
-                icon: const Icon(Icons.delete_outline),
-              ),
-            );
-          },
-        );
-      },
-    ),
-  );
 }
