@@ -92,15 +92,21 @@ class Pill extends StatelessWidget {
     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
     decoration: BoxDecoration(
       color: warning
-          ? amber.withValues(alpha: .12)
-          : mint.withValues(alpha: .12),
+          ? (Theme.of(context).brightness == Brightness.dark
+                ? amber.withValues(alpha: .12)
+                : const Color(0xffffefd9))
+          : Theme.of(context).colorScheme.primary.withValues(alpha: .08),
       borderRadius: BorderRadius.circular(20),
     ),
     child: Text(
       text,
       style: TextStyle(
         fontSize: 12,
-        color: warning ? amber : Theme.of(context).colorScheme.primary,
+        color: warning
+            ? (Theme.of(context).brightness == Brightness.dark
+                  ? amber
+                  : const Color(0xff78501d))
+            : Theme.of(context).colorScheme.primary,
         fontWeight: FontWeight.w600,
       ),
     ),

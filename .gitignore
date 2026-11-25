@@ -72,3 +72,6 @@ __pycache__/
 /watchos/AMIDPocket.xcodeproj/
 /stage-macos/
 /downloaded/
+
+# Generated visual comparison output
+/test/failures/

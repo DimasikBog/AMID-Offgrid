@@ -166,6 +166,8 @@ class _OffgridShellState extends State<OffgridShell>
   final _visited = <int>{0};
   final _searchFocus = FocusNode(debugLabel: 'Library search');
   int _tab = 0;
+  bool _favoritesOnly = false;
+  int _libraryRequest = 0;
   @override
   void initState() {
     super.initState();
@@ -175,12 +177,25 @@ class _OffgridShellState extends State<OffgridShell>
   }
 
   void _navigate(int tab) {
+    if (tab != 1) _searchFocus.unfocus();
     if (mounted) {
       setState(() {
         _visited.add(tab);
         _tab = tab;
+        _favoritesOnly = false;
+        if (tab == 1) _libraryRequest++;
       });
     }
+  }
+
+  void _openFavorites() {
+    _searchFocus.unfocus();
+    setState(() {
+      _visited.add(1);
+      _tab = 1;
+      _favoritesOnly = true;
+      _libraryRequest++;
+    });
   }
 
   void _search() {
@@ -226,11 +241,19 @@ class _OffgridShellState extends State<OffgridShell>
   }
 
   Widget _page(int i) => switch (i) {
-    0 => HomeScreen(services: services, navigate: _navigate, openPacks: _packs),
+    0 => HomeScreen(
+      services: services,
+      navigate: _navigate,
+      openPacks: _packs,
+      openSearch: _search,
+      openFavorites: _openFavorites,
+    ),
     1 => LibraryScreen(
       services: services,
       navigate: _navigate,
       searchFocusNode: _searchFocus,
+      favoritesOnly: _favoritesOnly,
+      filterRequest: _libraryRequest,
     ),
     2 => AssistantScreen(
       services: services,
@@ -299,14 +322,14 @@ class _OffgridShellState extends State<OffgridShell>
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Container(
-                        width: 30,
-                        height: 30,
+                        width: 36,
+                        height: 36,
                         decoration: BoxDecoration(
                           color: Theme.of(context).colorScheme.primary,
-                          borderRadius: BorderRadius.circular(9),
+                          borderRadius: BorderRadius.circular(12),
                         ),
                         child: Icon(
-                          Icons.bolt_rounded,
+                          Icons.terrain_rounded,
                           size: 23,
                           color: Theme.of(context).colorScheme.onPrimary,
                         ),
@@ -327,9 +350,11 @@ class _OffgridShellState extends State<OffgridShell>
                       if (size.maxWidth >= 500) ...[
                         const SizedBox(width: 8),
                         Text(
-                          'offgrid',
+                          'OFFGRID',
                           style: TextStyle(
-                            fontSize: 16,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 2,
                             color: Theme.of(context).colorScheme.outline,
                           ),
                         ),
@@ -337,6 +362,16 @@ class _OffgridShellState extends State<OffgridShell>
                     ],
                   ),
                   actions: [
+                    if (size.maxWidth >= 500)
+                      IconButton(
+                        tooltip: 'Змінити тему',
+                        onPressed: widget.themeAction,
+                        icon: Icon(
+                          Theme.of(context).brightness == Brightness.dark
+                              ? Icons.light_mode_outlined
+                              : Icons.dark_mode_outlined,
+                        ),
+                      ),
                     IconButton(
                       tooltip: 'Пошук · Ctrl/⌘ K',
                       onPressed: _search,
@@ -386,7 +421,7 @@ class _OffgridShellState extends State<OffgridShell>
                               onDestinationSelected: _navigate,
                               extended: extended,
                               minWidth: 88,
-                              minExtendedWidth: 220,
+                              minExtendedWidth: 210,
                               labelType: extended
                                   ? null
                                   : NavigationRailLabelType.all,
