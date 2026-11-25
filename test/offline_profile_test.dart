@@ -27,7 +27,10 @@ void main() {
       await vault.rename('Alice private nickname');
       await f.store.setReaderScale(1.5);
       await f.store.setPrepared('water', true);
+      final cancelled = f.store.setReaderScale(1.7);
       vault.lock();
+      await expectLater(cancelled, throwsStateError);
+      expect(f.store.readerScale, 1.5);
       await f.store.setThemePreference('light');
       await f.store.setReaderScale(1);
       await vault.create(

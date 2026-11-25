@@ -210,13 +210,14 @@ class AppStore extends ChangeNotifier {
     void Function()? checkActive,
   }) {
     if (_closed) return Future.error(StateError('Сховище вже закрите.'));
+    // Bind queued settings to the profile that requested the write.
+    final protect = _protectPersonalization, id = _activeProfile;
     final job = _writes.then((_) async {
       checkActive?.call();
       final previous = snapshot();
       final previousPreferences = jsonEncode(personalization);
       try {
         await change();
-        final protect = _protectPersonalization, id = _activeProfile;
         if (protect != null &&
             id != null &&
             jsonEncode(personalization) != previousPreferences) {

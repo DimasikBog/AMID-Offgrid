@@ -132,6 +132,7 @@ class OfflineProfileService {
     required String userId,
     required String passphrase,
   }) async {
+    lock();
     final epoch = _epoch;
     final salt = OfflineProfileCodec.randomSalt();
     final key = Uint8List.fromList(
