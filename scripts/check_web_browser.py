@@ -78,16 +78,20 @@ def check(build):
                 page.goto(url)
                 expect(page.locator('#offline-status')).to_have_text('Офлайн: файли збережені')
                 # Simulate one evicted static asset, not personal storage.
-                page.evaluate('''async () => {
-                  const key = (await caches.keys()).find(k => k.startsWith('amid-offgrid:' + location.href + ':'));
-                  await (await caches.open(key)).delete(new URL('assets/starter.json', location.href).href);
+                removed = page.evaluate('''async () => {
+                  const registration = await navigator.serviceWorker.getRegistration();
+                  const key = (await caches.keys()).find(k => k.startsWith('amid-offgrid:' + registration.scope + ':'));
+                  if (!key) throw new Error('Expected active app cache');
+                  return await (await caches.open(key)).delete(new URL('assets/assets/starter.json', document.baseURI).href);
                 }''')
+                assert removed, 'Repair fixture must evict an actual bundled file'
                 page.locator('#offline-status').click()
                 page.locator('#prepare-offline').click()
                 expect(page.locator('#offline-status')).to_have_text('Офлайн: файли збережені')
                 wait_until(page, '''async () => {
-                  const key = (await caches.keys()).find(k => k.startsWith('amid-offgrid:' + location.href + ':'));
-                  return !!await (await caches.open(key)).match(new URL('assets/starter.json', location.href).href);
+                  const registration = await navigator.serviceWorker.getRegistration();
+                  const key = (await caches.keys()).find(k => k.startsWith('amid-offgrid:' + registration.scope + ':'));
+                  return !!await (await caches.open(key)).match(new URL('assets/assets/starter.json', document.baseURI).href);
                 }''')
                 print('PASS actual Chromium: missing static file repaired', flush=True)
                 page.get_by_role('button', name='Закрити', exact=True).click()
