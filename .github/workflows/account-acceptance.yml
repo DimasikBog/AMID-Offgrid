@@ -1,0 +1,22 @@
+name: Account service acceptance
+on:
+  push:
+    branches: [codex/account-acceptance]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: account-service-acceptance
+  cancel-in-progress: false
+jobs:
+  disposable-accounts:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - name: Verify deployed Auth, MFA, isolation, recovery and deletion
+        env:
+          PYTHONUNBUFFERED: '1'
+        run: python3 scripts/probe_account_service.py --allow-live
