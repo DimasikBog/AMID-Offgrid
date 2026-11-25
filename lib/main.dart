@@ -15,6 +15,7 @@ import 'screens/map_screen.dart';
 import 'screens/messages_screen.dart';
 import 'screens/lite_screen.dart';
 import 'screens/note_editor.dart';
+import 'screens/browser_screen.dart';
 import 'widgets/common.dart';
 import 'widgets/app_theme.dart';
 import 'services/self_test_native.dart'
@@ -211,6 +212,12 @@ class _OffgridShellState extends State<OffgridShell>
     MaterialPageRoute(builder: (_) => PacksScreen(services: services)),
   );
 
+  void _browser() => unawaited(
+    Navigator.of(context).push<void>(
+      MaterialPageRoute(builder: (_) => BrowserScreen(store: widget.store)),
+    ),
+  );
+
   void _lite() => unawaited(
     guarded(context, () async {
       await services.assistant.unload();
@@ -247,6 +254,7 @@ class _OffgridShellState extends State<OffgridShell>
       openPacks: _packs,
       openSearch: _search,
       openFavorites: _openFavorites,
+      openBrowser: _browser,
     ),
     1 => LibraryScreen(
       services: services,
@@ -386,6 +394,8 @@ class _OffgridShellState extends State<OffgridShell>
                       tooltip: 'Швидкі дії',
                       onSelected: (value) {
                         switch (value) {
+                          case 'browser':
+                            _browser();
                           case 'note':
                             unawaited(editNote(context, widget.store));
                           case 'theme':
@@ -395,6 +405,10 @@ class _OffgridShellState extends State<OffgridShell>
                         }
                       },
                       itemBuilder: (_) => const [
+                        PopupMenuItem(
+                          value: 'browser',
+                          child: Text('Браузер та збережені сторінки'),
+                        ),
                         PopupMenuItem(
                           value: 'note',
                           child: Text('Нова нотатка · Ctrl/⌘ N'),

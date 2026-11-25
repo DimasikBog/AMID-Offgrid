@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:convert';
 
+import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:uuid/uuid.dart';
@@ -7,6 +9,7 @@ import 'package:uuid/uuid.dart';
 import '../models/data.dart';
 import '../models/preferences.dart';
 import '../models/starter_content.dart';
+import '../models/web_page.dart';
 import 'backend_native.dart' if (dart.library.js_interop) 'backend_web.dart';
 
 class AppStore extends ChangeNotifier {
@@ -23,6 +26,7 @@ class AppStore extends ChangeNotifier {
   bool starterAutoSetup = true;
   int contentRevision = 0;
   static const notesId = 'amid-personal-notes';
+  static const webPagesId = 'amid-saved-web';
   static const starterId = 'amid-mobile-starter';
   static const starterRevision = 3;
   String draft = '', selectedModel = '', selectedMap = '';
@@ -148,7 +152,8 @@ class AppStore extends ChangeNotifier {
     if (packs.length > 500 ||
         articles.length > 25000 ||
         pins.length > 10000 ||
-        messages.length > 10000) {
+        messages.length > 10000 ||
+        articles.where((a) => a.packId == webPagesId).length > 200) {
       throw const FormatException(
         'Сховище заповнене. Видали непотрібні матеріали перед імпортом.',
       );
@@ -284,6 +289,65 @@ class AppStore extends ChangeNotifier {
           .map((p) => p['id'] == notesId ? {...p, 'count': count} : p)
           .toList();
     }
+  }, reindex: true);
+
+  /// Reuses the knowledge format so pages participate in search and backups.
+  Future<void> saveWebPage(ReaderPage page, {void Function()? checkActive}) =>
+      _mutate(
+        () {
+          final uri = checkedWebUri(page.uri.toString());
+          final id = sha256.convert(utf8.encode(uri.toString())).toString();
+          final parsed = parsePack({
+            'format': 'AMID_OFFGRID_PACK',
+            'version': 1,
+            'id': webPagesId,
+            'title': 'Збережені вебсторінки',
+            'license': 'Права на вміст належать відповідним авторам. Збереження не надає права на поширення.',
+            'articles': [
+              {
+                'id': id,
+                'title': page.title,
+                'body': page.archiveText,
+                'category': 'Вебсторінки офлайн',
+                'source': uri.toString(),
+              },
+            ],
+          });
+          final article = Article.fromJson(
+            Json.from((parsed['articles'] as List).single),
+          );
+          if (!packs.any((p) => p['id'] == webPagesId)) {
+            _insertPack(parsed);
+          } else {
+            articles = [
+              ...articles.where((a) => a.key != article.key),
+              article,
+            ];
+            _updateWebCount();
+          }
+        },
+        reindex: true,
+        checkActive: checkActive,
+      );
+
+  void _updateWebCount() {
+    final count = articles.where((a) => a.packId == webPagesId).length;
+    if (count == 0) {
+      packs.removeWhere((p) => p['id'] == webPagesId);
+    } else {
+      packs = packs
+          .map((p) => p['id'] == webPagesId ? {...p, 'count': count} : p)
+          .toList();
+    }
+  }
+
+  Future<void> deleteWebPage(String key) => _mutate(() {
+    if (!articles.any((a) => a.key == key && a.packId == webPagesId)) {
+      throw const FormatException('Збережену сторінку вже видалено.');
+    }
+    articles.removeWhere((a) => a.key == key);
+    favoriteKeys.remove(key);
+    _updateWebCount();
   }, reindex: true);
   Future<void> selectModel(String id) => _mutate(() => selectedModel = id);
   Future<void> selectMap(String id) => _mutate(() => selectedMap = id);
@@ -498,7 +562,7 @@ class AppStore extends ChangeNotifier {
         for (final p in incomingPacks) {
           if (!packs.any((a) => a['id'] == p['id'])) {
             _insertPack(p);
-          } else if (p['id'] == notesId) {
+          } else if (p['id'] == notesId || p['id'] == webPagesId) {
             final existingKeys = articles.map((a) => a.key).toSet();
             articles.addAll(
               (p['articles'] as List)
@@ -507,11 +571,11 @@ class AppStore extends ChangeNotifier {
             );
             packs = packs
                 .map(
-                  (a) => a['id'] == notesId
+                  (a) => a['id'] == p['id']
                       ? {
                           ...a,
                           'count': articles
-                              .where((v) => v.packId == notesId)
+                              .where((v) => v.packId == p['id'])
                               .length,
                         }
                       : a,
