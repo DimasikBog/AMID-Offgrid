@@ -12,7 +12,7 @@ android {
         applicationId = "com.amid.offgrid.wear"
         minSdk = 30
         targetSdk = 36
-        versionCode = 13
+        versionCode = 14
         versionName = "0.8.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
