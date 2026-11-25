@@ -9,25 +9,28 @@ import 'package:flutter_test/flutter_test.dart';
 class _MetadataBundle extends CachingAssetBundle {
   @override
   Future<ByteData> load(String key) async {
-    final text = switch (key) {
+    final encoded = switch (key) {
       'assets/catalog.json' => const String.fromEnvironment(
-        'OFFGRID_CATALOG_JSON',
+        'OFFGRID_CATALOG_BASE64',
       ),
       'assets/offline_model/catalog.json' => const String.fromEnvironment(
-        'OFFGRID_STARTER_JSON',
+        'OFFGRID_STARTER_BASE64',
       ),
       _ => '',
     };
-    if (text.isEmpty) {
+    if (encoded.isEmpty) {
       throw StateError(
         'Run web metadata tests with scripts/check_catalog_browser.py',
       );
     }
-    return ByteData.sublistView(Uint8List.fromList(utf8.encode(text)));
+    return ByteData.sublistView(base64Decode(encoded));
   }
 }
 
-AssetBundle get metadataBundle => kIsWeb ? _MetadataBundle() : rootBundle;
+AssetBundle get metadataBundle =>
+    kIsWeb || const String.fromEnvironment('OFFGRID_CATALOG_BASE64').isNotEmpty
+    ? _MetadataBundle()
+    : rootBundle;
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
