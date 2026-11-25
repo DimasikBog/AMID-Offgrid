@@ -35,3 +35,40 @@ Workflow Web offline browser checks тепер запускається тако
 і `pubspec.*`, щоб реальний Chromium перевіряв нову збірку в GitHub CI.
 Результати CI слід читати за точним source SHA/запуском; цей локальний протокол
 не підміняє їх. Підписування, магазини й порівняння з конкурентами не проводилися.
+
+
+## Підтверджені GitHub-перевірки та публікація
+
+- Код перед merge: `04c0cebb0c0460ca153881d66d05afc58a50aed1`; змерджований
+  runtime: `0402c6bcf8aeafaa6c86f59ba3610bb10be37765`. Git diff між цими деревами
+  порожній. PR: https://github.com/DimasikBog/AMID-Offgrid/pull/12 .
+- Усі вісім платформних пакетів і маніфестів пройшли на PR:
+  https://github.com/DimasikBog/AMID-Offgrid/actions/runs/45555598290 .
+- Реальний Chromium пройшов офлайн-встановлення, ремонт кешу й оновлення:
+  https://github.com/DimasikBog/AMID-Offgrid/actions/runs/45555598315 .
+- Android/iPhone/Wear OS/Apple Watch — усі сценарії успішні:
+  https://github.com/DimasikBog/AMID-Offgrid/actions/runs/45555598405 .
+  Wear OS повторено після HTTP 429 від Maven до компіляції; другий запуск
+  пройшов. На обох телефонних емуляторах підтверджені автоматичне офлайн-
+  встановлення 639 446 688 байтів моделі, локальний inference, нотатки,
+  обране, Lite й повторне відкриття SQLite. Це коротка перевірка inference,
+  не порівняння якості відповідей із конкурентами.
+- Вебпублікація основної гілки:
+  https://github.com/DimasikBog/AMID-Offgrid/actions/runs/45559122249 .
+  Після deploy перевірено публічний source.json: sourceCommit збігається з
+  `0402c6bcf8aeafaa6c86f59ba3610bb10be37765`.
+- Повторне складання та публікація основної гілки:
+  https://github.com/DimasikBog/AMID-Offgrid/actions/runs/45559122095 .
+  Реліз: https://github.com/DimasikBog/AMID-Offgrid/releases/tag/v0.7.0-beta.10 .
+
+Новий WebView скомпільовано для підтримуваних платформ; емуляторні smoke-тести
+перевіряли базові сценарії застосунку, а не всі можливості нового WebView.
+Фізичні телефони/годинники, Apple signing, реальний BLE/GPS, радіочохол та
+магазини не позначаються перевіреними. Ці документи оновлені після публікації;
+вони не змінюють runtime випущеного коміту.
+
+Після публікації незалежно прочитано всі 8 публічних JSON-маніфестів. Версія,
+build, sourceCommit та quality узгоджені; розміри й SHA-256 усіх 9 пакетів
+збігаються з digest/size, обчисленими GitHub для опублікованих release assets.
+Це перевірка опублікованих метаданих/маніфестів, без повторного завантаження
+всіх багатогігабайтних бінарних файлів у це середовище.
