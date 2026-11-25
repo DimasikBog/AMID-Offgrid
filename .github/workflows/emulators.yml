@@ -3,6 +3,9 @@ name: Native phone and watch emulator checks
 on:
   push:
     branches: [codex/emulator-checks]
+  pull_request:
+    branches: [main]
+    paths: ['lib/**', 'integration_test/**', 'assets/**', 'android/**', 'ios/**', 'watchos/**', 'wearables/**', 'pubspec.*', '.gitattributes', 'scripts/prepare_offline_payload.py', 'scripts/patch_flutter_simulator.py', 'scripts/flutter_ios_log_ready_patch.json', 'scripts/boot_*', '.github/workflows/emulators.yml']
   workflow_dispatch:
     inputs:
       platform:
@@ -15,8 +18,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: emulators-${{ github.ref }}-${{ inputs.platform || 'all' }}
-  cancel-in-progress: false
+  group: emulators-log-ready-${{ github.ref }}-${{ inputs.platform || 'all' }}
+  cancel-in-progress: true
 
 env:
   CI: true
@@ -50,6 +53,7 @@ jobs:
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2
         with: {flutter-version: '3.47.6', channel: stable, cache: true}
       - run: flutter pub get --enforce-lockfile
+      - run: python3 scripts/prepare_offline_payload.py
       - run: bash scripts/boot_android_emulator.sh android
       - name: Native Flutter integration test
         shell: bash
@@ -112,9 +116,12 @@ jobs:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with: {persist-credentials: false}
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2
-        with: {flutter-version: '3.47.6', channel: stable, cache: true}
+        with: {flutter-version: '3.47.6', channel: stable, cache: false}
+      - name: Apply pinned upstream simulator log readiness fix
+        run: python3 scripts/patch_flutter_simulator.py
       - run: flutter config --enable-swift-package-manager
       - run: flutter pub get --enforce-lockfile
+      - run: python3 scripts/prepare_offline_payload.py
       - run: python3 scripts/boot_apple_simulator.py ios
       - name: Native Flutter integration test
         shell: bash

@@ -27,8 +27,14 @@ Future<void> main(List<String> arguments) async {
       'Roboto',
     ], await rootBundle.loadString('assets/fonts/OFL-Roboto.txt'));
   });
-  if (arguments.contains('--self-test')) {
-    await runSelfTest();
+  LicenseRegistry.addLicense(() async* {
+    yield LicenseEntryWithLineBreaks([
+      'Qwen3-0.6B-GGUF',
+    ], await rootBundle.loadString('assets/offline_model/QWEN_LICENSE.txt'));
+  });
+  if (arguments.contains('--self-test') ||
+      arguments.contains('--self-test-full')) {
+    await runSelfTest(full: arguments.contains('--self-test-full'));
     return;
   }
   runApp(const OffgridApp());
@@ -164,6 +170,7 @@ class _OffgridShellState extends State<OffgridShell>
   void initState() {
     super.initState();
     services = Services(widget.store);
+    unawaited(services.setup.initialize());
     WidgetsBinding.instance.addObserver(this);
   }
 

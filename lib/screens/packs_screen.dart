@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 
 import '../models/data.dart';
 import '../services/services.dart';
-import '../services/importer.dart';
 import '../widgets/common.dart';
 import '../widgets/password_dialog.dart';
 import '../version.dart';
+import '../widgets/starter_setup_panel.dart';
 import 'privacy_screen.dart';
 
 class PacksScreen extends StatelessWidget {
@@ -18,6 +18,7 @@ class PacksScreen extends StatelessWidget {
       services.store,
       services.files,
       services.assistant,
+      services.setup,
     ]),
     builder: (context, _) {
       final files = services.files,
@@ -28,16 +29,9 @@ class PacksScreen extends StatelessWidget {
         body: ListView(
           padding: const EdgeInsets.fromLTRB(20, 10, 20, 35),
           children: [
-            Text(
-              'Збережи зараз.\\nВідкривай будь-коли.'.replaceAll(r'\n', '\n'),
-              style: Theme.of(context).textTheme.headlineMedium
-                  ?.copyWith(fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 15),
-            const Text(
-              'Матеріали, карти й модель зберігаються окремими пакетами. Великі файли додавай заздалегідь.',
-            ),
+            StarterSetupPanel(setup: services.setup),
             const SizedBox(height: 20),
+            const Section('Додаткові файли й власні карти'),
             FilledButton.icon(
               onPressed: files.busy
                   ? null
@@ -68,47 +62,6 @@ class PacksScreen extends StatelessWidget {
                 child: const Text('Скасувати дію'),
               ),
             ],
-            const Section('Локальний ШІ'),
-            Panel(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Qwen3 · 0.6B · Q8',
-                    style: TextStyle(fontSize: 19, fontWeight: FontWeight.w600),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    '${prettyBytes(ImportService.modelBytes)} · завантаження через інтернет один раз. Далі запити обчислюються на телефоні.',
-                  ),
-                  const SizedBox(height: 10),
-                  const Text(
-                    'Потрібна також вільна оперативна пам’ять. Швидкість залежить від телефону. Можна імпортувати іншу сумісну GGUF-модель.',
-                    style: TextStyle(fontSize: 13),
-                  ),
-                  const SizedBox(height: 15),
-                  OutlinedButton.icon(
-                    onPressed:
-                        kIsWeb ||
-                            files.busy ||
-                            store.packs.any((p) => p['id'] == 'qwen3-06b-q8')
-                        ? null
-                        : () => guarded(context, files.downloadStarter),
-                    icon: const Icon(Icons.download_rounded),
-                    label: Text(
-                      store.packs.any((p) => p['id'] == 'qwen3-06b-q8')
-                          ? 'Модель уже збережена'
-                          : 'Завантажити · 639 MB',
-                    ),
-                  ),
-                  if (kIsWeb)
-                    const Text(
-                      'Завантаження моделі доступне у встановленому застосунку.',
-                      style: TextStyle(fontSize: 12),
-                    ),
-                ],
-              ),
-            ),
             const Section('На цьому пристрої'),
             for (final p in store.packs)
               Padding(

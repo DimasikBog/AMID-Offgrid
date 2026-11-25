@@ -15,8 +15,10 @@ integration and applicable permissions/licenses.
   Flutter/plugin notices. Native transitive libraries also require review.
 - Natural Earth world geometry in assets/world.geojson: public domain,
   https://www.naturalearthdata.com/about/terms-of-use/ .
-- Optional Qwen3-0.6B-GGUF download: Qwen Team, Apache-2.0; pinned revision and
-  SHA-256 in ImportService. The model is downloaded separately, not bundled.
+- Bundled/downloadable Qwen3-0.6B-GGUF: Qwen Team, Apache-2.0; pinned revision and
+  SHA-256 in assets/offline_model/catalog.json. Full native builds bundle the
+  model; source/light builds download it explicitly. The official license is
+  retained in assets/offline_model/QWEN_LICENSE.txt and exposed in app notices.
   https://huggingface.co/Qwen/Qwen3-0.6B-GGUF .
 - User-imported texts, maps and models retain their original licenses. A file's
   presence or ability to import it does not grant redistribution rights.

@@ -4,7 +4,17 @@ import '../services/store.dart';
 import 'common.dart';
 
 class HomeHero extends StatelessWidget {
-  const HomeHero({super.key, required this.store, required this.openPacks});
+  const HomeHero({
+    super.key,
+    required this.store,
+    required this.openPacks,
+    this.needsSetup = false,
+    this.preparing = false,
+    this.progress,
+  });
+  final bool needsSetup;
+  final bool preparing;
+  final double? progress;
   final AppStore store;
   final VoidCallback openPacks;
 
@@ -43,8 +53,23 @@ class HomeHero extends StatelessWidget {
               foregroundColor: ink,
             ),
             icon: const Icon(Icons.download_rounded),
-            label: const Text('Мій офлайн-набір'),
+            label: Text(
+              preparing
+                  ? 'Готую офлайн-набір…'
+                  : needsSetup
+                  ? 'Встановити все'
+                  : 'Мій офлайн-набір',
+            ),
           ),
+          if (preparing) ...[
+            const SizedBox(height: 12),
+            LinearProgressIndicator(value: progress),
+            const SizedBox(height: 8),
+            const Text(
+              'Підготовка на пристрої. Відкрий набір, щоб переглянути стан.',
+              style: TextStyle(color: mint, fontSize: 12),
+            ),
+          ],
         ],
       );
       return Panel(

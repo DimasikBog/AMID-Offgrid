@@ -6,6 +6,10 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 
 import '../models/data.dart';
+import '../models/starter_content.dart';
+
+import 'package:flutter/services.dart';
+
 import 'backup_codec.dart';
 import 'cancellable_reader.dart';
 import 'document_codec.dart';
@@ -18,7 +22,13 @@ class ImportService extends ChangeNotifier {
   bool _disposed = false, _cancelled = false, busy = false;
   double progress = 0;
   String label = '';
-  static const modelBytes = 639446688;
+  Future<StarterCatalog> get starterCatalog => StarterCatalog.load(rootBundle);
+  Future<bool> hasBundledStarter() async => false;
+  Future<bool> starterAvailable() async => false;
+  Future<String> prepareStarter({
+    bool allowNetwork = true,
+    bool repair = false,
+  }) => downloadStarter();
 
   @override
   void notifyListeners() {

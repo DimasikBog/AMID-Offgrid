@@ -29,17 +29,24 @@ final class PocketUiTests: XCTestCase {
         continueAfterFailure = false
         let app = XCUIApplication()
         app.launch()
-        let check = app.descendants(matching: .any).matching(identifier: "check-water").firstMatch
-        XCTAssertTrue(check.waitForExistence(timeout: 30))
+        let check = app.buttons["check-water"]
+        XCTAssertTrue(check.waitForExistence(timeout: 30), app.debugDescription)
         reveal(check, in: app)
+        XCTAssertTrue(["Виконано", "Не виконано"].contains(check.value as? String ?? ""),
+                      "Checklist state must be exposed to accessibility")
         let before = String(describing: check.value)
         check.tap()
+        let changedValue = XCTNSPredicateExpectation(
+            predicate: NSPredicate { _, _ in String(describing: check.value) != before },
+            object: nil)
+        XCTAssertEqual(XCTWaiter.wait(for: [changedValue], timeout: 10), .completed,
+                       "Checklist toggle must change before persistence is checked")
         let changed = String(describing: check.value)
         XCTAssertNotEqual(before, changed)
         capture(app, "01-checklist")
         app.terminate()
         app.launch()
-        XCTAssertTrue(check.waitForExistence(timeout: 30))
+        XCTAssertTrue(check.waitForExistence(timeout: 30), app.debugDescription)
         XCTAssertEqual(String(describing: check.value), changed)
 
         let url = try XCTUnwrap(Bundle(for: Self.self).url(forResource: "cards", withExtension: "json"))

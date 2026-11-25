@@ -28,7 +28,7 @@ def main():
             url = 'https://uploads.github.com/repos/' + repo + path
             headers['Content-Type'] = 'application/octet-stream'
         req = urllib.request.Request(url, data=payload, headers=headers, method=method)
-        with urllib.request.urlopen(req, timeout=60) as response:
+        with urllib.request.urlopen(req, timeout=300 if binary is not None else 60) as response:
             return json.load(response)
     metadata = request('')
     if metadata['private']:
@@ -39,6 +39,8 @@ def main():
         record = json.loads(path.read_text())
         if record['sourceCommit'] != commit or record['quality'] != 'success':
             raise ValueError('Unverified or wrong-source artifact')
+        if record['platform'] in {'android', 'ios', 'windows', 'linux', 'macos'} and not (record.get('offlineStarter') or {}).get('modelIncluded'):
+            raise ValueError('The native release must include its verified offline starter')
         if record['deviceTesting'] != 'not_run' or record['storeSubmission'] != 'not_run':
             raise ValueError('Unexpected device/store claim')
         for artifact in record['artifacts']:
@@ -82,7 +84,7 @@ def main():
         release = request('/releases', {
             'tag_name': tag, 'target_commitish': commit, 'name': 'AMID Offgrid ' + tag,
             'prerelease': True, 'draft': True,
-            'body': 'Тестовий кандидат. Джерело: `' + commit + '`.\n\n'
+            'body': 'Повний офлайн-набір: нативні телефонні та комп’ютерні пакети містять Qwen3 0.6B, оглядову карту світу й довідник. Підготовка моделі автоматична; детальні карти вулиць додаються окремо. Web і годинники мають окремий обмежений набір.\n\nТестовий кандидат. Джерело: `' + commit + '`.\n\n'
                     'Android і Wear OS мають development-підпис. iOS, watchOS і macOS потребують перевірки особистого підписування/довіри. '
                     'Фізичні пристрої та магазини: не перевірені.\n\n'
                     'Завантаж відповідний пакет і маніфест своєї платформи. Інструкції: docs/INSTALL.md у репозиторії.'})

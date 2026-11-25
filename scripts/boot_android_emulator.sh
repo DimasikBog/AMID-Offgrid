@@ -2,8 +2,8 @@
 set -euo pipefail
 kind="${1:?android or wearos}"
 case "$kind" in
-  android) image='system-images;android-35;google_apis;x86_64'; profile='pixel_2' ;;
-  wearos) image='system-images;android-34;android-wear;x86_64'; profile='wearos_small_round' ;;
+  android) image='system-images;android-35;google_apis;x86_64'; profile='pixel_2'; memory=4096 ;;
+  wearos) image='system-images;android-34;android-wear;x86_64'; profile='wearos_small_round'; memory=2048 ;;
   *) exit 2 ;;
 esac
 mkdir -p build/emulator-evidence
@@ -25,7 +25,7 @@ test -f "$ANDROID_AVD_HOME/amid-test.ini"
 test -e /dev/kvm
 sudo chmod a+rw /dev/kvm
 emulator -accel-check
-nohup emulator @amid-test -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect -memory 2048 -cores 2 > build/emulator-evidence/emulator.log 2>&1 &
+nohup emulator @amid-test -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect -memory "$memory" -cores 2 > build/emulator-evidence/emulator.log 2>&1 &
 amidEmulatorPid=$!
 # Show a crashed emulator immediately instead of waiting for adb forever.
 for ((i=0; i<60; i++)); do
@@ -45,7 +45,7 @@ adb shell settings put global transition_animation_scale 0
 adb shell settings put global animator_duration_scale 0
 adb shell getprop > build/emulator-evidence/getprop.txt
 sed -n '1,5p' build/emulator-evidence/emulator.log > build/emulator-evidence/emulator-version.txt
-python3 - "$kind" "$image" "$profile" <<'PY'
+python3 - "$kind" "$image" "$profile" "$memory" <<'PY'
 import json, os, subprocess, sys
 from pathlib import Path
 def prop(name):
@@ -53,7 +53,7 @@ def prop(name):
 data = {'sourceCommit': os.environ['GITHUB_SHA'], 'platform': sys.argv[1],
         'image': sys.argv[2], 'profile': sys.argv[3], 'model': prop('ro.product.model'),
         'api': prop('ro.build.version.sdk'), 'release': prop('ro.build.version.release'),
-        'abi': prop('ro.product.cpu.abi'), 'physicalDevice': False}
+        'abi': prop('ro.product.cpu.abi'), 'physicalDevice': False, 'configuredRamMiB': int(sys.argv[4])}
 Path('build/emulator-evidence/device.json').write_text(json.dumps(data, indent=2))
 print(json.dumps(data))
 PY

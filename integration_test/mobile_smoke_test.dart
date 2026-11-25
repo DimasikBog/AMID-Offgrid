@@ -3,7 +3,10 @@ import 'dart:io';
 import 'package:amid_offgrid/main.dart' as app;
 import 'package:amid_offgrid/screens/lite_screen.dart';
 import 'package:amid_offgrid/screens/messages_screen.dart';
+import 'package:amid_offgrid/screens/assistant_screen.dart';
+import 'package:amid_offgrid/models/starter_content.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:integration_test/integration_test.dart';
@@ -35,6 +38,25 @@ void main() {
         .widget<app.OffgridShell>(find.byType(app.OffgridShell))
         .store;
     expect(store.articles, isNotEmpty);
+    final catalog = await StarterCatalog.load(rootBundle);
+    final full = await BundledModel.load(rootBundle, catalog.model) != null;
+    if (full) {
+      for (
+        var i = 0;
+        i < 1800 && !store.packs.any((p) => p['id'] == starterModelId);
+        i++
+      ) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      await store.flush();
+      final model = store.packs.singleWhere((p) => p['id'] == starterModelId);
+      expect(model['sha256'], catalog.model.sha256);
+      expect(await File(model['path'] as String).length(), catalog.model.bytes);
+      debugPrint(
+        'AMID_STARTER_INSTALLED ${Platform.operatingSystem}: ${catalog.model.bytes} verified bytes, no network',
+      );
+      await settle(tester);
+    }
     if (Platform.isAndroid) await binding.convertFlutterSurfaceToImage();
     await tester.pump();
     await binding.takeScreenshot('01-home');
@@ -87,7 +109,33 @@ void main() {
 
     await tester.tap(find.text('Помічник').last);
     await settle(tester);
-    expect(find.text('Пошук у матеріалах'), findsOneWidget);
+    expect(find.text('Твій помічник'), findsOneWidget);
+    if (full) {
+      final ai = tester
+          .widget<AssistantScreen>(find.byType(AssistantScreen))
+          .services
+          .assistant;
+      await tester.enterText(
+        find.byType(TextField).first,
+        'Reply with the word OK only.',
+      );
+      FocusManager.instance.primaryFocus?.unfocus();
+      await settle(tester);
+      await tester.ensureVisible(find.text('Запитати модель'));
+      await tester.tap(find.text('Запитати модель'));
+      for (var i = 0; i < 1800 && (ai.busy || !ai.generated); i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+        if (ai.error != null) break;
+      }
+      expect(ai.error, isNull);
+      expect(ai.generated, true);
+      expect(ai.answer.trim(), isNotEmpty);
+      expect(ai.ready, true);
+      debugPrint(
+        'AMID_MOBILE_AI_PASS ${Platform.operatingSystem}: first-question autoload and local inference, ${ai.answer.length} characters',
+      );
+      await ai.unload();
+    }
     await tester.tap(find.text('Карта').last);
     await settle(tester);
     expect(find.text('Оглядова карта світу · без вулиць'), findsOneWidget);

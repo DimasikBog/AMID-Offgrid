@@ -3,6 +3,9 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:llamadart/llamadart.dart';
+// Pinned to llamadart 0.20.5 until its native startup budget is public API.
+// ignore: implementation_imports
+import 'package:llamadart/src/backends/llama_cpp/llama_cpp_backend.dart';
 
 import '../models/data.dart';
 import 'store.dart';
@@ -59,8 +62,18 @@ class AssistantService extends ChangeNotifier {
       await _engine?.dispose();
       _engine = null;
       loadedId = null;
+      // Cold iOS native-worker startup exceeded the library's 30-second
+      // default in a real simulator run. Keep the wait bounded and keep the
+      // engine's normal failure, worker cleanup and generation checks.
+      LlamaBackend? backend;
+      if (Platform.isIOS) {
+        backend = NativeLlamaBackend(
+          workerStartupTimeout: const Duration(minutes: 2),
+        );
+      }
       candidate = await LlamaEngine.load(
         LlamaModel(ModelSource.path(model['path'] as String)),
+        backend: backend,
         params: const ModelParams(
           contextSize: 2048,
           device: ComputeDevice.cpu,
@@ -86,6 +99,27 @@ class AssistantService extends ChangeNotifier {
 
   Future<void> ask(String value) async {
     if (_disposed || busy || value.trim().isEmpty) return;
+    if (_engine == null && store.selectedModel.isNotEmpty) {
+      final selected = store.packs
+          .where((p) => p['id'] == store.selectedModel && p['kind'] == 'model')
+          .firstOrNull;
+      if (selected != null) {
+        final expectedRequest = _request + 1;
+        try {
+          await load(selected);
+        } catch (_) {
+          if (!_disposed && _request == expectedRequest) {
+            question = boundedText(value.trim(), 2000);
+            answer = '';
+            sources = [];
+            generated = false;
+            _changed();
+          }
+          return;
+        }
+        if (_disposed || busy || _request != expectedRequest) return;
+      }
+    }
     final request = ++_request;
     searching = true;
     question = boundedText(value.trim(), 2000);
