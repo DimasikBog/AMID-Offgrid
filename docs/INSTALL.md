@@ -1,4 +1,6 @@
-# Встановлення AMID Offgrid 0.5
+# Встановлення AMID Offgrid 0.6
+
+[Завантажити перевірений тестовий реліз beta.8](https://github.com/DimasikBog/AMID-Offgrid/releases/tag/v0.6.0-beta.8).
 
 ## Повний набір 0.6
 

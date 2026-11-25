@@ -1,4 +1,4 @@
-# AMID Offgrid 0.6.0 candidate
+# AMID Offgrid 0.6.0-beta.8
 
 One Flutter app for Android and iPhone, developed through DimasikBog/AMID-Offgrid.
 An owned Mac is not required: iOS compilation runs on macOS CI. Personal iPhone
@@ -8,7 +8,7 @@ authorized by this project work.
 | Area | Candidate scope | Acceptance |
 | --- | --- | --- |
 | Knowledge | SQLite search, TXT/MD/AMID JSON, personal notes, categories, favorites, paging | Import, edit, close/reopen, search and backup tests |
-| Assistant | GGUF on native devices; source retrieval on web | Cancel/error/race tests; actual mobile model loading still needs a phone |
+| Assistant | GGUF on native devices; source retrieval on web | Cancel/error/race tests; native Android/iOS simulator setup and generation passed; physical phones still require acceptance |
 | Maps | Bundled overview, raster MBTiles, GeoJSON, GPS, editable pins and GeoJSON export | Bounded metadata/tile validation, TMS/views, decode/cache/lifecycle tests; real Files/GPS/map checks on both platforms |
 | Offline routes | Imported AMID network, directed shortest-distance paths, map overlay and GeoJSON export | Algorithm oracle, invalid graphs, SQLite/backup and UI tests; real datasets and phones still required |
 | Messages | Authenticated direct foreground BLE, QR pairing, drafts and delivery acknowledgments | Protocol tests; Android/iPhone radio and lifecycle checks still required |
@@ -62,3 +62,9 @@ custom selections and notes are preserved; deliberate removal suppresses silent
 reinstallation. This does not supply regional street maps or all Wikipedia.
 Acceptance is defined in STARTER_SETUP.md and requires current-source native
 build/content checks and real local generation, independently of physical tests.
+
+Published beta.8 and its complete validation/provenance record are in STARTER_SETUP.md.
+All eight platform builds and four native emulator suites passed. Published files
+match their manifests and GitHub SHA-256 digests. Physical-device, signing and
+store acceptance remain open; the large model needs separate install-time AI-pack
+integration before Google Play publication.
