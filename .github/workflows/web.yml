@@ -29,6 +29,8 @@ jobs:
       - run: flutter pub get --enforce-lockfile
       - run: node --test scripts/test_account_service.mjs
       - run: python3 -m unittest discover -s scripts -p 'test_*.py'
+      - name: Verify catalog bounds in JavaScript
+        run: flutter test --no-pub --platform chrome test/catalog_metadata_test.dart
       - run: flutter build web --release --no-pub --no-web-resources-cdn --base-href /AMID-Offgrid/
       - run: python3 scripts/build_web_cache.py build/web
       - name: Install isolated browser test tooling

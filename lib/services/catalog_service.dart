@@ -19,15 +19,15 @@ class CatalogService extends ChangeNotifier {
   CatalogService(
     this.store,
     this.files, {
-    Future<List<CatalogEntry>>? catalogue,
+    this._catalogue,
     http.Client Function()? clientFactory,
   }) : atlas = AtlasStorage(store.backend.directory),
-       entries = catalogue ?? loadCatalog(),
        _clientFactory = clientFactory ?? http.Client.new;
   final AppStore store;
   final ImportService files;
   final AtlasStorage atlas;
-  final Future<List<CatalogEntry>> entries;
+  final Future<List<CatalogEntry>>? _catalogue;
+  late final Future<List<CatalogEntry>> entries = _catalogue ?? loadCatalog();
   final http.Client Function() _clientFactory;
   http.Client? _client;
   bool busy = false, _disposed = false;
@@ -84,6 +84,10 @@ class CatalogService extends ChangeNotifier {
       }
       _client = _clientFactory();
       final request = http.Request('GET', entry.url!)..followRedirects = false;
+      if (!kIsWeb) {
+        request.headers['User-Agent'] =
+            'AMID-Offgrid/0.7 (+https://github.com/DimasikBog/AMID-Offgrid)';
+      }
       final response = await _client!
           .send(request)
           .timeout(const Duration(seconds: 30));

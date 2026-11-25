@@ -54,7 +54,7 @@ class CatalogEntry {
           url.hasFragment ||
           (url.hasPort && url.port != 443) ||
           bytes < 1 ||
-          bytes > (kind == 'model' ? 8 << 30 : 16 << 20) ||
+          bytes > (kind == 'model' ? 8589934592 : 16 << 20) ||
           !RegExp(r'^[a-f0-9]{64}$').hasMatch(digest) ||
           kind == 'source') {
         throw const FormatException('Неперевірене джерело завантаження.');

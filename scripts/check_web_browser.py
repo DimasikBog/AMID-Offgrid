@@ -27,7 +27,11 @@ def wait_until(page, predicate, timeout=45):
         if page.evaluate(predicate):
             return
         page.wait_for_timeout(100)
-    raise AssertionError('Browser condition did not become true')
+    detail = page.evaluate('''async () => ({url:location.href,
+      status:document.getElementById('offline-status')?.textContent,
+      detail:document.getElementById('offline-detail')?.outerHTML,
+      caches:await caches.keys()})''')
+    raise AssertionError('Browser condition did not become true: ' + str(detail))
 
 
 def check(build):

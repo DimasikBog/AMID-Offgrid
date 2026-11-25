@@ -46,48 +46,6 @@ final geo = utf8.encode(
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
-  test('catalogue rejects unsafe download origins, credentials, hashes and resource bounds', () {
-    final good = {
-      'id': 'valid-map',
-      'kind': 'image',
-      'title': 'Title',
-      'description': 'Description',
-      'source': 'https://commons.wikimedia.org/',
-      'license': 'Public domain',
-      'url': 'https://upload.wikimedia.org/a.jpg',
-      'bytes': 100,
-      'sha256': 'a' * 64,
-    };
-    for (final change in [
-      {'url': 'http://upload.wikimedia.org/a.jpg'},
-      {'url': 'https://localhost/a.jpg'},
-      {'url': 'https://name:password@upload.wikimedia.org/a.jpg'},
-      {'bytes': 17 << 20},
-      {'sha256': 'missing'},
-      {'kind': 'executable'},
-      {'id': '../escape'},
-    ]) {
-      expect(
-        () => CatalogEntry.fromJson({...good, ...change}),
-        throwsFormatException,
-      );
-    }
-    expect(CatalogEntry.fromJson(good).installable, isTrue);
-  });
-  test('bundled catalogue has verified map installs, sources and four pinned official models', () async {
-    final items = await loadCatalog();
-    expect(items.where((e) => e.model).length, 4);
-    expect(items.where((e) => e.kind == 'image').length, 3);
-    expect(items.where((e) => e.kind == 'geojson').length, 3);
-    for (final item in items.where((e) => e.model)) {
-      expect(item.url!.path, contains(RegExp(r'/resolve/[a-f0-9]{40}/')));
-      expect(item.source, startsWith('https://huggingface.co/Qwen/'));
-    }
-    expect(
-      items.where((e) => e.kind == 'source').every((e) => !e.installable),
-      isTrue,
-    );
-  });
   test('verified GeoJSON is persisted, repeat install is idempotent, hash corruption is rejected', () async {
     final f = await openTestStore();
     final files = ImportService(f.store);

@@ -84,7 +84,7 @@ class StarterCatalog {
     }
     return StarterCatalog(
       model: StarterModel(
-        bytes: length(model, 8 << 30),
+        bytes: length(model, 8589934592),
         sha256: hash(model),
         url: uri,
         title: model['title'] as String,
