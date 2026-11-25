@@ -5,9 +5,39 @@ import json
 import os
 from pathlib import Path
 import re
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
+
+
+def upload_asset(request, release_id, name, data, *, sleep=time.sleep, attempts=4):
+    """Reconcile only this run's draft asset after an ambiguous GitHub failure."""
+    expected = hashlib.sha256(data).hexdigest()
+    path = '/releases/' + str(release_id) + '/assets?name=' + urllib.parse.quote(name)
+    for attempt in range(attempts):
+        try:
+            return request(path, binary=data, method='POST')
+        except (urllib.error.URLError, TimeoutError) as error:
+            if isinstance(error, urllib.error.HTTPError) and error.code not in {408, 429, 500, 502, 503, 504}:
+                raise
+            # A 5xx may follow a successful upload. Never blindly create a duplicate.
+            sleep(min(2 ** (attempt + 1), 16))
+            assets = request('/releases/' + str(release_id) + '/assets?per_page=100')
+            matches = [asset for asset in assets if asset['name'] == name]
+            if len(matches) > 1:
+                raise ValueError('Ambiguous release asset after upload failure') from error
+            if matches:
+                asset = matches[0]
+                if (asset.get('state') == 'uploaded' and asset.get('size') == len(data)
+                        and asset.get('digest') == 'sha256:' + expected):
+                    return asset
+                if asset.get('state') == 'starter' and asset.get('size') == 0:
+                    request('/releases/assets/' + str(asset['id']), method='DELETE')
+                else:
+                    raise ValueError('Unverified partial asset; manual inspection required') from error
+            if attempt + 1 == attempts:
+                raise
 
 
 def main():
@@ -29,6 +59,8 @@ def main():
             headers['Content-Type'] = 'application/octet-stream'
         req = urllib.request.Request(url, data=payload, headers=headers, method=method)
         with urllib.request.urlopen(req, timeout=300 if binary is not None else 60) as response:
+            if response.status == 204:
+                return None
             return json.load(response)
     metadata = request('')
     if metadata['private']:
@@ -92,8 +124,7 @@ def main():
     if release.get('assets'):
         raise ValueError('Partial draft already contains assets; inspect before retry')
     for name, path in uploads:
-        request('/releases/' + str(release['id']) + '/assets?name=' + urllib.parse.quote(name),
-                binary=path.read_bytes(), method='POST')
+        upload_asset(request, release['id'], name, path.read_bytes())
     release = request('/releases/' + str(release['id']), {'draft': False}, method='PATCH')
     print('Published candidate:', release['html_url'])
 
