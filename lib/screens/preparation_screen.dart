@@ -7,7 +7,7 @@ import '../widgets/common.dart';
 import 'emergency_screen.dart';
 
 /// A live inventory, not a network, file-integrity or emergency-service test.
-class PreparationScreen extends StatelessWidget {
+class PreparationScreen extends StatefulWidget {
   const PreparationScreen({
     super.key,
     required this.services,
@@ -19,8 +19,44 @@ class PreparationScreen extends StatelessWidget {
   final VoidCallback? openMap;
 
   @override
+  State<PreparationScreen> createState() => _PreparationScreenState();
+}
+
+class _PreparationScreenState extends State<PreparationScreen> {
+  Services get services => widget.services;
+  VoidCallback get openPacks => widget.openPacks;
+  VoidCallback? get openMap => widget.openMap;
+  String? _openingRegionId;
+
+  Future<void> _openRegion(BuildContext context, String id) async {
+    if (_openingRegionId != null || openMap == null) return;
+    setState(() => _openingRegionId = id);
+    try {
+      await guarded(context, () async {
+        await services.store.selectMap('');
+        if (!context.mounted) return;
+        await services.streets.selectMode(id);
+        if (!context.mounted ||
+            services.streets.mode != id ||
+            services.streets.loading) {
+          return;
+        }
+        final error = services.streets.error;
+        if (error != null) throw StateError(error);
+        openMap?.call();
+      });
+    } finally {
+      if (mounted) setState(() => _openingRegionId = null);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) => ListenableBuilder(
-    listenable: Listenable.merge([services.store, services.assistant]),
+    listenable: Listenable.merge([
+      services.store,
+      services.assistant,
+      services.streets,
+    ]),
     builder: (context, _) {
       final store = services.store;
       final models = store.packs.where((p) => p['kind'] == 'model').length;
@@ -76,8 +112,26 @@ class PreparationScreen extends StatelessWidget {
                       for (final region in store.streetRegions)
                         Padding(
                           padding: const EdgeInsets.only(top: 10),
-                          child: Text(
-                            '${region.title} · масштаб до ${region.maxZoom} · ${prettyBytes(region.bytes)}',
+                          child: TextButton.icon(
+                            key: ValueKey('prepared-region-${region.id}'),
+                            onPressed:
+                                openMap == null ||
+                                    _openingRegionId != null ||
+                                    services.streets.loading
+                                ? null
+                                : () => _openRegion(context, region.id),
+                            icon: _openingRegionId == region.id
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Icon(Icons.offline_pin_outlined),
+                            label: Text(
+                              '${region.title} · масштаб до ${region.maxZoom} · ${prettyBytes(region.bytes)}',
+                            ),
                           ),
                         ),
                       const SizedBox(height: 10),
