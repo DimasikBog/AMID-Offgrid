@@ -57,3 +57,9 @@ emulator/simulator scenarios. Physical devices, store submission, production sig
 and actual emergency delivery have not been validated.
 [Evidence and exact source revisions](docs/VALIDATION_0_10_2.md).
 
+## Contribute
+
+[Contribution guide](CONTRIBUTING.md) · [Security reporting](SECURITY.md) ·
+[Report a non-security bug](https://github.com/DimasikBog/AMID-Offgrid/issues/new).
+Use synthetic data in public reports; private vulnerability reporting is described
+in the security policy and depends on the repository setting.
