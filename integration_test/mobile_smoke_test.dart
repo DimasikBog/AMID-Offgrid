@@ -174,7 +174,8 @@ void main() {
       findsOneWidget,
     );
     await binding.takeScreenshot('03b-sos-training');
-    await tester.pageBack();
+    // pageBack assumes the English tooltip; the app uses Ukrainian localizations.
+    await tester.tap(find.byType(BackButton));
     await settle(tester);
     await tester.tap(find.text('Зв’язок').last);
     await settle(tester);
