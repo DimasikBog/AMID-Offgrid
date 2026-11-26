@@ -11,6 +11,7 @@ import 'privacy_screen.dart';
 import 'catalog_screen.dart';
 import 'account_screen.dart';
 import 'appearance_screen.dart';
+import 'preparation_screen.dart';
 
 class PacksScreen extends StatelessWidget {
   const PacksScreen({super.key, required this.services, this.openMap});
@@ -37,6 +38,20 @@ class PacksScreen extends StatelessWidget {
               spacing: 10,
               runSpacing: 10,
               children: [
+                OutlinedButton.icon(
+                  onPressed: () => Navigator.push<void>(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => PreparationScreen(
+                        services: services,
+                        openMap: openMap,
+                        openPacks: () => Navigator.pop(context),
+                      ),
+                    ),
+                  ),
+                  icon: const Icon(Icons.backpack_outlined),
+                  label: const Text('Перед дорогою'),
+                ),
                 FilledButton.icon(
                   onPressed: () => Navigator.push<void>(
                     context,
