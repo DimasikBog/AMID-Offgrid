@@ -1,2 +1,2 @@
 // Keep in sync with pubspec.yaml; scripts/check_project.py enforces this.
-const appVersion = '0.8.1';
+const appVersion = '0.9.0';

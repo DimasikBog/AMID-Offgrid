@@ -3,10 +3,15 @@ import 'dart:typed_data';
 import 'package:idb_shim/idb_browser.dart';
 
 class AtlasStorage {
-  AtlasStorage(String root);
+  AtlasStorage(String root, {this.scope = 'atlas'}) {
+    if (!{'atlas', 'streets'}.contains(scope)) {
+      throw ArgumentError('Unknown map storage scope');
+    }
+  }
+  final String scope;
   Future<Database>? _opening;
   Future<Database> get _database => _opening ??= idbFactoryWeb.open(
-    'amid-offgrid-atlas',
+    'amid-offgrid-$scope',
     version: 1,
     onUpgradeNeeded: (event) {
       if (event.oldVersion < 1) event.database.createObjectStore('images');
@@ -50,5 +55,18 @@ class AtlasStorage {
     if (opening != null) {
       opening.then((db) => db.close(), onError: (Object _) {});
     }
+  }
+
+  Future<void> prune(Set<String> keep) async {
+    if (scope != 'streets') {
+      throw StateError('Only street storage can be pruned.');
+    }
+    final db = await _database;
+    final tx = db.transaction('images', idbModeReadWrite);
+    final keys = await tx.objectStore('images').getAllKeys();
+    for (final key in keys) {
+      if (!keep.contains(key)) await tx.objectStore('images').delete(key);
+    }
+    await tx.completed;
   }
 }

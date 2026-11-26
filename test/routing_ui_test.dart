@@ -51,6 +51,7 @@ void main() {
       // A tall route exposes fitting against the old, larger map viewport.
       source['routing']['nodes'][2]['coordinate'] = [.0001, .004];
       await tester.runAsync(() => fixture.store.importKnowledge(source));
+      await tester.runAsync(() => fixture.store.setStreetMode('overview'));
       final services = Services(fixture.store);
       await tester.pumpWidget(
         app(
@@ -64,7 +65,9 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.byTooltip('Побудувати офлайн-маршрут'));
+      await tester.tap(find.byTooltip('Побудувати маршрут'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Офлайн з мережі маршруту'));
       await tester.pumpAndSettle();
       await endpoints(tester);
       await tester.ensureVisible(find.text('Побудувати маршрут'));
@@ -129,6 +132,7 @@ void main() {
       addTearDown(tester.view.resetDevicePixelRatio);
       final fixture = (await tester.runAsync(openTestStore))!;
       await tester.runAsync(() => fixture.store.importKnowledge(pack()));
+      await tester.runAsync(() => fixture.store.setStreetMode('overview'));
       final services = Services(fixture.store);
       await tester.pumpWidget(
         app(
@@ -180,6 +184,7 @@ void main() {
       final fixture = (await tester.runAsync(openTestStore))!;
       final networkPack = pack();
       await tester.runAsync(() => fixture.store.importKnowledge(networkPack));
+      await tester.runAsync(() => fixture.store.setStreetMode('overview'));
       final services = Services(fixture.store);
       final first = Completer<OfflineRoute>(),
           second = Completer<OfflineRoute>();
@@ -275,6 +280,7 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
     final fixture = (await tester.runAsync(openTestStore))!;
+    await tester.runAsync(() => fixture.store.setStreetMode('overview'));
     final services = Services(fixture.store);
     await tester.pumpWidget(
       app(

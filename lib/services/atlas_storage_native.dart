@@ -4,13 +4,18 @@ import 'dart:typed_data';
 import 'package:path/path.dart' as p;
 
 class AtlasStorage {
-  AtlasStorage(this.root);
+  AtlasStorage(this.root, {this.scope = 'atlas'}) {
+    if (!{'atlas', 'streets'}.contains(scope)) {
+      throw ArgumentError('Unknown map storage scope');
+    }
+  }
   final String root;
+  final String scope;
   File _file(String id) {
     if (!RegExp(r'^[a-z0-9][a-z0-9-]{1,79}$').hasMatch(id)) {
       throw const FormatException('Некоректний ID карти.');
     }
-    return File(p.join(root, 'atlas', '$id.jpg'));
+    return File(p.join(root, scope, '$id.${scope == 'atlas' ? 'jpg' : 'bin'}'));
   }
 
   Future<void> put(String id, Uint8List bytes) async {
@@ -32,4 +37,18 @@ class AtlasStorage {
   }
 
   void dispose() {}
+
+  Future<void> prune(Set<String> keep) async {
+    if (scope != 'streets') {
+      throw StateError('Only street storage can be pruned.');
+    }
+    final directory = Directory(p.join(root, scope));
+    if (!await directory.exists()) return;
+    await for (final entity in directory.list(followLinks: false)) {
+      if (entity is File &&
+          !keep.contains(p.basenameWithoutExtension(entity.path))) {
+        await entity.delete();
+      }
+    }
+  }
 }

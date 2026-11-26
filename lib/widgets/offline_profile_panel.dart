@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../services/account_service.dart';
+import '../screens/appearance_screen.dart';
 import 'common.dart';
 
 class OfflineProfilePanel extends StatefulWidget {
@@ -146,6 +147,16 @@ class _OfflineProfilePanelState extends State<OfflineProfilePanel> {
                           ),
                   ),
               ],
+            ),
+            TextButton.icon(
+              onPressed: () => Navigator.push<void>(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => AppearanceScreen(store: vault.store),
+                ),
+              ),
+              icon: const Icon(Icons.palette_outlined),
+              label: const Text('Обрати стиль оформлення'),
             ),
             const SizedBox(height: 12),
             Text('Масштаб тексту: ${(vault.store.readerScale * 100).round()}%'),

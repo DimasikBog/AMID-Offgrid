@@ -10,6 +10,7 @@ import '../widgets/starter_setup_panel.dart';
 import 'privacy_screen.dart';
 import 'catalog_screen.dart';
 import 'account_screen.dart';
+import 'appearance_screen.dart';
 
 class PacksScreen extends StatelessWidget {
   const PacksScreen({super.key, required this.services, this.openMap});
@@ -265,6 +266,17 @@ class PacksScreen extends StatelessWidget {
                 label: const Text('Очистити незавершені завантаження'),
               ),
             const Section('Вигляд'),
+            FilledButton.tonalIcon(
+              onPressed: () => Navigator.push<void>(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => AppearanceScreen(store: store),
+                ),
+              ),
+              icon: const Icon(Icons.palette_outlined),
+              label: const Text('Стилі оформлення · 10 варіантів'),
+            ),
+            const SizedBox(height: 12),
             DropdownButton<String>(
               value: store.themePreference,
               isExpanded: true,
@@ -284,7 +296,7 @@ class PacksScreen extends StatelessWidget {
             ),
             const Section('Про застосунок'),
             Text(
-              'AMID Offgrid · $appVersion\\nFlutter для телефонів, комп’ютерів і web; окремі мініклієнти годинників\\nКарти світу: Natural Earth, public domain.\\nОглядова карта не містить вулиць. Офлайн-маршрути працюють через імпортовану мережу AMID. Загальна дорожня навігація та ZIM-Вікіпедія ще не додані.\\nBluetooth: прямий сеанс між двома AMID; сумісність із Briar/BitChat не заявляється.'
+              'AMID Offgrid · $appVersion\\nFlutter для телефонів, комп’ютерів і web; окремі мініклієнти годинників\\nКарти світу: Natural Earth, public domain.\\nДетальні вулиці: Protomaps / OpenStreetMap (ODbL), збереження областей офлайн. Пошук адрес і розрахунок маршрутів по дорогах — онлайн; збережені маршрути доступні офлайн без перерахунку. Офлайн-розрахунок — через імпортовану мережу AMID. ZIM-Вікіпедія ще не додана.\\nBluetooth: прямий сеанс між двома AMID; сумісність із Briar/BitChat не заявляється.'
                   .replaceAll(r'\n', '\n'),
               style: TextStyle(height: 1.7),
             ),
