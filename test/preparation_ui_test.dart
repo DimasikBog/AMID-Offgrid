@@ -83,6 +83,37 @@ void main() {
 
         await tap('Відкрити карту');
         expect(openedMap, 1);
+        await tester.runAsync(
+          () => f.store.addAsset({
+            'id': 'fixture-map',
+            'kind': 'map',
+            'title': 'Fixture map',
+            'bytes': 1,
+            'path': 'unopened-fixture.mbtiles',
+          }),
+        );
+        await tester.pumpAndSettle();
+        final regionButton = find.byKey(
+          const ValueKey(
+            'prepared-region-11111111-1111-1111-1111-111111111111',
+          ),
+        );
+        await tester.ensureVisible(regionButton);
+        await tester.pumpAndSettle();
+        await tester.runAsync(() async {
+          await tester.tap(regionButton);
+          await tester.tap(regionButton);
+          final deadline = DateTime.now().add(const Duration(seconds: 3));
+          while (openedMap < 2 && DateTime.now().isBefore(deadline)) {
+            await Future<void>.delayed(const Duration(milliseconds: 10));
+          }
+        });
+        await tester.pumpAndSettle();
+        expect(services.streets.error, isNull);
+        expect(services.streets.mode, '11111111-1111-1111-1111-111111111111');
+        expect(openedMap, 2);
+        expect(f.store.selectedMap, isEmpty);
+        expect(f.store.streetMode, services.streets.mode);
         await tap('Офлайн-набір і резервна копія');
         expect(openedPacks, 1);
         await tap('Відкрити тренування SOS');

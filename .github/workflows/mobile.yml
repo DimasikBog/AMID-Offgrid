@@ -143,7 +143,8 @@ jobs:
         include:
           - {os: windows-2022, platform: windows}
           - {os: ubuntu-24.04, platform: linux}
-          - {os: macos-15, platform: macos}
+          # Avoid the constrained ARM hosted pool for desktop packaging.
+          - {os: macos-15-intel, platform: macos}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 40
     steps:
@@ -193,7 +194,7 @@ jobs:
           mkdir -p stage-macos/AMID_DOCUMENTATION dist
           ditto 'build/macos/Build/Products/Release/AMID Offgrid.app' 'stage-macos/AMID Offgrid.app'
           cp LICENSE THIRD_PARTY_NOTICES.md docs/INSTALL.md stage-macos/AMID_DOCUMENTATION/
-          uname -m > stage-macos/BUILD_ARCHITECTURE.txt
+          lipo -archs 'stage-macos/AMID Offgrid.app/Contents/MacOS/AMID Offgrid' > stage-macos/BUILD_ARCHITECTURE.txt
           ditto -c -k --sequesterRsrc stage-macos dist/AMID_Offgrid_macOS.zip
           python3 scripts/create_manifest.py --artifact dist/AMID_Offgrid_macOS.zip --platform macos --signing unsigned --commit "$GITHUB_SHA" --run-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" --quality success --bundled-starter
       - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
