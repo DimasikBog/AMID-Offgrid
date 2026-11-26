@@ -1,0 +1,76 @@
+{
+  "version": "0.5.0",
+  "date": "2026-11-26",
+  "python": {
+    "tests": 45,
+    "result": "PASS"
+  },
+  "firmware_host": {
+    "result": "PASS",
+    "coverage": [
+      "startup",
+      "NC switches",
+      "homing/backoff",
+      "watchdog",
+      "soft limits",
+      "serial overflow",
+      "millis wrap",
+      "duplicate and stale samples",
+      "scan/refine/no-signal",
+      "minimum 30-second sampling",
+      "80-second timeout with NA metrics",
+      "80-second tracking",
+      "single CLOSE event",
+      "5-minute idle de-energization",
+      "protocol 2 status",
+      "NC input telemetry in STATUS"
+    ]
+  },
+  "avr": {
+    "result": "PASS",
+    "target": "ATmega2560",
+    "core": "1.8.6",
+    "text_bytes": 12514,
+    "data_bytes": 124,
+    "bss_bytes": 821,
+    "flash_text_plus_data": 12638,
+    "static_ram_data_plus_bss": 945,
+    "note": "Unchanged v0.3 binary, host logic tests repeated; physical device not tested."
+  },
+  "physical": {
+    "motor": "NOT_RUN",
+    "switches": "NOT_RUN",
+    "powerbank": "NOT_RUN",
+    "RF_ACK": "NOT_RUN",
+    "range": "NOT_RUN",
+    "angleCalibration": "NOT_RUN"
+  },
+  "radio_assumptions": "Meshtastic PRIVATE_APP auto-ACK and metadata still require a two-node hardware test.",
+  "diagnostics": {
+    "serial_fixtures": "PASS",
+    "no_motion_commands": "PASS",
+    "reject_missing_or_malformed_telemetry": "PASS",
+    "unexpected_moving_state": "STOP_AND_ERROR",
+    "physical_verification": "NOT_VERIFIED"
+  },
+  "windows_cmd": "CREATED_NOT_EXECUTED_ON_WINDOWS",
+  "firmware_version": "0.3",
+  "panel": {
+    "http_local_integration": "PASS",
+    "command_whitelist": "PASS",
+    "origin_host_token_checks": "PASS",
+    "stale_status_blocks_motion_commands": "PASS",
+    "browser_lease_stop": "PASS",
+    "supervisor_lease_stop": "PASS",
+    "no_auto_resume": "PASS",
+    "js_syntax": "PASS",
+    "browser_render": "NOT_RUN: Chromium executable unavailable",
+    "hardware": "NOT_RUN"
+  },
+  "publication": {
+    "workflow_configured": true,
+    "github_ci": "PENDING",
+    "browser_local": "NOT_RUN: missing binary; download denied",
+    "firmware": "0.3"
+  }
+}
