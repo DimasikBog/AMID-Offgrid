@@ -1,0 +1,46 @@
+{
+  "version": "0.5.0",
+  "architecture": "Mega actuator + laptop USB bridge + two Meshtastic nodes",
+  "motor": "28BYJ-48 5V / ULN2003 reference only",
+  "sectorDeg": [
+    -135,
+    135
+  ],
+  "sampleWindowSeconds": {
+    "scanMinimum": 30,
+    "maximum": 80,
+    "tracking": 80
+  },
+  "minimumDistinctAcks": 2,
+  "probeIntervalSeconds": [
+    30,
+    35
+  ],
+  "physicalTests": {
+    "motor": "NOT_RUN",
+    "switches": "NOT_RUN",
+    "powerbank": "NOT_RUN",
+    "RF_ACK": "NOT_RUN",
+    "range": "NOT_RUN",
+    "angleCalibration": "NOT_RUN"
+  },
+  "idleCoilsOffSeconds": 300,
+  "protocolVersion": 2,
+  "localReports": [
+    "CSV",
+    "JSONL",
+    "HTML"
+  ],
+  "diagnosticProtocolVersion": 1,
+  "windowsLauncher": "CREATED_NOT_RUN_ON_WINDOWS",
+  "physicalChecklist": "NOT_RUN",
+  "firmwareVersion": "0.3",
+  "panel": {
+    "bind": "127.0.0.1",
+    "browserHeartbeatTimeoutSeconds": 3,
+    "supervisorHeartbeatTimeoutSeconds": 3,
+    "renderTest": "NOT_RUN",
+    "httpTests": "PASS"
+  },
+  "publication": "source-ready"
+}

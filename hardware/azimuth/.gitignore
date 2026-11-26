@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.venv/
+sessions/
+diagnostics/
+tools/build-tools
+tools/avr-objects/
+firmware/build/
+dist/
+ui-results/
+test_firmware
