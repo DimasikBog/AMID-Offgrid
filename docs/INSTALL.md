@@ -136,3 +136,5 @@ Windows/Linux probe `--self-test` перевіряє тимчасову SQLite-�
 Першоджерела: https://docs.flutter.dev/platform-integration/desktop,
 https://developer.android.com/training/wearables/get-started/creating,
 https://developer.apple.com/watchos/ .
+
+У macOS-пакеті `BUILD_ARCHITECTURE.txt` містить архітектури виконуваного файла програми, визначені `lipo`, а не лише тип комп’ютера, на якому пакет зібрано.
