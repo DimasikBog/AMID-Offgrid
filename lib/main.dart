@@ -10,6 +10,7 @@ import 'services/store.dart';
 import 'services/services.dart';
 import 'screens/basic.dart';
 import 'screens/emergency_screen.dart';
+import 'screens/preparation_screen.dart';
 import 'screens/assistant_screen.dart';
 import 'screens/packs_screen.dart';
 import 'screens/map_screen.dart';
@@ -445,6 +446,17 @@ class _OffgridShellState extends State<OffgridShell>
                       tooltip: 'Швидкі дії',
                       onSelected: (value) {
                         switch (value) {
+                          case 'preparation':
+                            Navigator.push<void>(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => PreparationScreen(
+                                  services: services,
+                                  openPacks: _packs,
+                                  openMap: _openMap,
+                                ),
+                              ),
+                            );
                           case 'catalog':
                             _catalog();
                           case 'account':
@@ -460,6 +472,10 @@ class _OffgridShellState extends State<OffgridShell>
                         }
                       },
                       itemBuilder: (_) => const [
+                        PopupMenuItem(
+                          value: 'preparation',
+                          child: Text('Перед дорогою'),
+                        ),
                         PopupMenuItem(
                           value: 'catalog',
                           child: Text('Карти та локальний ШІ'),

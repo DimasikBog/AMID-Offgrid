@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:amid_offgrid/main.dart' as app;
 import 'package:amid_offgrid/screens/lite_screen.dart';
 import 'package:amid_offgrid/screens/emergency_screen.dart';
+import 'package:amid_offgrid/screens/preparation_screen.dart';
 import 'package:amid_offgrid/screens/messages_screen.dart';
 import 'package:amid_offgrid/screens/assistant_screen.dart';
 import 'package:amid_offgrid/models/starter_content.dart';
@@ -153,6 +154,17 @@ void main() {
     );
     await settle(tester);
     await binding.takeScreenshot('03-map');
+    await tester.tap(find.byTooltip('Швидкі дії'));
+    await settle(tester);
+    await tester.tap(find.text('Перед дорогою'));
+    await settle(tester);
+    expect(find.byType(PreparationScreen), findsOneWidget);
+    expect(find.text('Детальні вулиці ще не збережені'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('Відкрити карту'), 180);
+    await settle(tester);
+    await tester.tap(find.text('Відкрити карту'));
+    await settle(tester);
+    expect(find.byType(PreparationScreen), findsNothing);
     // Never test a real emergency handoff. Both training barriers stay enabled.
     await tester.tap(find.byTooltip('SOS · Екстрена допомога'));
     await settle(tester);

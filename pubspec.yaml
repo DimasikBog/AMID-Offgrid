@@ -1,7 +1,7 @@
 name: amid_offgrid
 description: Native offline knowledge, local AI, maps and nearby communication.
 publish_to: none
-version: 0.10.0+17
+version: 0.10.1+18
 environment:
   sdk: '>=3.13.0 <4.0.0'
 dependencies:
