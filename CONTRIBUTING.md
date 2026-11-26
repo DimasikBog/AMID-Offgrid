@@ -1,5 +1,7 @@
 # Розробка AMID Offgrid
 
+[Швидкий старт](docs/QUICKSTART.md) · [English](README.en.md) · [Повідомлення про вразливості](SECURITY.md)
+
 MIT поширюється на власний код AMID. Не додавай сторонні тексти, карти, моделі
 або бінарні файли без права поширення. Особисті дані та ключі не комітяться.
 
@@ -46,3 +48,35 @@ lib/version.dart і watch-клієнтах: check_project.py перевіряє 
 `python3 -m unittest discover -s scripts -p 'test_*.py'` виконує всі перевірки.
 Після `flutter build web` виконай `python3 scripts/build_web_cache.py build/web`.
 Не публікуй build до генерації offline manifest/worker. Див. docs/WEB_OFFLINE.md.
+
+## Зручний шаблон повідомлення про помилку
+
+[Створити issue](https://github.com/DimasikBog/AMID-Offgrid/issues/new) із таким описом:
+
+```text
+Версія / source commit:
+Платформа, ОС і модель пристрою (без IMEI/серійного номера):
+Кроки відтворення:
+Очікуваний результат:
+Фактичний результат:
+Очищена помилка або знімок із синтетичними даними:
+Фізичний пристрій чи емулятор:
+```
+
+Не публікуй координати, токени, TOTP/резервні коди, приватні ключі, особисті
+повідомлення чи повні резервні копії. Для вразливостей використовуй
+[SECURITY.md](SECURITY.md). Для SOS підходять підміни або тренування;
+тестові дзвінки й SMS до екстрених служб робити не потрібно.
+
+Для серверних змін додатково виконай `node --test scripts/test_account_service.mjs`.
+У Windows замінюй `python3` на `py -3`.
+
+## English essentials
+
+Fork the repository, use a focused branch and submit a PR to `main`. Use
+Flutter 3.47.6, keep dependency pins and preserve app IDs, backups and user data.
+Include actual test commands/results; mark tests you did not run. Distinguish
+emulator evidence from physical-device testing. Do not upload credentials,
+private signing material, personal backups or location data. Use synthetic
+examples and test SOS only with fakes/training. Preserve third-party licenses.
+The native build/release rules above remain the reference for contributors.

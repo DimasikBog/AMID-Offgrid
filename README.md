@@ -1,5 +1,7 @@
 # AMID Offgrid 0.10.2
 
+[English](README.en.md) · [Швидкий старт](docs/QUICKSTART.md) · [Участь](CONTRIBUTING.md) · [Безпека](SECURITY.md) · [Ліцензія MIT](LICENSE)
+
 Спільний Flutter-застосунок для Android, iPhone і комп’ютерів та вебверсія:
 локальні знання, нотатки, обране й резервні копії. Нативні платформи додають
 GGUF та MBTiles; прямий BLE-чат увімкнений лише на Android/iPhone. Український
