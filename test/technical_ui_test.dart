@@ -16,6 +16,7 @@ void main() {
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
       final fixture = (await tester.runAsync(openTestStore))!;
+      await tester.runAsync(() => fixture.store.setStreetMode('overview'));
       final services = Services(fixture.store);
       try {
         await tester.pumpWidget(

@@ -136,6 +136,10 @@ void main() {
       );
       await ai.unload();
     }
+    // This scenario verifies the bundled offline overview without a public server.
+    await store.setThemeStyle('cyberpunk');
+    await store.setThemePreference('dark');
+    await store.setStreetMode('overview');
     await tester.tap(find.text('Карта').last);
     await settle(tester);
     expect(find.text('Оглядова карта світу · без вулиць'), findsOneWidget);
@@ -190,6 +194,8 @@ void main() {
     expect(restored.body, body);
     expect(reopened.favoriteKeys, contains(restored.key));
     expect(reopened.preparation, contains('water'));
+    expect(reopened.themeStyle, 'cyberpunk');
+    expect(reopened.themePreference, 'dark');
     expect(
       (await reopened.search(title)).map((item) => item.key),
       contains(restored.key),

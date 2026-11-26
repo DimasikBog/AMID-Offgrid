@@ -52,6 +52,7 @@ class OffgridApp extends StatefulWidget {
 class _OffgridAppState extends State<OffgridApp> {
   late Future<AppStore> _store;
   ThemeMode _mode = ThemeMode.system;
+  String _style = 'forest';
   AppStore? _resolved;
   @override
   void initState() {
@@ -77,7 +78,13 @@ class _OffgridAppState extends State<OffgridApp> {
       'light' => ThemeMode.light,
       _ => ThemeMode.system,
     };
-    if (mounted && mode != _mode) setState(() => _mode = mode);
+    final style = _resolved?.themeStyle ?? 'forest';
+    if (mounted && (mode != _mode || style != _style)) {
+      setState(() {
+        _mode = mode;
+        _style = style;
+      });
+    }
   }
 
   @override
@@ -86,7 +93,8 @@ class _OffgridAppState extends State<OffgridApp> {
     super.dispose();
   }
 
-  ThemeData _theme(Brightness brightness) => offgridTheme(brightness);
+  ThemeData _theme(Brightness brightness) =>
+      offgridTheme(brightness, style: _style);
 
   @override
   Widget build(BuildContext context) => MaterialApp(
@@ -255,6 +263,7 @@ class _OffgridShellState extends State<OffgridShell>
     }
     if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.detached) {
+      services.streets.cancelDownload();
       // Let the unfinished AAL1 flow survive an authenticator-app switch.
       // No profile access is possible before TOTP; the idle timeout still applies.
       if (services.account.locallyAccessible ||

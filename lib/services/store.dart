@@ -8,6 +8,8 @@ import 'package:uuid/uuid.dart';
 
 import '../models/data.dart';
 import '../models/preferences.dart';
+import '../models/appearance.dart';
+import '../models/street_map.dart';
 import '../models/radio_field_test.dart';
 import '../models/starter_content.dart';
 import '../models/web_page.dart';
@@ -24,6 +26,9 @@ class AppStore extends ChangeNotifier {
   List<RadioFieldReport> get radioReports => List.unmodifiable(_radioReports);
   Set<String> favoriteKeys = {};
   String themePreference = 'system';
+  String themeStyle = 'forest';
+  List<StreetRegion> streetRegions = [];
+  String streetMode = 'online';
   double readerScale = 1;
   Set<String> preparation = {};
   bool starterAutoSetup = true;
@@ -40,6 +45,7 @@ class AppStore extends ChangeNotifier {
   Future<Json> Function(Json)? _protectPersonalization;
   Json get personalization => {
     'themePreference': themePreference,
+    'themeStyle': themeStyle,
     'readerScale': readerScale,
     'preparation': preparation.toList()..sort(),
   };
@@ -93,10 +99,12 @@ class AppStore extends ChangeNotifier {
     }
     final scale = checkedReaderScale(value['readerScale']);
     final prepared = checkedPreparation(value['preparation']);
+    final style = checkedThemeStyle(value['themeStyle'] ?? 'forest');
     return _mutate(() {
       themePreference = value['themePreference'] as String;
       readerScale = scale;
       preparation = prepared;
+      themeStyle = style;
     }, checkActive: checkActive);
   }
 
@@ -172,6 +180,31 @@ class AppStore extends ChangeNotifier {
         ? data['themePreference'] as String
         : 'system';
     readerScale = checkedReaderScale(data['readerScale'] ?? 1);
+    themeStyle = validThemeStyle(data['themeStyle'])
+        ? data['themeStyle'] as String
+        : 'forest';
+    streetRegions = [];
+    final savedRegions = data['streetRegions'];
+    for (final raw
+        in (savedRegions is List ? savedRegions : []).whereType<Map>().take(
+          12,
+        )) {
+      try {
+        streetRegions.add(StreetRegion(Json.from(raw)));
+      } on FormatException {
+        /* Keep other local content usable after a damaged region. */
+      }
+    }
+    streetMode = data['streetMode'] is String
+        ? data['streetMode'] as String
+        : 'online';
+    if (!{
+      'online',
+      'overview',
+      ...streetRegions.map((r) => r.id),
+    }.contains(streetMode)) {
+      streetMode = 'overview';
+    }
     preparation = checkedPreparation(data['preparation'] ?? <String>[]);
     starterAutoSetup = data['starterAutoSetup'] is bool
         ? data['starterAutoSetup'] as bool
@@ -201,6 +234,9 @@ class AppStore extends ChangeNotifier {
     'selectedMap': selectedMap,
     'favoriteKeys': favoriteKeys.toList(),
     'themePreference': themePreference,
+    'themeStyle': themeStyle,
+    'streetRegions': streetRegions.map((r) => r.data).toList(),
+    'streetMode': streetMode,
     'readerScale': readerScale,
     'preparation': preparation.toList(),
     'starterAutoSetup': starterAutoSetup,
@@ -343,6 +379,38 @@ class AppStore extends ChangeNotifier {
   });
   Future<void> setReaderScale(double value) =>
       _mutate(() => readerScale = checkedReaderScale(value));
+  Future<void> setThemeStyle(String value) =>
+      _mutate(() => themeStyle = checkedThemeStyle(value));
+  Future<void> setStreetMode(String value, {void Function()? checkActive}) =>
+      _mutate(() {
+        if (!{
+          'online',
+          'overview',
+          ...streetRegions.map((r) => r.id),
+        }.contains(value)) {
+          throw const FormatException('Область карти недоступна.');
+        }
+        streetMode = value;
+      }, checkActive: checkActive);
+  Future<void> saveStreetRegion(
+    Json data, {
+    void Function()? checkActive,
+  }) => _mutate(() {
+    final region = StreetRegion(data);
+    if (streetRegions.length >= 12 ||
+        streetRegions.any((r) => r.id == region.id) ||
+        streetRegions.fold<int>(0, (n, r) => n + r.bytes) + region.bytes >
+            maxStreetStorageBytes) {
+      throw const FormatException(
+        'Ліміт збережених областей: 12 або 250 MiB. Видали непотрібні області.',
+      );
+    }
+    streetRegions = [...streetRegions, region];
+  }, checkActive: checkActive);
+  Future<void> deleteStreetRegion(String id) => _mutate(() {
+    streetRegions = streetRegions.where((r) => r.id != id).toList();
+    if (streetMode == id) streetMode = 'overview';
+  });
   Future<void> setPrepared(String id, bool value) => _mutate(() {
     if (!preparationItems.containsKey(id)) {
       throw const FormatException('Невідомий пункт підготовки.');
@@ -621,6 +689,7 @@ class AppStore extends ChangeNotifier {
     'draft': draft,
     'favoriteKeys': favoriteKeys.toList(),
     'themePreference': themePreference,
+    'themeStyle': themeStyle,
     'readerScale': readerScale,
     'preparation': preparation.toList(),
   };
@@ -669,6 +738,9 @@ class AppStore extends ChangeNotifier {
       throw const FormatException('Некоректний список обраного.');
     }
     final theme = value['themePreference'];
+    final style = value.containsKey('themeStyle')
+        ? checkedThemeStyle(value['themeStyle'])
+        : null;
     final scale = value.containsKey('readerScale')
         ? checkedReaderScale(value['readerScale'])
         : null;
@@ -748,6 +820,7 @@ class AppStore extends ChangeNotifier {
         );
         if (draft.isEmpty) draft = incomingDraft;
         if (theme != null) themePreference = theme as String;
+        if (style != null) themeStyle = style;
         if (scale != null) readerScale = scale;
         if (prepared != null) preparation = prepared;
       },

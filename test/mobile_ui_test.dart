@@ -27,6 +27,7 @@ void main() {
           ),
           seedText: File('assets/starter.json').readAsStringSync(),
         );
+        await store.setStreetMode('overview');
         return (root, store);
       });
       final root = pair!.$1, store = pair.$2;

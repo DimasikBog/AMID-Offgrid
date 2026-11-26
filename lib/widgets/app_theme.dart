@@ -1,9 +1,15 @@
 import 'package:flutter/material.dart';
 
 import 'common.dart';
+import '../models/appearance.dart';
 
-ThemeData offgridTheme(Brightness brightness) {
+ThemeData offgridTheme(Brightness brightness, {String style = 'forest'}) {
   final dark = brightness == Brightness.dark;
+  final preset = appearancePresets.firstWhere(
+    (p) => p.id == style,
+    orElse: () => appearancePresets.first,
+  );
+  final radius = preset.radius;
   final colors =
       ColorScheme.fromSeed(
         seedColor: const Color(0xff326550),
@@ -24,18 +30,35 @@ ThemeData offgridTheme(Brightness brightness) {
             ? const Color(0xffafc0b5)
             : const Color(0xff596b60),
       );
+  final scheme = style == 'forest'
+      ? colors
+      : ColorScheme.fromSeed(
+          seedColor: Color(preset.seed),
+          brightness: brightness,
+        ).copyWith(
+          primary: Color(dark ? preset.darkAccent : preset.lightAccent),
+          onPrimary: dark ? const Color(0xff101018) : Colors.white,
+          secondary: style == 'cyberpunk'
+              ? (dark ? const Color(0xffff8fd6) : const Color(0xff9a286e))
+              : null,
+          surface: Color(dark ? preset.darkSurface : preset.lightSurface),
+          surfaceContainerLow: Color.alphaBlend(
+            Color(preset.seed).withValues(alpha: dark ? .12 : .025),
+            Color(dark ? preset.darkSurface : 0xffffffff),
+          ),
+        );
   return ThemeData(
     useMaterial3: true,
     fontFamily: 'Roboto',
-    colorScheme: colors,
-    scaffoldBackgroundColor: colors.surface,
+    colorScheme: scheme,
+    scaffoldBackgroundColor: scheme.surface,
     textTheme: ThemeData(brightness: brightness).textTheme.apply(
       fontFamily: 'Roboto',
-      bodyColor: colors.onSurface,
-      displayColor: colors.onSurface,
+      bodyColor: scheme.onSurface,
+      displayColor: scheme.onSurface,
     ),
     appBarTheme: AppBarTheme(
-      backgroundColor: colors.surface,
+      backgroundColor: scheme.surface,
       surfaceTintColor: Colors.transparent,
       centerTitle: false,
       titleSpacing: 24,
@@ -44,16 +67,16 @@ ThemeData offgridTheme(Brightness brightness) {
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: colors.surfaceContainerLow,
+      fillColor: scheme.surfaceContainerLow,
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(style == 'forest' ? 16 : radius),
         borderSide: BorderSide.none,
       ),
       contentPadding: const EdgeInsets.all(17),
     ),
     navigationBarTheme: NavigationBarThemeData(
-      backgroundColor: colors.surfaceContainerLow,
-      indicatorColor: colors.primaryContainer,
+      backgroundColor: scheme.surfaceContainerLow,
+      indicatorColor: scheme.primaryContainer,
       height: 78,
       labelTextStyle: WidgetStateProperty.resolveWith(
         (states) => TextStyle(
@@ -62,45 +85,53 @@ ThemeData offgridTheme(Brightness brightness) {
               ? FontWeight.w700
               : FontWeight.w500,
           color: states.contains(WidgetState.selected)
-              ? colors.primary
-              : colors.onSurfaceVariant,
+              ? scheme.primary
+              : scheme.onSurfaceVariant,
         ),
       ),
     ),
     navigationRailTheme: NavigationRailThemeData(
-      backgroundColor: colors.surface,
-      indicatorColor: colors.primaryContainer,
-      selectedIconTheme: IconThemeData(color: colors.primary),
-      unselectedIconTheme: IconThemeData(color: colors.onSurfaceVariant),
+      backgroundColor: scheme.surface,
+      indicatorColor: scheme.primaryContainer,
+      selectedIconTheme: IconThemeData(color: scheme.primary),
+      unselectedIconTheme: IconThemeData(color: scheme.onSurfaceVariant),
       selectedLabelTextStyle: TextStyle(
         fontFamily: 'Roboto',
-        color: colors.primary,
+        color: scheme.primary,
         fontWeight: FontWeight.w700,
       ),
       unselectedLabelTextStyle: TextStyle(
         fontFamily: 'Roboto',
-        color: colors.onSurfaceVariant,
+        color: scheme.onSurfaceVariant,
       ),
     ),
-    dividerTheme: DividerThemeData(color: colors.outlineVariant, thickness: 1),
+    dividerTheme: DividerThemeData(color: scheme.outlineVariant, thickness: 1),
     chipTheme: ChipThemeData(
-      side: BorderSide(color: colors.outlineVariant),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      side: BorderSide(color: scheme.outlineVariant),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(style == 'forest' ? 12 : radius),
+      ),
     ),
     listTileTheme: ListTileThemeData(
-      iconColor: colors.onSurfaceVariant,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      iconColor: scheme.onSurfaceVariant,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(style == 'forest' ? 18 : radius),
+      ),
     ),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(radius),
+        ),
       ),
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(radius),
+        ),
       ),
     ),
   );

@@ -19,6 +19,7 @@ def main():
     with tempfile.TemporaryDirectory(prefix='amid-catalog-test-') as directory:
         defines = Path(directory) / 'metadata.json'
         defines.write_text(json.dumps({
+            'OFFGRID_STREET_TILE_BASE64': base64.b64encode((ROOT / 'test/fixtures/streets/15-17759-11104.pbf').read_bytes()).decode('ascii'),
             'OFFGRID_CATALOG_BASE64': base64.b64encode((ROOT / 'assets/catalog.json').read_bytes()).decode('ascii'),
             'OFFGRID_STARTER_BASE64': base64.b64encode((ROOT / 'assets/offline_model/catalog.json').read_bytes()).decode('ascii'),
             'OFFGRID_MESH_VECTORS_BASE64': base64.b64encode((ROOT / 'test/fixtures/mesh_vectors.json').read_bytes()).decode('ascii'),
@@ -29,7 +30,8 @@ def main():
                         'test/catalog_metadata_test.dart',
                         'test/offline_profile_codec_test.dart',
                         'test/mesh_wire_test.dart',
-                        'test/radio_field_test.dart'], cwd=ROOT, check=True)
+                        'test/radio_field_test.dart',
+                        *(['test/street_storage_browser.dart'] if args.platform == 'chrome' else [])], cwd=ROOT, check=True)
 
 
 if __name__ == '__main__':

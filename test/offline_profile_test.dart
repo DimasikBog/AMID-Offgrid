@@ -25,6 +25,7 @@ void main() {
         passphrase: phrase,
       );
       await vault.rename('Alice private nickname');
+      await f.store.setThemeStyle('cyberpunk');
       await f.store.setReaderScale(1.5);
       await f.store.setPrepared('water', true);
       final cancelled = f.store.setReaderScale(1.7);
@@ -32,6 +33,7 @@ void main() {
       await expectLater(cancelled, throwsStateError);
       expect(f.store.readerScale, 1.5);
       await f.store.setThemePreference('light');
+      await f.store.setThemeStyle('classic');
       await f.store.setReaderScale(1);
       await vault.create(
         username: 'bob_local',
@@ -72,6 +74,7 @@ void main() {
       expect(account.signedIn, isFalse);
       expect(account.offline!.displayName, 'Alice private nickname');
       expect(reopened.themePreference, 'dark');
+      expect(reopened.themeStyle, 'cyberpunk');
       expect(reopened.readerScale, 1.5);
       expect(reopened.preparation, {'water'});
       await expectLater(account.recoveryCodes(), throwsStateError);
@@ -85,6 +88,7 @@ void main() {
         'another local forest passphrase',
       );
       expect(reopened.themePreference, 'light');
+      expect(reopened.themeStyle, 'classic');
       expect(reopened.readerScale, 1);
       await account.forgetOffline('bob_local');
       expect(account.offlineUnlocked, isFalse);
