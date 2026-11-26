@@ -9,6 +9,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'services/store.dart';
 import 'services/services.dart';
 import 'screens/basic.dart';
+import 'screens/emergency_screen.dart';
 import 'screens/assistant_screen.dart';
 import 'screens/packs_screen.dart';
 import 'screens/map_screen.dart';
@@ -407,6 +408,19 @@ class _OffgridShellState extends State<OffgridShell>
                     ],
                   ),
                   actions: [
+                    IconButton(
+                      tooltip: 'SOS · Екстрена допомога',
+                      onPressed: () => Navigator.push<void>(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const EmergencyScreen(),
+                        ),
+                      ),
+                      icon: Icon(
+                        Icons.sos,
+                        color: Theme.of(context).colorScheme.error,
+                      ),
+                    ),
                     if (size.maxWidth >= 500)
                       IconButton(
                         tooltip: 'Змінити тему',

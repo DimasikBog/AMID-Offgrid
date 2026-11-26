@@ -72,7 +72,11 @@
 	<string>Обмін повідомленнями AMID поблизу без інтернету.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Сканування QR-коду для сполучення з іншим телефоном AMID.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Лише після натискання мікрофона: коротке голосове підтвердження SOS. Звичайна кнопка доступна без мікрофона.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Локальне розпізнавання фрази підтвердження SOS, якщо воно підтримується пристроєм.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Показати твою GPS-позицію на збереженій карті після натискання кнопки.</string>
+	<string>Показати GPS-позицію на карті або підготувати координати SOS після твоєї дії.</string>
 </dict>
 </plist>

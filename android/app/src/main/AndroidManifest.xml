@@ -8,6 +8,8 @@
  <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
  <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
  <uses-permission android:name="android.permission.CAMERA"/>
+ <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+ <uses-feature android:name="android.hardware.microphone" android:required="false"/>
  <uses-feature android:name="android.hardware.bluetooth_le" android:required="false"/>
  <uses-feature android:name="android.hardware.camera" android:required="false"/>
  <application android:label="AMID Offgrid" android:name="${applicationName}" android:icon="@mipmap/ic_launcher" android:allowBackup="false" android:usesCleartextTraffic="false">
@@ -17,5 +19,5 @@
   </activity>
   <meta-data android:name="flutterEmbedding" android:value="2"/>
  </application>
- <queries><intent><action android:name="android.intent.action.PROCESS_TEXT"/><data android:mimeType="text/plain"/></intent></queries>
+ <queries><intent><action android:name="android.intent.action.PROCESS_TEXT"/><data android:mimeType="text/plain"/></intent><intent><action android:name="android.speech.RecognitionService"/></intent></queries>
 </manifest>
