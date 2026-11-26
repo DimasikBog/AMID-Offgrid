@@ -31,6 +31,8 @@ requiresOnDeviceRecognition; переходу на хмарну транскри
 Web, Windows, Linux і macOS використовують підтвердження кнопкою.
 Недоступний мікрофон, мова чи дозвіл не блокують звичайну кнопку.
 
+На iOS запис завершується через 8 секунд, щоб локальний розпізнавач міг повернути остаточну фразу; повна сесія жорстко завершується не пізніше 12 секунд.
+
 Розпізнаються лише фінальні результати активної сесії, фраза має збігатися
 повністю. Слухання обмежено 12 секундами також у нативному коді. Підтвердження
 одноразове, дійсне 1 хвилину; скасування, переривання/згортання екрана,
@@ -87,5 +89,3 @@ SOS не зберігає координати, чернетку, ім’я, з�
 - [Apple: Phone Links](https://developer.apple.com/library/archive/featuredarticles/iPhoneURLScheme_Reference/PhoneLinks/PhoneLinks.html).
 - [Apple: MessageUI та відсутність гарантії доставлення](https://developer.apple.com/documentation/messageui/mfmessagecomposeviewcontroller).
 - [Android: локальний SpeechRecognizer](https://developer.android.com/reference/android/speech/SpeechRecognizer).
-
-На iOS запис завершується через 8 секунд, щоб локальний розпізнавач міг повернути остаточну фразу; повна сесія жорстко завершується не пізніше 12 секунд.
