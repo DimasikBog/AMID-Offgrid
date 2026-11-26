@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:amid_offgrid/main.dart' as app;
 import 'package:amid_offgrid/screens/lite_screen.dart';
+import 'package:amid_offgrid/screens/emergency_screen.dart';
 import 'package:amid_offgrid/screens/messages_screen.dart';
 import 'package:amid_offgrid/screens/assistant_screen.dart';
 import 'package:amid_offgrid/models/starter_content.dart';
@@ -152,6 +153,29 @@ void main() {
     );
     await settle(tester);
     await binding.takeScreenshot('03-map');
+    // Never test a real emergency handoff. Both training barriers stay enabled.
+    await tester.tap(find.byTooltip('SOS · Екстрена допомога'));
+    await settle(tester);
+    expect(find.byType(EmergencyScreen), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('sos-test-mode')));
+    await settle(tester);
+    expect(
+      find.text('ТРЕНУВАННЯ ввімкнено. SOS не запускає виклики чи SMS.'),
+      findsOneWidget,
+    );
+    expect(find.text('Тренування · SOS · Виклик 112'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('sos-call')));
+    await settle(tester);
+    expect(find.text('Підтвердити тренування'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('sos-confirm')));
+    await settle(tester);
+    expect(
+      find.text('ТРЕНУВАННЯ завершено. Виклики та SMS не запускалися.'),
+      findsOneWidget,
+    );
+    await binding.takeScreenshot('03b-sos-training');
+    await tester.pageBack();
+    await settle(tester);
     await tester.tap(find.text('Зв’язок').last);
     await settle(tester);
     await tester.scrollUntilVisible(
