@@ -15,6 +15,7 @@ import AVFoundation
   private var speechTask: SFSpeechRecognitionTask?
   private var audioActive = false
   private var voiceTimeout: DispatchWorkItem?
+  private var voiceFinish: DispatchWorkItem?
   private var filesChannel: FlutterMethodChannel?
   override func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
@@ -127,6 +128,15 @@ import AVFoundation
       }
       engine.prepare()
       try engine.start()
+      // End input before the hard deadline so local recognition can emit a final result.
+      let finish = DispatchWorkItem { [weak self] in
+        guard let self, self.voiceId == id else { return }
+        if let engine = self.audioEngine { engine.stop(); engine.inputNode.removeTap(onBus: 0) }
+        self.audioEngine = nil
+        self.speechRequest?.endAudio()
+      }
+      voiceFinish = finish
+      DispatchQueue.main.asyncAfter(deadline: .now() + 8, execute: finish)
       let deadline = DispatchWorkItem { [weak self] in
         guard let self, self.voiceId == id else { return }
         self.voiceSink?(["session": id, "error": true])
@@ -140,6 +150,7 @@ import AVFoundation
   private func stopVoice() {
     voiceId = nil
     voiceTimeout?.cancel(); voiceTimeout = nil
+    voiceFinish?.cancel(); voiceFinish = nil
     let result = voiceStartResult; voiceStartResult = nil; result?(false)
     if let engine = audioEngine { engine.stop(); engine.inputNode.removeTap(onBus: 0) }
     audioEngine = nil

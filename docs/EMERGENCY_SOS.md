@@ -87,3 +87,5 @@ SOS не зберігає координати, чернетку, ім’я, з�
 - [Apple: Phone Links](https://developer.apple.com/library/archive/featuredarticles/iPhoneURLScheme_Reference/PhoneLinks/PhoneLinks.html).
 - [Apple: MessageUI та відсутність гарантії доставлення](https://developer.apple.com/documentation/messageui/mfmessagecomposeviewcontroller).
 - [Android: локальний SpeechRecognizer](https://developer.android.com/reference/android/speech/SpeechRecognizer).
+
+На iOS запис завершується через 8 секунд, щоб локальний розпізнавач міг повернути остаточну фразу; повна сесія жорстко завершується не пізніше 12 секунд.
